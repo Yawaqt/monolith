@@ -1,10 +1,10 @@
 // Public pages: visible to everyone, built only from the safe public data.
-import { t } from './i18n.js?v=202611251953';
-import { state, can, esc, fmtDate, empty, safeImg, evRange, evKind } from './core.js?v=202611251953';
-import { newsCard, md } from './pages-news.js?v=202611251953';
-import { typeLabel, pct } from './data.js?v=202611251953';
-import { appsCards } from './pages-team.js?v=202611251953';
-import { CONFIG } from './config.js?v=202611251953';
+import { t } from './i18n.js?v=202611252012';
+import { state, can, esc, fmtDate, empty, safeImg, evRange, evKind } from './core.js?v=202611252012';
+import { newsCard, md } from './pages-news.js?v=202611252012';
+import { typeLabel, pct } from './data.js?v=202611252012';
+import { appsCards } from './pages-team.js?v=202611252012';
+import { CONFIG } from './config.js?v=202611252012';
 const IG_ICON = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>';
 
 const PUB = () => state.pub || { players: [], results: [], events: [] };
@@ -20,7 +20,6 @@ function eventRow(e) {
     <div><h3>${esc(e.title)}</h3><p class="mute">${esc(evRange(e, true))}${e.location ? ' · ' + esc(e.location) : ''}</p><span class="tag kind${e.kind === 'Team Tournament' ? ' team' : ''}">${esc(evKind(e))}</span></div></li>`;
 }
 function playerCard(p, full = false) {
-  const bcp = p.bcp_url && /^https:\/\/([a-z0-9-]+\.)*bestcoastpairings\.com\//i.test(p.bcp_url);
   const photo = `<span class="avatar${safeImg(p.photo_url) ? ' photo' : ''}" aria-hidden="true">${safeImg(p.photo_url) ? `<img src="${esc(safeImg(p.photo_url))}" alt="" loading="lazy">` : esc(p.name.slice(0, 1))}</span>`;
   const armies = p.armies.length ? `<div class="chips">${p.armies.map(a => `<span class="chip">${esc(a)}</span>`).join('')}</div>` : `<span class="mute">–</span>`;
   if (!full) return `<article class="pcard"><div class="pcard-top">${photo}<div><h3>${esc(p.name)}</h3></div></div>${p.armies.length ? armies : ''}</article>`;
@@ -31,7 +30,6 @@ function playerCard(p, full = false) {
       <dt>${esc(t('fav_army'))}</dt><dd>${p.fav_army ? `<b>${esc(p.fav_army)}</b>` : empty}</dd>
       <dt>${esc(t('played_at_tours'))}</dt><dd>${armies}</dd>
       <dt>${esc(t('bio'))}</dt><dd class="bio">${p.bio ? esc(p.bio) : empty}</dd>
-      <dt>${esc(t('bcp_profile'))}</dt><dd>${bcp ? `<a class="pcard-link" href="${esc(p.bcp_url)}" target="_blank" rel="noopener">${esc(t('bcp_open'))} ↗</a>` : empty}</dd>
     </dl></article>`;
 }
 // Group photo slideshow: swipe on the phone, arrows and dots, advances by itself every 6 s

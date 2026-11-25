@@ -44,3 +44,20 @@ alter table public.tevents add column if not exists notes text check (notes is n
 alter table public.tevent_rounds add column if not exists opp_team text;
 alter table public.tevent_rounds add column if not exists notes text check (notes is null or length(notes) <= 8000);
 grant select (matrix, opponents, notes) on public.tevents to authenticated;
+
+-- 25 Nov 2026: BCP link removed from the public player list (members still see it in the team area)
+drop function if exists public.public_players();
+create function public.public_players()
+returns table (name text, sort int, armies text[], photo_url text, fav_army text, bio text)
+language sql stable security definer set search_path = public as $$
+  select p.name, p.sort,
+         coalesce(array(select m.army from public.matches m
+                        where m.player_id = p.id and m.type in ('Tournament', 'Team Tournament')
+                        group by m.army order by count(*) desc, max(m.played_on) desc), '{}'),
+         p.photo_url, p.fav_army, p.bio
+  from public.players p
+  where p.active
+  order by p.sort, p.name
+$$;
+revoke all on function public.public_players() from public;
+grant execute on function public.public_players() to anon, authenticated;

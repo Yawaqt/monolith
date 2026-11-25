@@ -1,6 +1,6 @@
 // Imprint (Offenlegung § 25 MedienG) and privacy policy (DSGVO). German is the binding version.
-import { t, getLang } from './i18n.js?v=202611251953';
-import { state, esc } from './core.js?v=202611251953';
+import { t, getLang } from './i18n.js?v=202611252012';
+import { state, esc } from './core.js?v=202611252012';
 
 const legal = () => (state.pub && state.pub.site && state.pub.site.legal) || {};
 const fill = (v, what) => v ? esc(v) : `<span class="todo">[${esc(what)}]</span>`;
@@ -38,7 +38,7 @@ export function privacy(el) {
 
   <h3>4. Daten im Teambereich (Mitglieder)</h3>
   <p>Für freigeschaltete Mitglieder speichern wir Daten, die für den Teambetrieb nötig sind: Spielergebnisse und Armeen, Zu- und Absagen zu Terminen, Turnier- und Pairing-Planung mit Notizen sowie interne Kassa-Einträge. Diese Daten sehen nur angemeldete Mitglieder; einzelne Bereiche nur Captains oder Admins. Rechtsgrundlage: Art. 6 Abs. 1 lit. b und f DSGVO (Organisation des Teams).</p>
-  <p><b>Öffentlich sichtbar</b> sind nur: Spielername, freiwilliges Foto und Steckbrief (Lieblingsarmee, „Über mich“, BCP-Link), die Armeen, mit denen jemand auf Turnieren gespielt hat, sowie Team-Bilanzen pro Turnier <b>ohne</b> Namen einzelner Spieler.</p>
+  <p><b>Öffentlich sichtbar</b> sind nur: Spielername, freiwilliges Foto und Steckbrief (Lieblingsarmee, „Über mich“), die Armeen, mit denen jemand auf Turnieren gespielt hat, sowie Team-Bilanzen pro Turnier <b>ohne</b> Namen einzelner Spieler.</p>
 
   <h3>5. Fotos, Steckbrief und Gruppenfotos</h3>
   <p>Profilfoto, Lieblingsarmee und „Über mich“ sind freiwillig und werden auf Grundlage deiner Einwilligung veröffentlicht (Art. 6 Abs. 1 lit. a DSGVO). Du kannst sie jederzeit im Profil ändern oder löschen; damit widerrufst du die Einwilligung für die Zukunft. Gruppenfotos veröffentlichen wir nur mit Einverständnis der abgebildeten Personen – wenn du auf einem Foto nicht zu sehen sein möchtest, melde dich bei uns, wir entfernen es.</p>
@@ -53,7 +53,7 @@ export function privacy(el) {
   <p>Wir verwenden <b>keine Analyse-, Werbe- oder Tracking-Cookies</b>. Im Speicher deines Browsers (Local Storage) legen wir nur ab, was für die Funktion nötig ist: deine Anmeldung, die gewählte Sprache und Einstellungen wie zuletzt gewählte Armee oder Filter. Das ist nach § 165 Abs. 3 TKG 2021 ohne Einwilligung zulässig, weil es für den von dir gewünschten Dienst unbedingt erforderlich ist.</p>
 
   <h3>9. Links zu anderen Seiten</h3>
-  <p>Links zu Instagram oder Best Coast Pairings werden erst aktiv, wenn du sie anklickst. Ab dann gelten die Datenschutzbestimmungen dieser Anbieter.</p>
+  <p>Links zu Instagram oder (im Teambereich) Best Coast Pairings werden erst aktiv, wenn du sie anklickst. Ab dann gelten die Datenschutzbestimmungen dieser Anbieter.</p>
 
   <h3>10. Speicherdauer</h3>
   <p>Kontodaten speichern wir, bis du dein Konto löschst. Match History und Sammlung werden mit dem Konto gelöscht. Spielergebnisse, die als Teil der Team-Geschichte im Match Log stehen, bleiben auf Grundlage unseres berechtigten Interesses an einer vollständigen Team-Statistik erhalten; auf Wunsch anonymisieren oder löschen wir sie.</p>
