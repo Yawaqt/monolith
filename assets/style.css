@@ -30,6 +30,12 @@ h1{font-size:clamp(30px,4.6vw,46px);font-weight:800}h2{font-size:clamp(21px,2.4v
 .pubnav a{text-decoration:none;color:var(--mute);font-weight:500;padding:8px 12px;border-radius:8px}
 .pubnav a:hover{color:var(--ink);background:var(--soft)}.pubnav a[aria-current]{color:var(--ink);font-weight:600}
 .top-tools{display:flex;align-items:center;gap:12px;margin-left:auto}
+.ig{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;color:var(--ink);border:1px solid var(--line)}.ig:hover{border-color:var(--ink)}
+.ig-text{display:inline-flex;align-items:center;gap:6px}.ig-text svg{width:16px;height:16px}
+.follow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:18px;align-items:center;border:1px solid var(--line);border-radius:var(--radius);padding:22px;text-decoration:none;color:var(--ink);background:var(--soft);transition:border-color .15s}
+.follow:hover{border-color:var(--ink)}.follow b{display:block;font-family:Archivo,sans-serif;font-size:20px}.follow .mute{display:block;margin-top:2px}
+.follow-ico{width:56px;height:56px;border-radius:16px;background:var(--ink);color:#fff;display:flex;align-items:center;justify-content:center}
+@media(max-width:600px){.follow{grid-template-columns:auto minmax(0,1fr)}.follow .btn{grid-column:1/-1;justify-self:start}}
 .lang{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
 .lang button{border:0;background:none;padding:0 10px;min-height:34px;font-size:13px;font-weight:600;color:var(--mute);cursor:pointer}
 .lang button[aria-pressed=true]{background:var(--ink);color:#fff}
@@ -40,7 +46,7 @@ h1{font-size:clamp(30px,4.6vw,46px);font-weight:800}h2{font-size:clamp(21px,2.4v
   body.nav-open .mobnav{display:flex;flex-direction:column;padding:6px var(--pad) 14px;border-top:1px solid var(--line)}
   .mobnav a{text-decoration:none;padding:12px 0;font-weight:600;border-bottom:1px solid var(--line)}
 }
-@media(max-width:420px){.top-tools .lang{display:none}.top-tools .btn{padding:0 12px}}
+@media(max-width:420px){.top-tools .lang,.top-tools .ig{display:none}.top-tools .btn{padding:0 12px}}
 .lang.mob{margin-top:14px;align-self:flex-start}.lang.mob button{min-height:38px;padding:0 16px}
 
 /* team area sub-navigation */

@@ -8,5 +8,6 @@ export const CONFIG = {
   SUPABASE_ANON_KEY: 'sb_publishable_4QBe7Vzb91bGRxKDgjI_KQ_48jiYKxE',   // the "anon public" key (safe to publish; permissions are enforced by the database)
   GOOGLE_LOGIN: false,     // set to true after enabling the Google provider in Supabase → Authentication → Providers
   TEAM_NAME: 'Monolith 40k',
+  INSTAGRAM: 'https://www.instagram.com/monolith40k/',   // leave empty to hide the Instagram links
   DEFAULT_LANG: 'de',      // 'de' or 'en'
 };

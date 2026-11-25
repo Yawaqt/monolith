@@ -3,6 +3,8 @@ import { t } from './i18n.js';
 import { state, esc, $, opts, fmtDate, resultBadge, empty } from './core.js';
 import { gp, resultOf, scoreStr, summarize, groupBy, fmt1, pct } from './data.js';
 import { appsCards } from './pages-team.js';
+import { CONFIG } from './config.js';
+const IG_ICON = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>';
 
 const PUB = () => state.pub || { players: [], results: [], events: [] };
 const recs = list => list.map(r => { const g = gp(r.our_score, r.opp_score); return { r, our: r.our_score, theirs: r.opp_score, g: g[0] }; });
@@ -47,6 +49,7 @@ export function home(el) {
     ${tours[0] ? `<section class="block"><div class="block-head"><h2>${esc(t('latest_tournament'))}</h2><a href="#/results">${esc(t('all_results'))} →</a></div>${tourCard(tours[0], true)}</section>` : ''}
     <section class="block"><div class="block-head"><h2>${esc(t('meet_team'))}</h2><a href="#/team">${esc(t('whole_team'))} →</a></div>
       <div class="pgrid">${players.slice(0, 6).map(p => playerCard(p, results)).join('')}</div></section>
+    ${CONFIG.INSTAGRAM ? `<section class="block"><a class="follow" href="${esc(CONFIG.INSTAGRAM)}" target="_blank" rel="noopener"><span class="follow-ico">${IG_ICON}</span><span><b>${esc(t('follow_title'))}</b><span class="mute">${esc(t('follow_text'))}</span></span><span class="btn primary sm">${esc(t('follow_btn'))} ↗</span></a></section>` : ''}
     <section class="block"><div class="block-head"><h2>${esc(t('p_apps'))}</h2></div>${appsCards()}</section>`;
 }
 export function team(el) {

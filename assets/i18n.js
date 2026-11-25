@@ -17,6 +17,8 @@ const S = {
   footer_text: ['Kompetitives Warhammer-40k-Team aus Wien.', 'Competitive Warhammer 40k team from Vienna.'],
   footer_note: ['Warhammer 40.000 ist eine Marke von Games Workshop. Diese Seite ist ein Fanprojekt und nicht mit Games Workshop verbunden.', 'Warhammer 40,000 is a trademark of Games Workshop. This is a fan site, not affiliated with Games Workshop.'],
   filter_player: ['Spieler filtern', 'Filter by player'],
+  follow_title: ['Folgt uns auf Instagram', 'Follow us on Instagram'], follow_text: ['Turnierberichte, bemalte Armeen und was im Team so passiert.', 'Tournament reports, painted armies and what the team is up to.'],
+  follow_btn: ['@monolith40k öffnen', 'Open @monolith40k'],
   // navigation
   nav_home: ['Übersicht', 'Home'], nav_team: ['Team', 'Team'], nav_analysis: ['Analyse', 'Analysis'], nav_apps: ['Apps', 'Apps'], nav_admin: ['Verwaltung', 'Admin'],
   nav_roster: ['Anmeldung', 'Roster'], nav_matches: ['Match Log', 'Match log'], nav_archive: ['Spiele-Archiv', 'Game archive'], nav_events: ['Events', 'Events'],
