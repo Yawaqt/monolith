@@ -1,21 +1,23 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611251818';
-import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251818';
-import { t, setLang, getLang } from './i18n.js?v=202611251818';
-import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox } from './core.js?v=202611251818';
-import * as T from './pages-team.js?v=202611251818';
-import * as A from './pages-analysis.js?v=202611251818';
-import * as P from './pages-public.js?v=202611251818';
-import * as TE from './pages-teams.js?v=202611251818';
-import { FACTIONS } from './data.js?v=202611251818';
-import * as SITE from './pages-site.js?v=202611251818';
-import * as N from './pages-news.js?v=202611251818';
+import { CONFIG } from './config.js?v=202611251931';
+import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251931';
+import { t, setLang, getLang } from './i18n.js?v=202611251931';
+import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox } from './core.js?v=202611251931';
+import * as T from './pages-team.js?v=202611251931';
+import * as A from './pages-analysis.js?v=202611251931';
+import * as P from './pages-public.js?v=202611251931';
+import * as TE from './pages-teams.js?v=202611251931';
+import { FACTIONS } from './data.js?v=202611251931';
+import * as SITE from './pages-site.js?v=202611251931';
+import * as H from './pages-history.js?v=202611251931';
+import * as N from './pages-news.js?v=202611251931';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
 // Team area (needs an account); grouped for the sub-navigation
 const PORTAL = [
   { group: null, items: [['portal', 'nav_home', 'guest', T.home]] },
+  { group: 'nav_tools', items: [['history', 'nav_history', 'guest', H.history], ['data', 'nav_data', 'guest', H.data]] },
   { group: 'nav_team', items: [['matches', 'nav_matches', 'team', T.matches], ['archive', 'nav_archive', 'team', T.archive], ['events', 'nav_events', 'team', T.events],
     ['teams', 'nav_teams', 'team', TE.teams], ['newsedit', 'nav_newsedit', 'team', N.editor], ['roster', 'nav_roster', 'team', T.roster]] },
   { group: 'nav_analysis', items: [['matrix', 'nav_matrix', 'team', A.matrix], ['stats', 'nav_stats', 'team', A.stats]] },
@@ -265,7 +267,7 @@ new MutationObserver(() => { for (const td of document.querySelectorAll('table.s
 document.addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.lang) { setLang(b.dataset.lang); try { localStorage.setItem('monolith.lang', b.dataset.lang); } catch (_) {} if (state.me) { state.me.lang = b.dataset.lang; db.update('profiles', { id: state.me.id }, { lang: b.dataset.lang }).catch(() => {}); } render(); }
-  if (b.dataset.out !== undefined) { document.body.classList.remove('nav-open');
+  if (b.dataset.out !== undefined) { document.body.classList.remove('nav-open'); H.resetHistory();
     db.signOut().then(() => { state.session = null; state.me = null; state.data = {}; location.hash = '#/home'; render(); toast(t('signed_out')); }); }
   if (b.dataset.reset !== undefined) resetDemo();
   if (b.id === 'menuBtn') { const o = document.body.classList.toggle('nav-open'); b.setAttribute('aria-expanded', o); }

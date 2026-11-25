@@ -1,5 +1,5 @@
 // Data access: Supabase when configured, otherwise a demo backend in localStorage.
-import { CONFIG } from './config.js?v=202611251818';
+import { CONFIG } from './config.js?v=202611251931';
 
 export const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY;
 export const TABLES = ['players', 'matches', 'events', 'rsvps', 'payments', 'ratings', 'opponent_teams', 'pairings', 'settings', 'tevents', 'tevent_rounds', 'news'];
@@ -68,6 +68,8 @@ export function resetDemo(reload = true) {
   store = { tables: {}, profiles: [], seq: {}, role: 'admin' };
   for (const t of TABLES) store.tables[t] = d[t] || [];
   store.tables.collections = [];
+  { const F = ['Necrons', 'Orks', 'Aeldari', 'Space Marines', 'Tyranids', 'Death Guard', "T'au Empire", 'Adepta Sororitas']; let seed = 7; const rnd = n => { seed = (seed * 9301 + 49297) % 233280; return Math.floor(seed / 233280 * n); };
+    store.tables.personal_games = [...Array(40)].map((_, i) => ({ id: i + 1, user_id: i % 6 ? 'demo-u' + (i % 6) : 'demo-user', played_on: `2026-${String(1 + (i % 11)).padStart(2, '0')}-${String(1 + rnd(27)).padStart(2, '0')}`, army: F[rnd(8)], opp_army: F[rnd(8)], my_score: 40 + rnd(60), opp_score: 40 + rnd(60), kind: i % 3 ? 'Casual' : 'Tournament', event: i % 3 ? null : 'Demo Cup', notes: null })); }
   store.tables.site_content = [{ key: 'about', value: { text: 'Wir sind Monolith 40k – ein kompetitives Warhammer-40k-Team aus Wien. Wir spielen Singles und Teamturniere in ganz Österreich und trainieren jede Woche zusammen.' } }];
   for (const e of store.tables.events || []) { e.ends_on = e.ends_on || e.starts_on; if (e.kind !== 'Singles' && e.kind !== 'Team Tournament') e.kind = /\bteams?\b/i.test(e.title) ? 'Team Tournament' : 'Singles'; if (e.kind === 'Singles') e.team_size = null; }
   if (!store.tables.news.length) store.tables.news = [{ id: 1, title: 'Willkommen auf der neuen Monolith-Seite', body: 'Ab sofort findet ihr hier **Turnierberichte**, Ergebnisse und alles rund ums Team.\n\n## Was kommt\n- Berichte von jedem Turnier\n- Bilder unserer Armeen\n\nFolgt uns auch auf [Instagram](https://www.instagram.com/monolith40k/).', cover_url: null, published: true, author_id: 'demo-user', author_name: 'Miki', created_at: '2026-11-25T10:00:00Z', updated_at: '2026-11-25T10:00:00Z' }];
@@ -89,7 +91,7 @@ const demo = {
   async signIn() {}, async signUp() { return false; }, async google() {}, async reset() {}, async setPassword() {}, async signOut() {},
   async me() { return load().profiles[0]; },
   async list(table, order) {
-    const rows = tbl(table).slice();
+    const rows = tbl(table).slice().filter(r => table !== 'personal_games' || r.user_id === 'demo-user');
     if (order) rows.sort((a, b) => (a[order[0]] > b[order[0]] ? 1 : a[order[0]] < b[order[0]] ? -1 : 0) * (order[1] === 'desc' ? -1 : 1));
     return JSON.parse(JSON.stringify(rows)).map(r => { delete r._pw; return r; });
   },
@@ -97,6 +99,7 @@ const demo = {
     const r = Object.assign({}, row);
     if (!KEYS[table]) { const s = load().seq; s[table] = Math.max(s[table] || 0, ...tbl(table).map(x => +x.id || 0)) + 1; r.id = s[table]; }
     if (table === 'matches' && !r.created_by) r.created_by = 'demo-user';
+    if (table === 'personal_games' && !r.user_id) r.user_id = 'demo-user';
     tbl(table).push(r); persist(); return JSON.parse(JSON.stringify(r));
   },
   async update(table, m, patch) { const r = tbl(table).find(x => matches(x, m)); if (!r) fail({ message: 'not found' }); Object.assign(r, patch); persist(); return JSON.parse(JSON.stringify(r)); },
@@ -131,6 +134,10 @@ const demo = {
     }
     if (name === 'public_events') return (T.events || []).filter(e => (e.ends_on || e.starts_on) >= today).sort((a, b) => a.starts_on.localeCompare(b.starts_on)).map(e => ({ starts_on: e.starts_on, ends_on: e.ends_on || e.starts_on, title: e.title, location: e.location, kind: e.kind, team_size: e.team_size }));
     if (name === 'owner_players') return [2, 4];
+    if (name === 'game_stats') { const by = new Map(); const G = tbl('personal_games');
+      for (const g of G) { const k = g.army + '|' + g.opp_army; const x = by.get(k) || { army: g.army, opp_army: g.opp_army, games: 0, wins: 0, draws: 0, losses: 0, pts_for: 0, pts_against: 0 };
+        x.games++; if (g.my_score > g.opp_score) x.wins++; else if (g.my_score < g.opp_score) x.losses++; else x.draws++; x.pts_for += g.my_score; x.pts_against += g.opp_score; by.set(k, x); }
+      return { games: G.length, players: new Set(G.map(g => g.user_id)).size, rows: [...by.values()] }; }
     if (name === 'admin_delete_user') { const P2 = load().profiles; const i = P2.findIndex(p => p.id === args.p_id); if (i >= 0) P2.splice(i, 1); persist(); return null; }
     if (name === 'set_tevent_password') { const ev = (T.tevents || []).find(e => e.id === args.p_id); if (ev) { ev._pw = args.p_password || null; persist(); } return null; }
     if (name === 'tevent_has_password') return !!((T.tevents || []).find(e => e.id === args.p_id) || {})._pw;
