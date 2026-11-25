@@ -1,8 +1,8 @@
 // Team events (5s / 8s): line-up with rule checks, prediction heatmap, pairings, results, live sharing.
-import { db } from './db.js?v=202611251617';
-import { t } from './i18n.js?v=202611251617';
-import { state, can, myPlayer, esc, $, $$, opts, players, playerById, pname, fmtDate, act, modal, confirmBox, empty, pageHead, toast, resultBadge, loadData } from './core.js?v=202611251617';
-import { FACTIONS, DISPOSITIONS, gp, resultOf, scoreStr, records, avg, fmt1, today } from './data.js?v=202611251617';
+import { db } from './db.js?v=202611251628';
+import { t } from './i18n.js?v=202611251628';
+import { state, can, myPlayer, esc, $, $$, opts, players, playerById, pname, fmtDate, act, modal, confirmBox, empty, pageHead, toast, resultBadge, loadData } from './core.js?v=202611251628';
+import { FACTIONS, DISPOSITIONS, gp, resultOf, scoreStr, records, avg, fmt1, today } from './data.js?v=202611251628';
 
 const D = () => state.data;
 const CHAPTERS = ['Black Templars', 'Blood Angels', 'Dark Angels', 'Deathwatch', 'Imperial Fists', 'Iron Hands', 'Raven Guard', 'Salamanders', 'Space Wolves', 'Ultramarines', 'White Scars'];
@@ -99,7 +99,7 @@ function listView(el, list) {
 
 async function editEvent(ev) {
   const x = ev || { title: '', size: 5, event_id: null, rules: { no_dup: true, chapters_as_sm: true, disp_max: null } };
-  const evs = (D().events || []).slice().sort((a, b) => a.starts_on.localeCompare(b.starts_on));
+  const evs = (D().events || []).filter(e => e.kind === 'Team Tournament' || e.id === x.event_id).sort((a, b) => a.starts_on.localeCompare(b.starts_on));
   const r = await modal(ev ? t('te_settings') : t('new_tevent'), `<label>${esc(t('title'))}<input name="title" required maxlength="80" value="${esc(x.title)}"></label>
     <div class="grid2"><label>${esc(t('te_size'))}<select name="size">${opts([[5, '5er Team'], [8, '8er Team'], [3, '3er Team'], [4, '4er Team'], [6, '6er Team']], x.size)}</select></label>
     <label>${esc(t('te_link_event'))}<select name="event_id">${opts(evs.map(e => [e.id, `${fmtDate(e.starts_on, { day: '2-digit', month: '2-digit', year: 'numeric' })} · ${e.title}`]), x.event_id, '–')}</select></label></div>
@@ -107,7 +107,7 @@ async function editEvent(ev) {
       <label class="check"><input type="checkbox" name="no_dup" ${x.rules.no_dup ? 'checked' : ''}> ${esc(t('rule_no_dup'))}</label>
       <label class="check"><input type="checkbox" name="chapters_as_sm" ${x.rules.chapters_as_sm ? 'checked' : ''}> ${esc(t('rule_chapters'))}</label>
       <label>${esc(t('rule_disp_max'))}<select name="disp_max">${opts([['', t('no_limit')], [1, '1'], [2, '2'], [3, '3'], [4, '4']], x.rules.disp_max ?? '')}</select></label></fieldset>`,
-    { onOpen: f => f.event_id.addEventListener('change', () => { if (!f.title.value) { const e = evs.find(q => q.id === +f.event_id.value); if (e) f.title.value = e.title; } }) });
+    { onOpen: f => f.event_id.addEventListener('change', () => { const e = evs.find(q => q.id === +f.event_id.value); if (e) { if (!f.title.value) f.title.value = e.title; if (e.team_size) f.size.value = e.team_size; } }) });
   if (!r) return;
   const row = { title: r.title.trim(), size: +r.size, event_id: r.event_id ? +r.event_id : null, rules: { no_dup: !!r.no_dup, chapters_as_sm: !!r.chapters_as_sm, disp_max: r.disp_max ? +r.disp_max : null } };
   if (ev) return act(() => db.update('tevents', { id: ev.id }, row), ['tevents']);

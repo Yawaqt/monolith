@@ -315,3 +315,8 @@ body:has(.modal.on) .fab{display:none}
 .quick details.more{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}.quick details.more summary{cursor:pointer;color:var(--mute);font-size:14px;padding:6px 0}
 .view{padding-bottom:90px}
 .quick [hidden]{display:none!important}.quick .type-seg button{padding:0 8px;font-size:14.5px}
+.dialog [hidden],.form [hidden]{display:none!important}
+.pev{grid-template-columns:64px minmax(0,1fr)}.pev .tag.kind{display:inline-block;margin-top:8px}.tag.team{background:var(--ink);color:#fff;border-color:var(--ink)}
+@media(max-width:520px){.pev .tag.kind{display:inline-block}}
+body:has(#fab:not([hidden])) .toast{bottom:92px}
+.seg.ev-kind{display:flex;width:100%}.seg.ev-kind button{flex:1;min-height:44px}

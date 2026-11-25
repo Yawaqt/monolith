@@ -1,12 +1,12 @@
 // Team pages: home, roster, match log, archive, events, calendar, line-up, cash.
-import { db } from './db.js?v=202611251617';
-import { t } from './i18n.js?v=202611251617';
-import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611251617';
-import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611251617';
+import { db } from './db.js?v=202611251628';
+import { t } from './i18n.js?v=202611251628';
+import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611251628';
+import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611251628';
 
 const D = () => state.data;
 const rsvpOf = (eid, pid) => (D().rsvps || []).find(r => r.event_id === eid && r.player_id === pid)?.status;
-const upcomingEvents = () => (D().events || []).filter(e => e.starts_on >= today()).sort((a, b) => a.starts_on.localeCompare(b.starts_on));
+const upcomingEvents = () => (D().events || []).filter(e => (e.ends_on || e.starts_on) >= today()).sort((a, b) => a.starts_on.localeCompare(b.starts_on));
 // Members (Team role) and above may add, edit and delete every game.
 const canEditMatch = () => can('team');
 const typeOpts = cur => opts([...new Set([...GAME_TYPES, ...(cur ? [cur] : [])])].map(x => [x, typeLabel(x, t)]), cur);
@@ -50,7 +50,7 @@ export function home(el) {
 const tile = (label, big, sub, cls = '') => `<div class="tile ${cls}"><div class="tile-l">${esc(label)}</div><div class="tile-big num">${esc(big)}</div><div class="tile-s">${esc(sub)}</div></div>`;
 function eventMini(e) {
   const mine = rsvpOf(e.id, myPlayer());
-  return `<div class="ev-mini"><div><b>${esc(e.title)}</b><br><small class="mute">${esc(fmtDate(e.starts_on))}${e.start_time ? ' · ' + esc(e.start_time) : ''}${e.location ? ' · ' + esc(e.location) : ''}</small></div>
+  return `<div class="ev-mini"><div><b>${esc(e.title)}</b><br><small class="mute">${esc(evRange(e))}${e.location ? ' · ' + esc(e.location) : ''}</small></div>
     ${myPlayer() ? `<div class="seg sm" role="group" aria-label="${esc(t('your_answer'))}">${['yes', 'maybe', 'no'].map(s => `<button type="button" data-e="${e.id}" data-rsvp="${s}" class="${s}" aria-pressed="${mine === s}">${esc(t(s))}</button>`).join('')}</div>` : ''}</div>`;
 }
 async function setRsvp(eid, pid, status) {
@@ -277,7 +277,7 @@ export function archive(el) {
 let showPast = false;
 export function events(el) {
   const all = (D().events || []).slice();
-  const list = showPast ? all.filter(e => e.starts_on < today()).sort((a, b) => b.starts_on.localeCompare(a.starts_on)) : upcomingEvents();
+  const list = showPast ? all.filter(e => (e.ends_on || e.starts_on) < today()).sort((a, b) => b.starts_on.localeCompare(a.starts_on)) : upcomingEvents();
   const ps = players();
   el.innerHTML = pageHead(t('nav_events'), t('events_intro'), can('captain') ? `<button class="btn primary" data-new>${esc(t('new_event'))}</button>` : '') +
     `<div class="seg" role="group"><button type="button" data-past="0" aria-pressed="${!showPast}">${esc(t('upcoming'))}</button><button type="button" data-past="1" aria-pressed="${showPast}">${esc(t('past'))}</button></div>
@@ -286,9 +286,9 @@ export function events(el) {
       const st = s => ps.filter(p => rsvpOf(e.id, p.id) === s);
       const yes = st('yes'), maybe = st('maybe'), no = st('no');
       return `<article class="card ev" id="ev-${e.id}"><header><div class="ev-date"><b>${esc(fmtDate(e.starts_on, { day: '2-digit' }))}</b><span>${esc(fmtDate(e.starts_on, { month: 'short' }))}</span></div>
-        <div class="ev-main"><h3>${esc(e.title)}</h3><p class="mute">${esc(fmtDate(e.starts_on, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }))}${e.start_time ? ' · ' + esc(e.start_time) : ''}${e.location ? ' · ' + esc(e.location) : ''}${e.kind ? ' · ' + esc(e.kind) : ''}</p>${e.note ? `<p>${esc(e.note)}</p>` : ''}</div>
+        <div class="ev-main"><h3>${esc(e.title)}</h3><p class="mute">${esc(evRange(e, true))}${e.location ? ' · ' + esc(e.location) : ''} · ${esc(evKind(e))}</p>${e.note ? `<p>${esc(e.note)}</p>` : ''}</div>
         ${can('captain') ? `<div class="ev-tools"><button class="icon" data-eedit="${e.id}" aria-label="${esc(t('edit'))}">✎</button><button class="icon" data-edel="${e.id}" aria-label="${esc(t('delete'))}">🗑</button></div>` : ''}</header>
-        <p class="counts"><span class="yes">${esc(t('going'))} <b>${yes.length}</b></span><span class="maybe">${esc(t('maybe'))} <b>${maybe.length}</b></span><span class="no">${esc(t('no'))} <b>${no.length}</b></span><span class="mute">${esc(t('team_size'))} ${esc(e.team_size)}</span></p>
+        <p class="counts"><span class="yes">${esc(t('going'))} <b>${yes.length}</b></span><span class="maybe">${esc(t('maybe'))} <b>${maybe.length}</b></span><span class="no">${esc(t('no'))} <b>${no.length}</b></span></p>
         ${myPlayer() ? `<div class="mine"><span>${esc(t('your_answer'))}:</span><div class="seg sm">${['yes', 'maybe', 'no'].map(s => `<button type="button" data-e="${e.id}" data-rsvp="${s}" class="${s}" aria-pressed="${rsvpOf(e.id, myPlayer()) === s}">${esc(t(s))}</button>`).join('')}</div></div>` : ''}
         <div class="chips">${ps.map(p => { const s = rsvpOf(e.id, p.id) || 'none'; return `<${can('captain') ? `button type="button" data-cycle="${e.id}:${p.id}"` : 'span'} class="chip st-${s}" title="${esc(s === 'none' ? t('no_answer') : t(s))}">${esc(p.name)}</${can('captain') ? 'button' : 'span'}>`; }).join('')}</div></article>`;
     }).join('') : empty()}</div>`;
@@ -304,17 +304,24 @@ export function events(el) {
   };
 }
 async function editEvent(ev) {
-  const e = ev || { starts_on: today(), start_time: '', title: '', location: '', kind: 'Turnier', note: '', team_size: 5 };
-  const r = await modal(ev ? ev.title : t('new_event'), `<div class="grid2">
-    <label>${esc(t('date'))}<input type="date" name="starts_on" required value="${esc(e.starts_on)}"></label>
-    <label>${esc(t('time'))}<input type="time" name="start_time" value="${esc(e.start_time || '')}"></label></div>
-    <label>${esc(t('event'))}<input name="title" required maxlength="80" value="${esc(e.title)}"></label>
-    <div class="grid3"><label>${esc(t('location'))}<input name="location" maxlength="60" value="${esc(e.location || '')}"></label>
-    <label>${esc(t('kind'))}<input name="kind" list="kinds" maxlength="30" value="${esc(e.kind || '')}"><datalist id="kinds"><option value="Turnier"><option value="Training"><option value="Teamtreffen"></datalist></label>
-    <label>${esc(t('team_size'))}<input type="number" name="team_size" min="1" max="20" value="${esc(e.team_size)}"></label></div>
-    <label>${esc(t('note'))}<input name="note" maxlength="200" value="${esc(e.note || '')}"></label>`);
+  const e = ev || { starts_on: today(), ends_on: today(), title: '', location: '', kind: 'Singles', note: '', team_size: 5 };
+  const r = await modal(ev ? ev.title : t('new_event'), `<label>${esc(t('event'))}<input name="title" required maxlength="80" value="${esc(e.title)}"></label>
+    <div class="grid2"><label>${esc(t('date_from'))}<input type="date" name="starts_on" required value="${esc(e.starts_on)}"></label>
+    <label>${esc(t('date_to'))}<input type="date" name="ends_on" required value="${esc(e.ends_on || e.starts_on)}"></label></div>
+    <div class="seg ev-kind" role="group" aria-label="${esc(t('kind'))}">${[['Singles', t('type_singles_s')], ['Team Tournament', t('type_team')]].map(([k, l]) => `<button type="button" data-kind="${k}" aria-pressed="${e.kind === k}">${esc(l)}</button>`).join('')}</div>
+    <input type="hidden" name="kind" value="${esc(e.kind === 'Team Tournament' ? 'Team Tournament' : 'Singles')}">
+    <div class="grid2"><label>${esc(t('location'))}<input name="location" maxlength="60" value="${esc(e.location || '')}"></label>
+    <label class="tsize"${e.kind === 'Team Tournament' ? '' : ' hidden'}>${esc(t('team_size'))}<select name="team_size">${opts([3, 4, 5, 6, 8].map(n => [n, String(n)]), e.team_size || 5)}</select></label></div>
+    <label>${esc(t('note'))}<input name="note" maxlength="200" value="${esc(e.note || '')}"></label>`, { onOpen: f => {
+      f.addEventListener('click', x => { const b = x.target.closest('[data-kind]'); if (!b) return; f.kind.value = b.dataset.kind;
+        $$('[data-kind]', f).forEach(y => y.setAttribute('aria-pressed', y === b)); $('.tsize', f).hidden = b.dataset.kind !== 'Team Tournament'; });
+      f.starts_on.addEventListener('change', () => { if (!f.ends_on.value || f.ends_on.value < f.starts_on.value) f.ends_on.value = f.starts_on.value; f.ends_on.min = f.starts_on.value; });
+      f.ends_on.min = f.starts_on.value;
+    } });
   if (!r) return;
-  const row = { starts_on: r.starts_on, start_time: r.start_time || null, title: r.title.trim(), location: r.location.trim() || null, kind: r.kind.trim() || null, note: r.note.trim() || null, team_size: +r.team_size || 5 };
+  if (r.ends_on < r.starts_on) return toast(t('date_order'), true);
+  const team = r.kind === 'Team Tournament';
+  const row = { starts_on: r.starts_on, ends_on: r.ends_on || r.starts_on, title: r.title.trim(), location: r.location.trim() || null, kind: team ? 'Team Tournament' : 'Singles', note: r.note.trim() || null, team_size: team ? +r.team_size || 5 : null };
   await act(() => ev ? db.update('events', { id: ev.id }, row) : db.insert('events', row), ['events']);
 }
 

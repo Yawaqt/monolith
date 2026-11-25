@@ -1,6 +1,6 @@
 // Shared state and UI helpers.
-import { db, TABLES } from './db.js?v=202611251617';
-import { t } from './i18n.js?v=202611251617';
+import { db, TABLES } from './db.js?v=202611251628';
+import { t } from './i18n.js?v=202611251628';
 
 export const state = { session: null, me: null, data: {}, loadedAt: 0, render: () => {} };
 const RANK = { anon: 0, guest: 1, team: 2, captain: 3, admin: 4 };
@@ -87,3 +87,13 @@ export function resizeImage(file, max = 1600, square = false) {
 }
 // Only pictures from our own storage, https or the demo's data URLs may be shown.
 export const safeImg = u => typeof u === 'string' && (/^https:\/\/[^\s"'<>]+$/.test(u) || /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(u)) ? u : '';
+
+// Events: date range ("Sa., 17.04.2027" or "17.–18.04.2027") and kind (Singles / Team tournament with size)
+export const evEnd = e => e.ends_on || e.starts_on;
+export function evRange(e, long = false) {
+  const a = e.starts_on, b = evEnd(e);
+  const o = long ? { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' } : undefined;
+  if (!b || a === b) return fmtDate(a, o);
+  return `${fmtDate(a, long ? { weekday: 'short', day: 'numeric', month: 'long' } : { day: '2-digit', month: '2-digit' })} – ${fmtDate(b, o)}`;
+}
+export const evKind = e => e.kind === 'Team Tournament' ? `${t('type_team')}${e.team_size ? ' · ' + t('te_size_n', { n: e.team_size }) : ''}` : t('type_singles_s');

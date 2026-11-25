@@ -1,10 +1,10 @@
 // Public pages: visible to everyone, built only from the safe public data.
-import { t } from './i18n.js?v=202611251617';
-import { state, esc, fmtDate, empty, safeImg } from './core.js?v=202611251617';
-import { newsCard } from './pages-news.js?v=202611251617';
-import { typeLabel, pct } from './data.js?v=202611251617';
-import { appsCards } from './pages-team.js?v=202611251617';
-import { CONFIG } from './config.js?v=202611251617';
+import { t } from './i18n.js?v=202611251628';
+import { state, esc, fmtDate, empty, safeImg, evRange, evKind } from './core.js?v=202611251628';
+import { newsCard } from './pages-news.js?v=202611251628';
+import { typeLabel, pct } from './data.js?v=202611251628';
+import { appsCards } from './pages-team.js?v=202611251628';
+import { CONFIG } from './config.js?v=202611251628';
 const IG_ICON = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>';
 
 const PUB = () => state.pub || { players: [], results: [], events: [] };
@@ -17,8 +17,7 @@ const dateRange = (a, b) => a === b ? fmtDate(a, { day: 'numeric', month: 'long'
 
 function eventRow(e) {
   return `<li class="pev"><div class="pev-date"><b>${esc(fmtDate(e.starts_on, { day: '2-digit' }))}</b><span>${esc(fmtDate(e.starts_on, { month: 'short' }))}</span></div>
-    <div><h3>${esc(e.title)}</h3><p class="mute">${esc(fmtDate(e.starts_on, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }))}${e.start_time ? ' · ' + esc(e.start_time) : ''}${e.location ? ' · ' + esc(e.location) : ''}</p></div>
-    ${e.kind ? `<span class="tag">${esc(e.kind)}</span>` : ''}</li>`;
+    <div><h3>${esc(e.title)}</h3><p class="mute">${esc(evRange(e, true))}${e.location ? ' · ' + esc(e.location) : ''}</p><span class="tag kind${e.kind === 'Team Tournament' ? ' team' : ''}">${esc(evKind(e))}</span></div></li>`;
 }
 function playerCard(p) {
   return `<article class="pcard"><div class="pcard-top"><span class="avatar${safeImg(p.photo_url) ? ' photo' : ''}" aria-hidden="true">${safeImg(p.photo_url) ? `<img src="${esc(safeImg(p.photo_url))}" alt="" loading="lazy">` : esc(p.name.slice(0, 1))}</span><div><h3>${esc(p.name)}</h3></div></div>

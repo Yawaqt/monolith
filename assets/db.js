@@ -1,5 +1,5 @@
 // Data access: Supabase when configured, otherwise a demo backend in localStorage.
-import { CONFIG } from './config.js?v=202611251617';
+import { CONFIG } from './config.js?v=202611251628';
 
 export const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY;
 export const TABLES = ['players', 'matches', 'events', 'rsvps', 'payments', 'ratings', 'opponent_teams', 'pairings', 'settings', 'tevents', 'tevent_rounds', 'news'];
@@ -68,6 +68,7 @@ export function resetDemo(reload = true) {
   store = { tables: {}, profiles: [], seq: {}, role: 'admin' };
   for (const t of TABLES) store.tables[t] = d[t] || [];
   store.tables.collections = [];
+  for (const e of store.tables.events || []) { e.ends_on = e.ends_on || e.starts_on; if (e.kind !== 'Singles' && e.kind !== 'Team Tournament') e.kind = /\bteams?\b/i.test(e.title) ? 'Team Tournament' : 'Singles'; if (e.kind === 'Singles') e.team_size = null; }
   if (!store.tables.news.length) store.tables.news = [{ id: 1, title: 'Willkommen auf der neuen Monolith-Seite', body: 'Ab sofort findet ihr hier **Turnierberichte**, Ergebnisse und alles rund ums Team.\n\n## Was kommt\n- Berichte von jedem Turnier\n- Bilder unserer Armeen\n\nFolgt uns auch auf [Instagram](https://www.instagram.com/monolith40k/).', cover_url: null, published: true, author_id: 'demo-user', author_name: 'Miki', created_at: '2026-11-25T10:00:00Z', updated_at: '2026-11-25T10:00:00Z' }];
   store.profiles = [
     { id: 'demo-user', display_name: 'Miki', role: 'admin', player_id: 2, lang: 'de', created_at: '2026-10-21T09:00:00Z' },
@@ -125,7 +126,7 @@ const demo = {
       }
       return [...by.values()].sort((a, b) => b.date_to.localeCompare(a.date_to));
     }
-    if (name === 'public_events') return (T.events || []).filter(e => e.starts_on >= today).sort((a, b) => a.starts_on.localeCompare(b.starts_on)).map(e => ({ starts_on: e.starts_on, start_time: e.start_time, title: e.title, location: e.location, kind: e.kind }));
+    if (name === 'public_events') return (T.events || []).filter(e => (e.ends_on || e.starts_on) >= today).sort((a, b) => a.starts_on.localeCompare(b.starts_on)).map(e => ({ starts_on: e.starts_on, ends_on: e.ends_on || e.starts_on, title: e.title, location: e.location, kind: e.kind, team_size: e.team_size }));
     if (name === 'set_tevent_password') { const ev = (T.tevents || []).find(e => e.id === args.p_id); if (ev) { ev._pw = args.p_password || null; persist(); } return null; }
     if (name === 'tevent_has_password') return !!((T.tevents || []).find(e => e.id === args.p_id) || {})._pw;
     if (name === 'public_tevent') {
