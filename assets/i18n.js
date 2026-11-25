@@ -9,7 +9,7 @@ const S = {
   s_players: ['Spieler', 'Players'], s_games: ['Turnierspiele', 'Tournament games'], s_record: ['Bilanz (S-U-N)', 'Record (W-D-L)'], s_tournaments: ['Turniere', 'Tournaments'],
   latest_tournament: ['Letztes Turnier', 'Latest tournament'], all_results: ['Alle Ergebnisse', 'All results'], whole_team: ['Ganzes Team', 'Whole team'],
   meet_team: ['Das Team', 'The team'], next_up: ['Als Nächstes', 'Coming up'], all_events: ['Alle Termine', 'All events'],
-  results_intro: ['Alle Turnierspiele unserer Spieler, neueste zuerst. Teamscore nach Punkte-Differenz (0–5 = 10-10, je 5 Punkte eine Stufe).', 'Every tournament game by our players, newest first. Team score from the point difference (0–5 = 10-10, one step per 5 points).'],
+  results_intro: ['Unsere Turniere als Team-Bilanz (Siege-Unentschieden-Niederlagen). Bei Teamturnieren zählt die 20-0-Wertung, bei Singles mehr Punkte = Sieg.', 'Our tournaments as team record (wins-draws-losses). Team tournaments use 20-0 scoring, singles: more points wins.'],
   team_intro: ['Unsere Spieler und die Armeen, die sie spielen.', 'Our players and the armies they play.'],
   events_pub_intro: ['Hier spielen wir als Nächstes. Komm vorbei und sag Hallo.', 'Where we play next. Come by and say hi.'],
   no_events: ['Gerade keine Termine geplant.', 'No events planned right now.'], t_games: ['{n} Turnierspiele', '{n} tournament games'],
@@ -25,6 +25,9 @@ const S = {
   round: ['Runde', 'Round'], add_round: ['+ Runde', '+ Round'], remove_round: ['Runde entfernen', 'Remove round'], save_rounds: ['{n} Spiele speichern', 'Save {n} games'],
   rounds_missing: ['Bitte bei jeder Runde Gegner-Fraktion und beide Punktzahlen eintragen (leere Runden löschen).', 'Please fill in opponent faction and both scores for every round (remove empty rounds).'],
   rounds_saved: ['{n} Spiele gespeichert', '{n} games saved'],
+  type_practice: ['Training', 'Practice'], type_singles: ['Turnier (Singles)', 'Tournament (singles)'], type_team: ['Teamturnier', 'Team tournament'],
+  score_rule_singles: ['Singles: mehr Punkte = Sieg, gleich viele = Unentschieden (89–90 ist eine Niederlage).', 'Singles: more points wins, equal points is a draw (89–90 is a loss).'],
+  archive_intro: ['Alle Spiele. Mitglieder können hier jedes Spiel bearbeiten oder löschen.', 'All games. Members can edit or delete any game here.'],
   // team events
   nav_teams: ['Teamturniere', 'Team events'], teams_intro: ['Team-Events für 5er und 8er Teams: Aufstellung mit Regelprüfung, Vorhersagen pro Paarung, Pairings und Ergebnisse live mit dem ganzen Team.', 'Team events for 5s and 8s: line-up with rule checks, a prediction per matchup, pairings and results live with the whole team.'],
   new_tevent: ['Neues Teamturnier', 'New team event'], te_size: ['Teamgröße', 'Team size'], te_rules: ['Regeln', 'Rules'], te_link_event: ['Mit Event verknüpfen', 'Link to event'],
@@ -44,7 +47,7 @@ const S = {
   unpaired: ['– offen –', '– open –'], te_none: ['Noch keine Teamturniere.', 'No team events yet.'],
   // navigation
   nav_home: ['Übersicht', 'Home'], nav_team: ['Team', 'Team'], nav_analysis: ['Analyse', 'Analysis'], nav_apps: ['Apps', 'Apps'], nav_admin: ['Verwaltung', 'Admin'],
-  nav_roster: ['Anmeldung', 'Roster'], nav_matches: ['Match Log', 'Match log'], nav_archive: ['Spiele-Archiv', 'Game archive'], nav_events: ['Events', 'Events'],
+  nav_roster: ['Anmeldung', 'Roster'], nav_matches: ['Match Log', 'Match log'], nav_archive: ['Alle Spiele', 'All games'], nav_events: ['Events', 'Events'],
   nav_calendar: ['Kalender', 'Calendar'], nav_lineup: ['Aufstellung', 'Line-up'], nav_cash: ['Kasse', 'Cash'], nav_matrix: ['Live Matrix', 'Live matrix'],
   nav_stats: ['Statistik', 'Statistics'], nav_master: ['Master Matrix', 'Master matrix'], nav_masterteam: ['Master Team', 'Master team'], nav_pairing: ['Pairing', 'Pairing'],
   nav_members: ['Mitglieder', 'Members'], nav_profile: ['Profil', 'Profile'], nav_collection: ['Collection Tracker', 'Collection tracker'],

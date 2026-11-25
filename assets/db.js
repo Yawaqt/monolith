@@ -104,9 +104,17 @@ const demo = {
     const T = load().tables; const P = T.players || []; const nm = id => (P.find(p => p.id === id) || {}).name;
     const today = new Date().toISOString().slice(0, 10);
     if (name === 'public_players') return P.filter(p => p.active).sort((a, b) => a.sort - b.sort).map(p => ({ name: p.name, sort: p.sort, armies: (p.armies || []).map(a => a.army).filter(Boolean), bcp_url: p.bcp_url || null }));
-    if (name === 'public_results') return (T.matches || []).filter(m => m.type === 'Tournament' && m.our_score != null && m.opp_score != null)
-      .sort((a, b) => b.played_on.localeCompare(a.played_on) || b.id - a.id)
-      .map(m => ({ played_on: m.played_on, tournament: m.tournament, player: nm(m.player_id), army: m.army, opp_faction: m.opp_faction, our_score: m.our_score, opp_score: m.opp_score }));
+    if (name === 'public_results') {
+      const by = new Map();
+      for (const m of T.matches || []) {
+        if (!['Tournament', 'Team Tournament'].includes(m.type) || m.our_score == null || m.opp_score == null) continue;
+        const k = (m.tournament || '—') + '|' + m.type; const d = m.our_score - m.opp_score;
+        const r = m.type === 'Team Tournament' ? (Math.abs(d) <= 5 ? 'd' : d > 0 ? 'w' : 'l') : (d === 0 ? 'd' : d > 0 ? 'w' : 'l');
+        const x = by.get(k) || { tournament: m.tournament || '—', type: m.type, date_from: m.played_on, date_to: m.played_on, games: 0, wins: 0, draws: 0, losses: 0 };
+        x.games++; x[{ w: 'wins', d: 'draws', l: 'losses' }[r]]++; if (m.played_on < x.date_from) x.date_from = m.played_on; if (m.played_on > x.date_to) x.date_to = m.played_on; by.set(k, x);
+      }
+      return [...by.values()].sort((a, b) => b.date_to.localeCompare(a.date_to));
+    }
     if (name === 'public_events') return (T.events || []).filter(e => e.starts_on >= today).sort((a, b) => a.starts_on.localeCompare(b.starts_on)).map(e => ({ starts_on: e.starts_on, start_time: e.start_time, title: e.title, location: e.location, kind: e.kind }));
     if (name === 'set_tevent_password') { const ev = (T.tevents || []).find(e => e.id === args.p_id); if (ev) { ev._pw = args.p_password || null; persist(); } return null; }
     if (name === 'tevent_has_password') return !!((T.tevents || []).find(e => e.id === args.p_id) || {})._pw;

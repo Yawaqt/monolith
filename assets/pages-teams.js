@@ -205,7 +205,7 @@ function bind(el, e, lineup, rd) {
     }
     if (b.dataset.tolog !== undefined && rd) {
       const rows = (rd.pairings || []).filter(p => p.t != null && p.t !== '' && gp(p.us, p.them)).map(p => { const l = lineup[p.o], x = (rd.opp || [])[+p.t] || {};
-        return { type: 'Tournament', tournament: e.title, played_on: today(), player_id: +l.player_id, army: l.faction, disposition: l.disposition || null, opp_faction: x.faction, opp_disposition: x.disposition || null,
+        return { type: 'Team Tournament', tournament: e.title, played_on: today(), player_id: +l.player_id, army: l.faction, disposition: l.disposition || null, opp_faction: x.faction, opp_disposition: x.disposition || null,
           opp_player_id: null, opp_name: x.name || null, our_score: +p.us, opp_score: +p.them, notes: rd.opp_name ? `${t('round')} ${rd.round_no} vs ${rd.opp_name}` : `${t('round')} ${rd.round_no}` }; });
       if (rows.some(r => !r.player_id || !r.army || !r.opp_faction)) return toast(t('rounds_missing'), true);
       return act(async () => { for (const m of rows) await db.insert('matches', m); await db.update('tevent_rounds', { id: rd.id }, { logged: true }); }, ['matches', 'tevent_rounds'], t('rounds_saved', { n: rows.length }));

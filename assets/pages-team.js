@@ -2,12 +2,20 @@
 import { db } from './db.js';
 import { t } from './i18n.js';
 import { state, can, myPlayer, isMe, esc, $, $$, opts, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js';
-import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, scoreStr, records, summarize, fmt1, pct, today } from './data.js';
+import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js';
 
 const D = () => state.data;
 const rsvpOf = (eid, pid) => (D().rsvps || []).find(r => r.event_id === eid && r.player_id === pid)?.status;
 const upcomingEvents = () => (D().events || []).filter(e => e.starts_on >= today()).sort((a, b) => a.starts_on.localeCompare(b.starts_on));
-const canEditMatch = m => can('captain') || (can('team') && state.session && m.created_by === state.session.user.id);
+// Members (Team role) and above may add, edit and delete every game.
+const canEditMatch = () => can('team');
+const typeOpts = cur => opts([...new Set([...GAME_TYPES, ...(cur ? [cur] : [])])].map(x => [x, typeLabel(x, t)]), cur);
+// Result cell: team-scored games show the 20-0 score, singles only the points.
+export function resultHtml(m) {
+  const res = outcome(m.type, m.our_score, m.opp_score); if (!res) return '';
+  const pts = `<span class="num">${esc(m.our_score)}:${esc(m.opp_score)}</span>`;
+  return teamScored(m.type) ? `${pts} · <b class="num">${scoreStr(gp(m.our_score, m.opp_score))}</b> ${resultBadge(res)}` : `<b>${pts}</b> ${resultBadge(res)}`;
+}
 
 // ---------------------------------------------------------------- Home
 export function home(el) {
@@ -31,8 +39,8 @@ export function home(el) {
     </div>
     <div class="cols">
       <section class="card"><h2>${esc(t('next_events'))}</h2>${next.length ? next.map(e => eventMini(e)).join('') : empty()}<a class="more" href="#/events">${esc(t('nav_events'))} →</a></section>
-      <section class="card"><h2>${esc(t('recent'))}</h2>${recent.length ? `<ul class="list">${recent.map(m => { const g = gp(m.our_score, m.opp_score);
-        return `<li><span><b>${esc(pname(m.player_id))}</b> <span class="mute">${esc(m.army)} ${esc(t('vs'))} ${esc(m.opp_faction)}</span><br><small class="mute">${esc(fmtDate(m.played_on))}${m.tournament ? ' · ' + esc(m.tournament) : ''}</small></span><span class="num">${scoreStr(g)} ${resultBadge(resultOf(g))}</span></li>`; }).join('')}</ul>` : empty()}<a class="more" href="#/archive">${esc(t('nav_archive'))} →</a></section>
+      <section class="card"><h2>${esc(t('recent'))}</h2>${recent.length ? `<ul class="list">${recent.map(m => {
+        return `<li><span><b>${esc(pname(m.player_id))}</b> <span class="mute">${esc(m.army)} ${esc(t('vs'))} ${esc(m.opp_faction)}</span><br><small class="mute">${esc(fmtDate(m.played_on))}${m.tournament ? ' · ' + esc(m.tournament) : ''}</small></span><span class="nowrap">${resultHtml(m)}</span></li>`; }).join('')}</ul>` : empty()}<a class="more" href="#/archive">${esc(t('nav_archive'))} →</a></section>
     </div>`;
   el.onclick = e => { const b = e.target.closest('[data-rsvp]'); if (b) setRsvp(+b.dataset.e, myPlayer(), b.dataset.rsvp); };
 }
@@ -99,10 +107,9 @@ function matchForm(m = {}) {
   const pid = m.player_id ?? myPlayer();
   const pl = playerById(pid); const mineArmies = (pl?.armies || []).map(a => a.army).filter(Boolean);
   const armyList = [...new Set([...mineArmies, ...FACTIONS])];
-  const types = [...new Set([...GAME_TYPES, ...(D().matches || []).map(x => x.type)])];
-  const plOpts = can('captain') ? players().map(p => [p.id, p.name]) : players().filter(p => isMe(p.id) || p.id === m.player_id).map(p => [p.id, p.name]);
+  const plOpts = players(true).map(p => [p.id, p.name]);
   return `<div class="grid3">
-    <label>${esc(t('type'))}<input name="type" list="types" required value="${esc(m.type || 'Practice')}"><datalist id="types">${types.map(x => `<option value="${esc(x)}">`).join('')}</datalist></label>
+    <label>${esc(t('type'))}<select name="type" required>${typeOpts(m.type || 'Practice')}</select></label>
     <label>${esc(t('tour_name'))}<input name="tournament" value="${esc(m.tournament || '')}" list="tours"><datalist id="tours">${[...new Set((D().matches || []).map(x => x.tournament).filter(Boolean))].map(x => `<option value="${esc(x)}">`).join('')}</datalist></label>
     <label>${esc(t('date'))}<input name="played_on" type="date" required value="${esc(m.played_on || today())}"></label>
     <label>${esc(t('our_player'))}<select name="player_id" required>${opts(plOpts, pid, '–')}</select></label>
@@ -120,8 +127,10 @@ function matchForm(m = {}) {
 }
 function bindMatchForm(f) {
   const upd = () => {
-    const g = gp(f.our_score.value, f.opp_score.value);
-    $('.preview', f).innerHTML = g ? `${esc(t('diff'))} <b class="num">${f.our_score.value - f.opp_score.value}</b> · ${esc(t('team_score'))} <b class="num">${scoreStr(g)}</b> ${resultBadge(resultOf(g))}` : `<small class="mute">${esc(t('score_rule'))}</small>`;
+    const ty = f.type.value, g = gp(f.our_score.value, f.opp_score.value), res = outcome(ty, f.our_score.value, f.opp_score.value);
+    $('.preview', f).innerHTML = !g ? `<small class="mute">${esc(t(teamScored(ty) ? 'score_rule' : 'score_rule_singles'))}</small>`
+      : teamScored(ty) ? `${esc(t('diff'))} <b class="num">${f.our_score.value - f.opp_score.value}</b> · ${esc(t('team_score'))} <b class="num">${scoreStr(g)}</b> ${resultBadge(res)}`
+      : `${esc(t('diff'))} <b class="num">${f.our_score.value - f.opp_score.value}</b> · ${resultBadge(res)} <small class="mute">${esc(t('score_rule_singles'))}</small>`;
     $('.opp-name', f).style.display = f.opp_player_id.value ? 'none' : '';
   };
   f.addEventListener('input', upd); f.addEventListener('change', e => {
@@ -132,14 +141,14 @@ function bindMatchForm(f) {
   upd();
 }
 function matchRow(r) {
-  const out = { type: r.type.trim() || 'Practice', tournament: r.tournament.trim() || null, played_on: r.played_on, player_id: +r.player_id, army: r.army, disposition: r.disposition || null,
+  const out = { type: r.type || 'Practice', tournament: r.tournament.trim() || null, played_on: r.played_on, player_id: +r.player_id, army: r.army, disposition: r.disposition || null,
     opp_faction: r.opp_faction, opp_disposition: r.opp_disposition || null, opp_player_id: r.opp_player_id ? +r.opp_player_id : null, opp_name: r.opp_player_id ? null : (r.opp_name.trim() || null),
     our_score: r.our_score === '' ? null : +r.our_score, opp_score: r.opp_score === '' ? null : +r.opp_score, notes: r.notes.trim() || null };
   if (out.opp_player_id === out.player_id) throw new Error('Opponent = our player');
   return out;
 }
 export function matches(el) {
-  const canLog = can('captain') || !!myPlayer();
+  const canLog = can('team');
   const latest = (D().matches || []).slice().sort((a, b) => b.id - a.id).slice(0, 8);
   el.innerHTML = pageHead(t('nav_matches'), t('log_intro'), canLog ? `<button class="btn primary" data-tour>${esc(t('tour_import'))}</button>` : '') +
     (canLog ? `<form class="card form" id="mform" novalidate>${matchForm()}<div class="form-actions"><button class="btn primary">${esc(t('save_game'))}</button></div></form>` : `<div class="notice">${esc(t('not_linked'))}</div>`) +
@@ -154,11 +163,11 @@ export function matches(el) {
 function gamesTable(list) {
   if (!list.length) return empty();
   return `<div class="scroll"><table class="games stack"><thead><tr><th>${esc(t('date'))}</th><th>${esc(t('player'))}</th><th>${esc(t('army'))}</th><th>${esc(t('opp_faction'))}</th><th class="r">${esc(t('result'))}</th><th>${esc(t('type'))}</th><th>${esc(t('notes'))}</th><th></th></tr></thead><tbody>
-  ${list.map(m => { const g = gp(m.our_score, m.opp_score);
+  ${list.map(m => {
     return `<tr><td class="nowrap">${esc(fmtDate(m.played_on))}</td><td><b>${esc(pname(m.player_id))}</b></td><td>${esc(m.army)}<br><small class="mute">${esc(m.disposition || '')}</small></td>
     <td>${esc(m.opp_faction)}${m.opp_player_id ? ` <span class="tag">${esc(t('internal'))}: ${esc(pname(m.opp_player_id))}</span>` : m.opp_name ? ` <small class="mute">(${esc(m.opp_name)})</small>` : ''}<br><small class="mute">${esc(m.opp_disposition || '')}</small></td>
-    <td class="r nowrap"><span class="num">${esc(m.our_score ?? '')}:${esc(m.opp_score ?? '')}</span> · <b class="num">${scoreStr(g)}</b> ${resultBadge(resultOf(g))}</td>
-    <td>${esc(m.type)}${m.tournament ? `<br><small class="mute">${esc(m.tournament)}</small>` : ''}</td><td><small>${esc(m.notes || '')}</small></td>
+    <td class="r nowrap">${resultHtml(m)}</td>
+    <td>${esc(typeLabel(m.type, t))}${m.tournament ? `<br><small class="mute">${esc(m.tournament)}</small>` : ''}</td><td><small>${esc(m.notes || '')}</small></td>
     <td class="r nowrap">${canEditMatch(m) ? `<button class="icon" data-medit="${m.id}" aria-label="${esc(t('edit'))}">✎</button><button class="icon" data-mdel="${m.id}" aria-label="${esc(t('delete'))}">🗑</button>` : ''}</td></tr>`; }).join('')}
   </tbody></table></div>`;
 }
@@ -188,10 +197,10 @@ export function archive(el) {
   list.sort(AF.sort === 'old' ? (a, b) => a.played_on.localeCompare(b.played_on) || a.id - b.id : AF.sort === 'best' ? (a, b) => key(b) - key(a) : AF.sort === 'worst' ? (a, b) => key(a) - key(b) : (a, b) => b.played_on.localeCompare(a.played_on) || b.id - a.id);
   const s = summarize(records(list).filter(r => AF.player ? r.player_id === +AF.player : !r.mirrored));
   const types = [...new Set((D().matches || []).map(m => m.type))];
-  el.innerHTML = pageHead(t('nav_archive'), '') + `<form class="filters card" id="af">
+  el.innerHTML = pageHead(t('nav_archive'), t('archive_intro')) + `<form class="filters card" id="af">
     <label>${esc(t('player'))}<select name="player">${opts(players(true).map(p => [p.id, p.name]), AF.player, t('all'))}</select></label>
     <label>${esc(t('army'))}<select name="army">${opts(FACTIONS, AF.army, t('all'))}</select></label>
-    <label>${esc(t('type'))}<select name="type">${opts(types, AF.type, t('all'))}</select></label>
+    <label>${esc(t('type'))}<select name="type">${opts(types.map(x => [x, typeLabel(x, t)]), AF.type, t('all'))}</select></label>
     <label>${esc(t('from'))}<input type="date" name="from" value="${esc(AF.from)}"></label>
     <label>${esc(t('to'))}<input type="date" name="to" value="${esc(AF.to)}"></label>
     <label>${esc(t('sort'))}<select name="sort">${opts([['new', t('newest')], ['old', t('oldest')], ['best', t('best')], ['worst', t('worst')]], AF.sort)}</select></label>
@@ -337,7 +346,7 @@ async function editPayment(p) {
 async function tournamentImport() {
   const pid = myPlayer() || players()[0]?.id;
   const pl = playerById(pid); const mine = (pl?.armies || []).find(a => a.army) || {};
-  const plOpts = can('captain') ? players().map(p => [p.id, p.name]) : players().filter(p => isMe(p.id)).map(p => [p.id, p.name]);
+  const plOpts = players(true).map(p => [p.id, p.name]);
   const tours = [...new Set((D().matches || []).map(x => x.tournament).filter(Boolean))];
   const roundRow = (i, date) => `<div class="rnd" data-r="${i}"><span class="rnd-n">${esc(t('round'))} <b>${i + 1}</b></span>
     <select name="of" aria-label="${esc(t('opp_faction'))}" required>${opts(FACTIONS, '', t('opp_faction'))}</select>
@@ -349,6 +358,7 @@ async function tournamentImport() {
     <span class="rnd-res"></span><button type="button" class="icon xs" data-rm aria-label="${esc(t('remove_round'))}">✕</button></div>`;
   const body = `<p class="mute">${esc(t('tour_import_intro'))}</p>
     <div class="grid3"><label>${esc(t('tour_name'))}<input name="tournament" required list="tours2" maxlength="80"><datalist id="tours2">${tours.map(x => `<option value="${esc(x)}">`).join('')}</datalist></label>
+    <label>${esc(t('type'))}<select name="type" required>${opts([['Tournament', t('type_singles')], ['Team Tournament', t('type_team')]], 'Tournament')}</select></label>
     <label>${esc(t('date'))}<input name="start" type="date" required value="${esc(today())}"></label>
     <label>${esc(t('our_player'))}<select name="player_id" required>${opts(plOpts, pid)}</select></label>
     <label>${esc(t('our_army'))}<select name="army" required>${opts([...new Set([...(pl?.armies || []).map(a => a.army).filter(Boolean), ...FACTIONS])], mine.army || '', '–')}</select></label>
@@ -359,9 +369,10 @@ async function tournamentImport() {
   const r = await modal(t('tour_import'), body, { wide: true, submit: t('save'), onOpen: f => {
     const upd = () => {
       const rs = $$('.rnd', f); let w = 0, d = 0, l = 0;
-      rs.forEach((el, i) => { $('.rnd-n b', el).textContent = i + 1; const g = gp(el.querySelector('[name=us]').value, el.querySelector('[name=them]').value);
-        $('.rnd-res', el).innerHTML = g ? `<b class="num">${scoreStr(g)}</b> ${resultBadge(resultOf(g))}` : '';
-        if (g) { if (g[0] > 10) w++; else if (g[0] < 10) l++; else d++; } });
+      rs.forEach((el, i) => { $('.rnd-n b', el).textContent = i + 1; const us = el.querySelector('[name=us]').value, them = el.querySelector('[name=them]').value;
+        const res = outcome(f.type.value, us, them), g = gp(us, them);
+        $('.rnd-res', el).innerHTML = res ? `${teamScored(f.type.value) ? `<b class="num">${scoreStr(g)}</b> ` : ''}${resultBadge(res)}` : '';
+        if (res === 'win') w++; else if (res === 'loss') l++; else if (res) d++; });
       $('.rnd-total', f).textContent = `${w}-${d}-${l}`;
       $('footer .btn.primary', f.closest('.dialog') || f).textContent = t('save_rounds', { n: rs.length });
     };
@@ -382,7 +393,7 @@ async function tournamentImport() {
     upd();
   } });
   if (!r || !rows) return;
-  const base = { type: 'Tournament', tournament: r.tournament.trim(), player_id: +r.player_id, army: r.army, disposition: r.disposition || null };
+  const base = { type: r.type || 'Tournament', tournament: r.tournament.trim(), player_id: +r.player_id, army: r.army, disposition: r.disposition || null };
   const list = rows.map(x => Object.assign({}, base, { played_on: x.d || r.start, opp_faction: x.of, opp_disposition: x.od || null, opp_player_id: null,
     opp_name: x.on || null, our_score: +x.us, opp_score: +x.them, notes: null }));
   await act(async () => { for (const m of list) await db.insert('matches', m); }, ['matches'], t('rounds_saved', { n: list.length }));

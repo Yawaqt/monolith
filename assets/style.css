@@ -274,3 +274,6 @@ table.pairs tfoot th,table.pairs tfoot td{font-weight:700;border-top:2px solid v
 @media(max-width:600px){.card .block-head h2{font-size:18px}}
 .live-pairs li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center}.live-pairs li>span:last-child{text-align:right;white-space:nowrap}
 @media(max-width:600px){.live-pairs li{grid-template-columns:1fr}.live-pairs li>span:last-child{text-align:left}}
+.wdl{display:flex;height:6px;border-radius:3px;overflow:hidden;gap:2px;margin-top:12px;background:var(--line)}.wdl i{display:block;min-width:0}.wdl .w{background:#2f9e63}.wdl .d{background:#b9b9b9}.wdl .l{background:#d9534f}
+.tour header{gap:12px}.tour header>div:first-child{min-width:0}
+@media(max-width:600px){.tour-rec{font-size:22px;flex-shrink:0;text-align:right}}
