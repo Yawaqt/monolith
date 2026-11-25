@@ -88,6 +88,10 @@ const S = {
   adm_del_player_games: ['Spieler {name} löschen? Dabei werden auch seine {n} Spiele, Zusagen und Kassa-Einträge gelöscht. Tipp: Stattdessen auf „inaktiv“ stellen – dann bleiben die Spiele in der Statistik.', 'Delete player {name}? This also deletes their {n} games, RSVPs and payments. Tip: set them to "inactive" instead – their games stay in the stats.'],
   adm_del_account: ['Konto löschen', 'Delete account'], adm_del_account_q: ['Konto von {name} löschen? Die Person kann sich danach nicht mehr anmelden. Der verknüpfte Spieler und seine Spiele bleiben erhalten.', 'Delete the account of {name}? They can no longer sign in. The linked player and their games stay.'],
   adm_account_deleted: ['Konto gelöscht', 'Account deleted'],
+  adm_owner_only: ['Admin-Rechte und die Zuordnung von Miki und David können nur Miki oder David ändern.', 'Only Miki or David can change admin rights and the links of Miki and David.'],
+  adm_admin_nodel: ['Admins können nicht gelöscht werden – zuerst die Admin-Rolle entfernen.', 'Admins cannot be deleted – remove the admin role first.'],
+  adm_self_hint: ['Du kannst deine Admin-Rolle selbst abgeben.', 'You can give up your admin role yourself.'],
+  adm_giveup_q: ['Deine Admin-Rolle wirklich abgeben? Zurückbekommen kannst du sie nur von Miki oder David.', 'Really give up your admin role? Only Miki or David can give it back.'],
   // team events
   nav_teams: ['Teamturniere', 'Team events'], teams_intro: ['Team-Events für 5er und 8er Teams: Aufstellung mit Regelprüfung, Vorhersagen pro Paarung, Pairings und Ergebnisse live mit dem ganzen Team.', 'Team events for 5s and 8s: line-up with rule checks, a prediction per matchup, pairings and results live with the whole team.'],
   new_tevent: ['Neues Teamturnier', 'New team event'], te_size: ['Teamgröße', 'Team size'], te_rules: ['Regeln', 'Rules'], te_link_event: ['Mit Event verknüpfen', 'Link to event'],

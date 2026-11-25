@@ -1,15 +1,15 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611251815';
-import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251815';
-import { t, setLang, getLang } from './i18n.js?v=202611251815';
-import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox } from './core.js?v=202611251815';
-import * as T from './pages-team.js?v=202611251815';
-import * as A from './pages-analysis.js?v=202611251815';
-import * as P from './pages-public.js?v=202611251815';
-import * as TE from './pages-teams.js?v=202611251815';
-import { FACTIONS } from './data.js?v=202611251815';
-import * as SITE from './pages-site.js?v=202611251815';
-import * as N from './pages-news.js?v=202611251815';
+import { CONFIG } from './config.js?v=202611251818';
+import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251818';
+import { t, setLang, getLang } from './i18n.js?v=202611251818';
+import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox } from './core.js?v=202611251818';
+import * as T from './pages-team.js?v=202611251818';
+import * as A from './pages-analysis.js?v=202611251818';
+import * as P from './pages-public.js?v=202611251818';
+import * as TE from './pages-teams.js?v=202611251818';
+import { FACTIONS } from './data.js?v=202611251818';
+import * as SITE from './pages-site.js?v=202611251818';
+import * as N from './pages-news.js?v=202611251818';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
@@ -145,6 +145,14 @@ async function members(el) {
   if (location.hash !== '#/members') return;
   drawMembers(el);
 }
+function roleCell(p, me) {
+  const tag = `<span class="tag role-${esc(p.role)}">${esc(t('r_' + p.role))}</span>`;
+  const sel = roles => `<select data-role="${esc(p.id)}" aria-label="${esc(t('role'))}">${opts(roles.map(r => [r, t('r_' + r)]), p.role)}</select>`;
+  if (me) return p.role === 'admin' ? `${sel(['admin', 'captain', 'team'])}<br><small class="mute">${esc(t('adm_self_hint'))}</small>` : tag;
+  if (isOwner()) return sel(['guest', 'team', 'captain', 'admin']);
+  if (p.role === 'admin') return `${tag} <span class="mute small" title="${esc(t('adm_owner_only'))}">🔒</span>`;
+  return sel(['guest', 'team', 'captain']);
+}
 function drawMembers(el) {
   const list = mList.slice().sort((a, b) => (a.role === 'guest' && !a.reviewed_at ? 0 : 1) - (b.role === 'guest' && !b.reviewed_at ? 0 : 1) || (b.created_at || '').localeCompare(a.created_at || ''));
   const waiting = p => p.role === 'guest' && !p.reviewed_at;
@@ -155,10 +163,10 @@ function drawMembers(el) {
     `<section class="card"><h2>${esc(t('adm_accounts'))} <span class="mute small">(${list.length})</span></h2><p class="mute small">${esc(t('adm_accounts_hint'))}</p>
       <div class="scroll"><table class="stack adm"><thead><tr><th>${esc(t('display_name'))}</th><th>${esc(t('role'))}</th><th>${esc(t('linked_player'))}</th><th>${esc(t('joined'))}</th><th></th></tr></thead><tbody>
       ${list.map(p => { const me = p.id === state.me?.id; return `<tr${waiting(p) ? ' class="pending"' : ''}><td><b>${esc(p.display_name || '')}</b>${me ? ' <span class="tag">★</span>' : ''}${waiting(p) ? ` <span class="tag warn-tag">${esc(t('waiting'))}</span><span class="pend-btns"><button type="button" class="btn primary xs" data-approve="${esc(p.id)}">${esc(t('pend_approve'))}</button><button type="button" class="btn ghost xs" data-keepguest="${esc(p.id)}">${esc(t('pend_keep'))}</button></span>` : ''}</td>
-        <td>${me ? `<span class="tag role-${esc(p.role)}">${esc(t('r_' + p.role))}</span>` : `<select data-role="${esc(p.id)}" aria-label="${esc(t('role'))}">${opts(['guest', 'team', 'captain', 'admin'].map(r => [r, t('r_' + r)]), p.role)}</select>`}</td>
-        <td><select data-link="${esc(p.id)}" aria-label="${esc(t('linked_player'))}">${opts([...players(true).map(q => [q.id, q.name + (q.active ? '' : ' (' + t('inactive') + ')')]), ['__new', '+ ' + t('adm_new_player')]], p.player_id, t('none_linked'))}</select></td>
+        <td>${roleCell(p, me)}</td>
+        <td>${!isOwner() && ownerPlayer(p.player_id) ? `<span title="${esc(t('adm_owner_only'))}">${esc(pname(p.player_id))} 🔒</span>` : `<select data-link="${esc(p.id)}" aria-label="${esc(t('linked_player'))}">${opts([...players(true).filter(q => isOwner() || !ownerPlayer(q.id) || q.id === p.player_id).map(q => [q.id, q.name + (q.active ? '' : ' (' + t('inactive') + ')')]), ['__new', '+ ' + t('adm_new_player')]], p.player_id, t('none_linked'))}</select>`}</td>
         <td class="nowrap">${esc((p.created_at || '').slice(0, 10))}</td>
-        <td class="r">${me ? '' : `<button type="button" class="icon" data-deluser="${esc(p.id)}" aria-label="${esc(t('adm_del_account'))}: ${esc(p.display_name || '')}">🗑</button>`}</td></tr>`; }).join('')}
+        <td class="r">${me ? '' : p.role === 'admin' ? `<span class="mute small" title="${esc(t('adm_admin_nodel'))}">🔒</span>` : `<button type="button" class="icon" data-deluser="${esc(p.id)}" aria-label="${esc(t('adm_del_account'))}: ${esc(p.display_name || '')}">🗑</button>`}</td></tr>`; }).join('')}
       </tbody></table></div></section>
     <section class="card"><h2>${esc(t('adm_players'))} <span class="mute small">(${ps.length})</span></h2><p class="mute small">${esc(t('adm_players_hint'))}</p>
       <form class="adm-add" id="addp"><input name="name" required maxlength="40" placeholder="${esc(t('adm_player_name'))}" aria-label="${esc(t('adm_player_name'))}"><button class="btn primary">+ ${esc(t('adm_add_player'))}</button></form>
@@ -183,7 +191,9 @@ function drawMembers(el) {
   };
   el.onchange = async e => {
     const r = e.target.closest('[data-role]'), l = e.target.closest('[data-link]'), a = e.target.closest('[data-active]'), rn = e.target.closest('[data-rename]');
-    if (r) { if (await act(() => db.update('profiles', { id: r.dataset.role }, { role: r.value, reviewed_at: new Date().toISOString() }), null)) await reload(); }
+    if (r) { const prof = mList.find(x => x.id === r.dataset.role); const self = prof && prof.id === state.me?.id;
+      if (self && r.value !== 'admin' && !await confirmBox(t('adm_giveup_q'))) { r.value = 'admin'; return; }
+      if (await act(() => db.update('profiles', { id: r.dataset.role }, { role: r.value, reviewed_at: new Date().toISOString() }), null)) { if (self) { await refreshMe(); location.hash = '#/portal'; } await reload(); } else r.value = prof.role; }
     if (l && l.value === '__new') {
       const prof = mList.find(x => x.id === l.dataset.link);
       const res = await modal(t('adm_new_player'), `<label>${esc(t('adm_player_name'))}<input name="name" required maxlength="40" value="${esc(prof?.display_name || '')}"></label><p class="mute small">${esc(t('adm_new_player_hint', { name: prof?.display_name || '' }))}</p>`, { submit: t('adm_create_link') });
@@ -214,9 +224,13 @@ async function refreshMe() {
   await loadPending();
 }
 // ---------------------------------------------------------------- New sign-ups waiting for an admin
+// Owners (Miki, David): the only ones who give or take the admin role
+const isOwner = () => can('admin') && !!state.me && (state.ownerPlayers || []).map(Number).includes(+state.me.player_id);
+const ownerPlayer = id => (state.ownerPlayers || []).map(Number).includes(+id);
 const pendingList = () => (can('admin') && state.pending) || [];
 async function loadPending() {
-  if (!can('admin')) { state.pending = []; return; }
+  if (!can('admin')) { state.pending = []; state.ownerPlayers = []; return; }
+  try { state.ownerPlayers = (await db.rpc('owner_players')) || []; } catch (e) { state.ownerPlayers = []; }
   try { state.pending = (await db.list('profiles', ['created_at', 'desc'])).filter(p => p.role === 'guest' && !p.reviewed_at && p.id !== state.me?.id); } catch (e) { state.pending = []; }
 }
 function pendingPopup() {
