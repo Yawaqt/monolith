@@ -1,9 +1,9 @@
 // Public pages: visible to everyone, built only from the safe public data.
-import { t } from './i18n.js';
-import { state, esc, fmtDate, empty } from './core.js';
-import { typeLabel, pct } from './data.js';
-import { appsCards } from './pages-team.js';
-import { CONFIG } from './config.js';
+import { t } from './i18n.js?v=202611251551';
+import { state, esc, fmtDate, empty } from './core.js?v=202611251551';
+import { typeLabel, pct } from './data.js?v=202611251551';
+import { appsCards } from './pages-team.js?v=202611251551';
+import { CONFIG } from './config.js?v=202611251551';
 const IG_ICON = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>';
 
 const PUB = () => state.pub || { players: [], results: [], events: [] };

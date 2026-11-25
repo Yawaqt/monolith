@@ -1,12 +1,12 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js';
-import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js';
-import { t, setLang, getLang } from './i18n.js';
-import { state, role, can, esc, $, opts, players, pname, loadData, act, toast, pageHead } from './core.js';
-import * as T from './pages-team.js';
-import * as A from './pages-analysis.js';
-import * as P from './pages-public.js';
-import * as TE from './pages-teams.js';
+import { CONFIG } from './config.js?v=202611251551';
+import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251551';
+import { t, setLang, getLang } from './i18n.js?v=202611251551';
+import { state, role, can, esc, $, opts, players, pname, loadData, act, toast, pageHead } from './core.js?v=202611251551';
+import * as T from './pages-team.js?v=202611251551';
+import * as A from './pages-analysis.js?v=202611251551';
+import * as P from './pages-public.js?v=202611251551';
+import * as TE from './pages-teams.js?v=202611251551';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
