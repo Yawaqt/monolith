@@ -1,0 +1,47 @@
+# Weekly encrypted database backup (the free Supabase plan has no automatic backups).
+# Needs two repository secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_DB_URL   connection string from Supabase → Connect → "Session pooler" (with your database password)
+#   BACKUP_PASSWORD   any long password – you need it to open a backup, keep it safe
+# The backup is encrypted, because artifacts of a public repository can be downloaded by others.
+name: Datenbank-Backup
+on:
+  schedule:
+    - cron: '23 3 * * 0'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Zugangsdaten vorhanden?
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+          PW: ${{ secrets.BACKUP_PASSWORD }}
+        run: |
+          if [ -z "$DB" ] || [ -z "$PW" ]; then
+            echo "::error::SUPABASE_DB_URL und BACKUP_PASSWORD fehlen noch (Settings → Secrets and variables → Actions)."
+            exit 1
+          fi
+      - name: PostgreSQL 17 Werkzeuge installieren
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client-17
+      - name: Datenbank sichern und verschlüsseln
+        env:
+          DB: ${{ secrets.SUPABASE_DB_URL }}
+          PW: ${{ secrets.BACKUP_PASSWORD }}
+        run: |
+          D=$(date +%Y-%m-%d)
+          /usr/lib/postgresql/17/bin/pg_dump "$DB" --schema=public --schema=auth --no-owner --no-privileges -Fc -f backup.dump
+          ls -lh backup.dump
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$PW" --symmetric --cipher-algo AES256 -o "monolith-backup-$D.dump.gpg" backup.dump
+          rm backup.dump
+          echo "FILE=monolith-backup-$D.dump.gpg" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.FILE }}
+          path: ${{ env.FILE }}
+          retention-days: 90

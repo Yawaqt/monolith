@@ -83,3 +83,24 @@ apps/collection/        Collection Tracker
 supabase/schema.sql     database tables + permissions (run once)
 supabase/seed.sql       your data from the Google Sheet (run once)
 ```
+
+## Wachhalter und Backups (GitHub Actions)
+
+**Supabase wach halten** (`.github/workflows/keepalive.yml`): läuft alle 3 Tage von selbst und macht eine kleine Leseabfrage, damit das Gratis-Projekt nicht pausiert wird. Keine Einrichtung nötig.
+
+**Wöchentliches Backup** (`.github/workflows/backup.yml`): jeden Sonntag eine verschlüsselte Sicherung der Datenbank (Spiele, Konten, Turniere, News …), 90 Tage aufbewahrt. Fotos sind nicht enthalten.
+
+Einmalig einrichten – GitHub → Repository → Settings → Secrets and variables → Actions → *New repository secret*:
+
+1. `SUPABASE_DB_URL` – Supabase → Projekt → **Connect** → „Session pooler“ → Verbindungs-URL kopieren und `[YOUR-PASSWORD]` durch das Datenbank-Passwort ersetzen (vergessen? Supabase → Project Settings → Database → *Reset database password*).
+2. `BACKUP_PASSWORD` – ein langes, eigenes Passwort. **Gut aufheben** – ohne dieses Passwort lässt sich ein Backup nicht öffnen.
+
+Testen: GitHub → Actions → „Datenbank-Backup“ → *Run workflow*. Fertige Backups liegen beim jeweiligen Lauf unter *Artifacts*.
+
+Backup öffnen bzw. zurückspielen (auf einem Computer mit PostgreSQL 17):
+
+```
+gpg --decrypt monolith-backup-JJJJ-MM-TT.dump.gpg > backup.dump
+pg_restore --list backup.dump              # Inhalt ansehen
+pg_restore -d "<SUPABASE_DB_URL>" --data-only --table=matches backup.dump   # z. B. nur eine Tabelle zurückholen
+```
