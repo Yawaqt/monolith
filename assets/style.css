@@ -322,3 +322,6 @@ body:has(#fab:not([hidden])) .toast{bottom:92px}
 .seg.ev-kind{display:flex;width:100%}.seg.ev-kind button{flex:1;min-height:44px}
 .out-top{margin-left:6px}@media(max-width:900px){.out-top{display:none}}
 .mob-out{display:block;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--line);padding:14px 0;font:inherit;font-weight:600;color:#c0392b;cursor:pointer}
+.ava-btn{position:relative;border:0;background:none;padding:0;cursor:pointer;border-radius:50%;line-height:0}
+.ava-btn .cam{position:absolute;right:-4px;bottom:-4px;width:22px;height:22px;border-radius:50%;background:#fff;border:1px solid var(--line);font-size:12px;line-height:20px;text-align:center}
+.ava-btn:hover .avatar{outline:2px solid var(--green);outline-offset:2px}

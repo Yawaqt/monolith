@@ -45,7 +45,7 @@ const S = {
   type_singles_s: ['Singles', 'Singles'], quick_btn: ['Ergebnis', 'Result'], quick_title: ['Ergebnis eintragen', 'Log a result'], quick_more: ['Mehr Details (Spieler, Datum, Dispositionen, Gegnername …)', 'More details (player, date, dispositions, opponent name …)'],
   quick_saved: ['Ergebnis gespeichert', 'Result saved'],
   date_from: ['Von', 'From'], date_to: ['Bis', 'To'], date_order: ['Das End-Datum liegt vor dem Start.', 'The end date is before the start.'], te_size_n: ['{n}er Team', 'team of {n}'],
-  signed_out: ['Du bist abgemeldet.', 'You are signed out.'],
+  photo_saved: ['Foto gespeichert', 'Photo saved'], signed_out: ['Du bist abgemeldet.', 'You are signed out.'],
   // team events
   nav_teams: ['Teamturniere', 'Team events'], teams_intro: ['Team-Events für 5er und 8er Teams: Aufstellung mit Regelprüfung, Vorhersagen pro Paarung, Pairings und Ergebnisse live mit dem ganzen Team.', 'Team events for 5s and 8s: line-up with rule checks, a prediction per matchup, pairings and results live with the whole team.'],
   new_tevent: ['Neues Teamturnier', 'New team event'], te_size: ['Teamgröße', 'Team size'], te_rules: ['Regeln', 'Rules'], te_link_event: ['Mit Event verknüpfen', 'Link to event'],
@@ -99,7 +99,7 @@ const S = {
   hello: ['Hallo', 'Hi'], next_events: ['Nächste Events', 'Next events'], recent: ['Letzte Ergebnisse', 'Recent results'], my_form: ['Meine Bilanz', 'My record'],
   team_form: ['Team-Bilanz', 'Team record'], open_games: ['Spiel eintragen', 'Log a game'], your_answer: ['Deine Antwort', 'Your answer'],
   // roster
-  roster_intro: ['Wer spielt welche Armeen und Wunsch-Dispositionen. Unten die Abdeckung im Team.', 'Who plays which armies and preferred dispositions. Team coverage below.'],
+  roster_intro: ['Wer spielt welche Armeen und Wunsch-Dispositionen. Tipp auf das Bild (📷), um ein Foto hochzuladen. Unten die Abdeckung im Team.', 'Who plays which armies and preferred dispositions. Tap the picture (📷) to upload a photo. Team coverage below.'],
   wish1: ['Wunsch-Disposition 1', 'Preferred disposition 1'], wish2: ['Wunsch-Disposition 2', 'Preferred disposition 2'], same_disp: ['Dieselbe Disposition doppelt gewählt', 'Same disposition chosen twice'],
   coverage: ['Abdeckung im Team', 'Team coverage'], add_player: ['Spieler hinzufügen', 'Add player'], active: ['Aktiv', 'Active'], position: ['Position', 'Position'],
   covered_by: ['gespielt von', 'played by'], not_covered: ['Nicht abgedeckt', 'Not covered'],

@@ -1,8 +1,8 @@
 // Team pages: home, roster, match log, archive, events, calendar, line-up, cash.
-import { db } from './db.js?v=202611251629';
-import { t } from './i18n.js?v=202611251629';
-import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611251629';
-import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611251629';
+import { db } from './db.js?v=202611251631';
+import { t } from './i18n.js?v=202611251631';
+import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611251631';
+import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611251631';
 
 const D = () => state.data;
 const rsvpOf = (eid, pid) => (D().rsvps || []).find(r => r.event_id === eid && r.player_id === pid)?.status;
@@ -73,15 +73,29 @@ export function roster(el) {
   const missing = FACTIONS.filter(f => !cov.has(f));
   el.innerHTML = pageHead(t('nav_roster'), t('roster_intro'), can('captain') ? `<button class="btn primary" data-add>${esc(t('add_player'))}</button>` : '') +
     `<div class="roster">${ps.map(p => `<article class="card pl${p.active ? '' : ' inactive'}">
-      <header><h3>${avatar(p)}${esc(p.name)}${isMe(p.id) ? ' <span class="tag">★</span>' : ''}${p.bcp_url ? ` <a class="tag bcp" href="${esc(p.bcp_url)}" target="_blank" rel="noopener">BCP ↗</a>` : ''}</h3>${(can('captain') || isMe(p.id)) ? `<button class="btn ghost sm" data-edit="${p.id}">${esc(t('edit'))}</button>` : ''}</header>
+      <header><h3>${(can('captain') || isMe(p.id)) ? `<button type="button" class="ava-btn" data-photo-for="${p.id}" title="${esc(t('photo_pick'))}" aria-label="${esc(t('photo_pick'))}: ${esc(p.name)}">${avatar(p)}<span class="cam" aria-hidden="true">📷</span></button>` : avatar(p)}${esc(p.name)}${isMe(p.id) ? ' <span class="tag">★</span>' : ''}${p.bcp_url ? ` <a class="tag bcp" href="${esc(p.bcp_url)}" target="_blank" rel="noopener">BCP ↗</a>` : ''}</h3>${(can('captain') || isMe(p.id)) ? `<button class="btn ghost sm" data-edit="${p.id}">${esc(t('edit'))}</button>` : ''}</header>
       ${(p.armies || []).filter(a => a.army).length ? `<ol class="armies">${p.armies.filter(a => a.army).map(a => `<li><b>${esc(a.army)}</b><span class="mute">${[a.d1, a.d2].filter(Boolean).map(esc).join(' · ')}</span>${a.d1 && a.d1 === a.d2 ? ` <span class="warn" title="${esc(t('same_disp'))}">!</span>` : ''}</li>`).join('')}</ol>` : `<p class="mute">–</p>`}
     </article>`).join('')}</div>
     <section class="card"><h2>${esc(t('coverage'))}</h2><div class="chips">${[...cov.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([f, s]) => `<span class="chip on" title="${esc(t('covered_by'))}: ${esc([...s].join(', '))}">${esc(f)} <b>${s.size}</b></span>`).join('')}</div>
       ${missing.length ? `<h3 class="sub">${esc(t('not_covered'))}</h3><div class="chips">${missing.map(f => `<span class="chip">${esc(f)}</span>`).join('')}</div>` : ''}</section>`;
   el.onclick = async e => {
+    const ph = e.target.closest('[data-photo-for]'); if (ph) return changePhoto(+ph.dataset.photoFor);
     const ed = e.target.closest('[data-edit]'); if (ed) return editPlayer(playerById(ed.dataset.edit));
     if (e.target.closest('[data-add]')) return editPlayer(null);
   };
+}
+// Pick a photo and upload it straight away (one tap from the roster card or the profile)
+export function changePhoto(pid) {
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
+  inp.onchange = async () => {
+    const file = inp.files[0]; if (!file) return;
+    try { const blob = await resizeImage(file, 600, true); toast(t('uploading'));
+      const url = await db.upload(`players/${pid}-${Date.now()}.jpg`, blob);
+      await act(() => db.update('players', { id: pid }, { photo_url: url }), ['players'], t('photo_saved'));
+      if (state.reloadPublic) state.reloadPublic().then(() => state.render()).catch(() => {});
+    } catch (err) { toast(t('error') + ': ' + err.message, true); }
+  };
+  inp.click();
 }
 async function editPlayer(p) {
   const isNew = !p; p = p || { name: '', sort: players(true).length + 1, active: true, armies: [] };

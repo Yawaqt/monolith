@@ -1,13 +1,13 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611251629';
-import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251629';
-import { t, setLang, getLang } from './i18n.js?v=202611251629';
-import { state, role, can, esc, $, opts, players, pname, loadData, act, toast, pageHead } from './core.js?v=202611251629';
-import * as T from './pages-team.js?v=202611251629';
-import * as A from './pages-analysis.js?v=202611251629';
-import * as P from './pages-public.js?v=202611251629';
-import * as TE from './pages-teams.js?v=202611251629';
-import * as N from './pages-news.js?v=202611251629';
+import { CONFIG } from './config.js?v=202611251631';
+import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251631';
+import { t, setLang, getLang } from './i18n.js?v=202611251631';
+import { state, role, can, esc, $, opts, players, pname, loadData, act, toast, pageHead } from './core.js?v=202611251631';
+import * as T from './pages-team.js?v=202611251631';
+import * as A from './pages-analysis.js?v=202611251631';
+import * as P from './pages-public.js?v=202611251631';
+import * as TE from './pages-teams.js?v=202611251631';
+import * as N from './pages-news.js?v=202611251631';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
@@ -117,10 +117,13 @@ function profile(el) {
       <label>${esc(t('language'))}<select name="lang">${opts([['de', 'Deutsch'], ['en', 'English']], me.lang || getLang())}</select></label>
       <p class="mute">${esc(t('role'))}: <b>${esc(t('r_' + role()))}</b> · ${esc(t('linked_player'))}: <b>${esc(me.player_id ? pname(me.player_id) : t('none_linked'))}</b></p>
       <div class="form-actions"><button class="btn primary">${esc(t('save'))}</button>${DEMO ? '' : `<button type="button" class="btn ghost" data-out>${esc(t('sign_out'))}</button>`}</div></form>
+    ${me.player_id && can('team') ? (() => { const pl = (state.data.players || []).find(x => x.id === me.player_id) || { name: pname(me.player_id) }; return `<section class="card"><h2>${esc(t('photo'))}</h2>
+      <div class="photo-edit">${T.avatar(pl, 'lg')}<div><p class="mute small">${esc(t('photo_hint'))}</p><button type="button" class="btn primary sm" data-myphoto="${me.player_id}">${esc(t('photo_pick'))}</button></div></div></section>`; })() : ''}
     ${DEMO ? '' : `<form class="card form" id="pw"><h2>${esc(t('password'))}</h2><label>${esc(t('new_password'))}<input name="password" type="password" minlength="8" required autocomplete="new-password"></label><div class="form-actions"><button class="btn primary">${esc(t('save_password'))}</button></div></form>`}</div>`;
   $('#pf').addEventListener('submit', async e => { e.preventDefault(); const f = e.target; if (!f.reportValidity()) return;
     const patch = { display_name: f.display_name.value.trim(), lang: f.lang.value };
     if (await act(() => db.update('profiles', { id: me.id }, patch), null)) { Object.assign(state.me, patch); setLang(patch.lang); try { localStorage.setItem('monolith.lang', patch.lang); } catch (_) {} render(); } });
+  el.onclick = e => { const b = e.target.closest('[data-myphoto]'); if (b) T.changePhoto(+b.dataset.myphoto); };
   const pw = $('#pw'); if (pw) pw.addEventListener('submit', async e => { e.preventDefault(); if (!pw.reportValidity()) return; await act(() => db.setPassword(pw.password.value), null); pw.reset(); });
 }
 
