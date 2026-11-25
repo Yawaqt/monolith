@@ -18,5 +18,18 @@
    "type": "image/png",
    "purpose": "any maskable"
   }
+ ],
+ "shortcuts": [
+  {
+   "name": "Ergebnis eintragen",
+   "short_name": "Ergebnis",
+   "url": "./#/quick",
+   "icons": [
+    {
+     "src": "assets/icon-192.png",
+     "sizes": "192x192"
+    }
+   ]
+  }
  ]
 }

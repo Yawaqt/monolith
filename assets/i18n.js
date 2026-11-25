@@ -42,6 +42,8 @@ const S = {
   photo: ['Foto', 'Photo'], photo_hint: ['Wird auf der öffentlichen Team-Seite beim Namen angezeigt. Am besten ein Porträt, es wird quadratisch zugeschnitten.', 'Shown next to your name on the public team page. A portrait works best, it is cropped to a square.'],
   photo_pick: ['Foto wählen', 'Choose photo'], photo_remove: ['Foto entfernen', 'Remove photo'],
   my_tour: ['Meine Turnier-Bilanz', 'My tournament record'], my_practice: ['Training', 'Practice'], team_tour: ['Team · Turniere', 'Team · tournaments'], no_games_yet: ['noch keine Spiele', 'no games yet'],
+  type_singles_s: ['Singles', 'Singles'], quick_btn: ['Ergebnis', 'Result'], quick_title: ['Ergebnis eintragen', 'Log a result'], quick_more: ['Mehr Details (Spieler, Datum, Dispositionen, Gegnername …)', 'More details (player, date, dispositions, opponent name …)'],
+  quick_saved: ['Ergebnis gespeichert', 'Result saved'],
   // team events
   nav_teams: ['Teamturniere', 'Team events'], teams_intro: ['Team-Events für 5er und 8er Teams: Aufstellung mit Regelprüfung, Vorhersagen pro Paarung, Pairings und Ergebnisse live mit dem ganzen Team.', 'Team events for 5s and 8s: line-up with rule checks, a prediction per matchup, pairings and results live with the whole team.'],
   new_tevent: ['Neues Teamturnier', 'New team event'], te_size: ['Teamgröße', 'Team size'], te_rules: ['Regeln', 'Rules'], te_link_event: ['Mit Event verknüpfen', 'Link to event'],

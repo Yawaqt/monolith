@@ -1,13 +1,13 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611251615';
-import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251615';
-import { t, setLang, getLang } from './i18n.js?v=202611251615';
-import { state, role, can, esc, $, opts, players, pname, loadData, act, toast, pageHead } from './core.js?v=202611251615';
-import * as T from './pages-team.js?v=202611251615';
-import * as A from './pages-analysis.js?v=202611251615';
-import * as P from './pages-public.js?v=202611251615';
-import * as TE from './pages-teams.js?v=202611251615';
-import * as N from './pages-news.js?v=202611251615';
+import { CONFIG } from './config.js?v=202611251617';
+import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251617';
+import { t, setLang, getLang } from './i18n.js?v=202611251617';
+import { state, role, can, esc, $, opts, players, pname, loadData, act, toast, pageHead } from './core.js?v=202611251617';
+import * as T from './pages-team.js?v=202611251617';
+import * as A from './pages-analysis.js?v=202611251617';
+import * as P from './pages-public.js?v=202611251617';
+import * as TE from './pages-teams.js?v=202611251617';
+import * as N from './pages-news.js?v=202611251617';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
@@ -41,6 +41,9 @@ function header() {
     <div class="top-tools">${igLink('ig')}<div class="lang" role="group" aria-label="${esc(t('language'))}"><button type="button" data-lang="de" aria-pressed="${getLang() === 'de'}">DE</button><button type="button" data-lang="en" aria-pressed="${getLang() === 'en'}">EN</button></div>${acct}
     <button class="icon menu" id="menuBtn" aria-label="${esc(t('menu'))}" aria-expanded="false">☰</button></div></div>
     <nav class="mobnav" aria-label="Mobile">${PUBLIC.map(([k, l]) => `<a href="#/${k}">${esc(t(l))}</a>`).join('')}${CONFIG.INSTAGRAM ? `<a href="${esc(CONFIG.INSTAGRAM)}" target="_blank" rel="noopener">Instagram ↗</a>` : ''}<div class="lang mob" role="group" aria-label="${esc(t('language'))}"><button type="button" data-lang="de" aria-pressed="${getLang() === 'de'}">Deutsch</button><button type="button" data-lang="en" aria-pressed="${getLang() === 'en'}">English</button></div></nav>`;
+  let fab = $('#fab');
+  if (!fab) { fab = document.createElement('button'); fab.id = 'fab'; fab.className = 'fab'; fab.type = 'button'; document.body.appendChild(fab); fab.onclick = () => T.quickResult(); }
+  fab.innerHTML = `<span aria-hidden="true">+</span> ${esc(t('quick_btn'))}`; fab.hidden = !(signed && can('team')) || r === 'login' || r.startsWith('live/');
   $('.foot-in').innerHTML = `<div>${BRAND}<p class="mute">${esc(t('footer_text'))}</p></div>
     <nav aria-label="Footer">${PUBLIC.slice(1).map(([k, l]) => `<a href="#/${k}">${esc(t(l))}</a>`).join('')}<a href="#/portal">${esc(t('portal'))}</a>${CONFIG.INSTAGRAM ? `<a href="${esc(CONFIG.INSTAGRAM)}" target="_blank" rel="noopener" class="ig-text">${IG_ICON} Instagram</a>` : ''}</nav>
     <p class="small mute">© ${new Date().getFullYear()} Monolith 40k · ${esc(t('footer_note'))}</p>`;
@@ -62,6 +65,7 @@ export function render() {
   const el = $('#view'); el.onclick = null; el.onchange = null;
   const r = route();
   document.body.dataset.area = ROUTES[r]?.pub || r === 'login' ? 'public' : 'portal';
+  if (r === 'quick') { location.replace('#/portal'); if (can('team')) setTimeout(() => T.quickResult(), 50); return; }
   if (r === 'login') {
     if (!state.session) return login(el);
     // Back to an app (e.g. the collection tracker) that sent the user here to sign in

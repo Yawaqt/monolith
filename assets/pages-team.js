@@ -1,8 +1,8 @@
 // Team pages: home, roster, match log, archive, events, calendar, line-up, cash.
-import { db } from './db.js?v=202611251615';
-import { t } from './i18n.js?v=202611251615';
-import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611251615';
-import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611251615';
+import { db } from './db.js?v=202611251617';
+import { t } from './i18n.js?v=202611251617';
+import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611251617';
+import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611251617';
 
 const D = () => state.data;
 const rsvpOf = (eid, pid) => (D().rsvps || []).find(r => r.event_id === eid && r.player_id === pid)?.status;
@@ -159,6 +159,54 @@ function matchRow(r) {
   if (out.opp_player_id === out.player_id) throw new Error('Opponent = our player');
   return out;
 }
+// ---------------------------------------------------------------- Quick result (floating button, members and above)
+// Everything is filled in from the player's last game, so usually only opponent and points are left.
+function lastOwnGame(pid) {
+  return (D().matches || []).filter(m => m.player_id === pid).sort((a, b) => b.played_on.localeCompare(a.played_on) || b.id - a.id)[0];
+}
+export async function quickResult() {
+  if (!can('team')) return;
+  if (!D() || !D().matches) { try { await loadData(); } catch (e) {} }
+  const pid = myPlayer() || players()[0]?.id; const last = lastOwnGame(pid);
+  const pl = playerById(pid); const firstArmy = (pl?.armies || []).find(a => a.army) || {};
+  // Same tournament as the last game if that was within the last 3 days (rounds 2, 3 … of the weekend)
+  const recent = last && (Date.now() - new Date(last.played_on).getTime()) < 3 * 864e5;
+  const m = { type: recent ? last.type : (last ? last.type : 'Practice'), tournament: recent ? last.tournament : '', played_on: today(), player_id: pid,
+    army: last ? last.army : firstArmy.army, disposition: last ? last.disposition : firstArmy.d1 };
+  const plOpts = players(true).map(p => [p.id, p.name]);
+  const armyList = [...new Set([...(pl?.armies || []).map(a => a.army).filter(Boolean), ...FACTIONS])];
+  const body = `<div class="quick">
+    <div class="seg type-seg" role="group" aria-label="${esc(t('type'))}">${GAME_TYPES.map(x => `<button type="button" data-type="${x}" aria-pressed="${m.type === x}">${esc(t({ Practice: 'type_practice', Tournament: 'type_singles_s', 'Team Tournament': 'type_team' }[x]))}</button>`).join('')}</div>
+    <input type="hidden" name="type" value="${esc(m.type)}">
+    <label class="tour-name"${m.type === 'Practice' ? ' hidden' : ''}>${esc(t('tour_name'))}<input name="tournament" value="${esc(m.tournament || '')}" list="qtours" maxlength="80"><datalist id="qtours">${[...new Set((D().matches || []).map(x => x.tournament).filter(Boolean))].map(x => `<option value="${esc(x)}">`).join('')}</datalist></label>
+    <div class="grid2">
+      <label>${esc(t('our_army'))}<select name="army" required>${opts(armyList, m.army || '', '–')}</select></label>
+      <label>${esc(t('opp_faction'))}<select name="opp_faction" required>${opts(FACTIONS, '', '–')}</select></label>
+      <label>${esc(t('our_score'))}<input name="our_score" type="number" inputmode="numeric" min="0" max="200" required></label>
+      <label>${esc(t('opp_score'))}<input name="opp_score" type="number" inputmode="numeric" min="0" max="200" required></label>
+    </div>
+    <div class="preview" aria-live="polite"></div>
+    <details class="more"><summary>${esc(t('quick_more'))}</summary><div class="grid2">
+      <label>${esc(t('our_player'))}<select name="player_id" required>${opts(plOpts, pid, '–')}</select></label>
+      <label>${esc(t('date'))}<input name="played_on" type="date" required value="${esc(m.played_on)}"></label>
+      <label>${esc(t('our_disp'))}<select name="disposition">${opts(DISPOSITIONS, m.disposition || '', '–')}</select></label>
+      <label>${esc(t('opp_disp'))}<select name="opp_disposition">${opts(DISPOSITIONS, '', '–')}</select></label>
+      <label>${esc(t('opp_player'))}<select name="opp_player_id">${opts(players().map(p => [p.id, p.name]), '', t('external'))}</select></label>
+      <label class="opp-name">${esc(t('opp_name'))}<input name="opp_name" maxlength="60"></label></div>
+      <label>${esc(t('notes'))}<input name="notes" maxlength="200"></label></details></div>`;
+  const r = await modal(t('quick_title'), body, { submit: t('save_game'), onOpen: f => {
+    f.addEventListener('click', e => { const b = e.target.closest('[data-type]'); if (!b) return;
+      f.type.value = b.dataset.type; $$('[data-type]', f).forEach(x => x.setAttribute('aria-pressed', x === b));
+      $('.tour-name', f).hidden = b.dataset.type === 'Practice'; f.dispatchEvent(new Event('change')); });
+    bindMatchForm(f);
+    setTimeout(() => f.opp_faction.focus(), 30);
+  } });
+  if (!r) return;
+  if (r.type === 'Practice') r.tournament = '';
+  let row; try { row = matchRow(r); } catch (err) { return toast(err.message, true); }
+  await act(() => db.insert('matches', row), ['matches'], t('quick_saved'));
+}
+
 export function matches(el) {
   const canLog = can('team');
   const latest = (D().matches || []).slice().sort((a, b) => b.id - a.id).slice(0, 8);
