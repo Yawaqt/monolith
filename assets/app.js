@@ -1,16 +1,17 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611251931';
-import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251931';
-import { t, setLang, getLang } from './i18n.js?v=202611251931';
-import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox } from './core.js?v=202611251931';
-import * as T from './pages-team.js?v=202611251931';
-import * as A from './pages-analysis.js?v=202611251931';
-import * as P from './pages-public.js?v=202611251931';
-import * as TE from './pages-teams.js?v=202611251931';
-import { FACTIONS } from './data.js?v=202611251931';
-import * as SITE from './pages-site.js?v=202611251931';
-import * as H from './pages-history.js?v=202611251931';
-import * as N from './pages-news.js?v=202611251931';
+import { CONFIG } from './config.js?v=202611251953';
+import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251953';
+import { t, setLang, getLang } from './i18n.js?v=202611251953';
+import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox } from './core.js?v=202611251953';
+import * as T from './pages-team.js?v=202611251953';
+import * as A from './pages-analysis.js?v=202611251953';
+import * as P from './pages-public.js?v=202611251953';
+import * as TE from './pages-teams.js?v=202611251953';
+import { FACTIONS } from './data.js?v=202611251953';
+import * as SITE from './pages-site.js?v=202611251953';
+import * as H from './pages-history.js?v=202611251953';
+import * as LG from './pages-legal.js?v=202611251953';
+import * as N from './pages-news.js?v=202611251953';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
@@ -26,6 +27,7 @@ const PORTAL = [
 const ROUTES = Object.fromEntries([
   ...PUBLIC.map(([k, label, fn]) => [k, { label, min: 'anon', fn, pub: true }]),
   ...PORTAL.flatMap(g => g.items).map(([k, label, min, fn]) => [k, { label, min, fn }]),
+  ['privacy', { label: 'p_privacy', min: 'anon', fn: LG.privacy, pub: true }],
 ]);
 // Official logo (mark + MONOLITH)
 export const IG_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>';
@@ -48,7 +50,7 @@ function header() {
   if (!fab) { fab = document.createElement('button'); fab.id = 'fab'; fab.className = 'fab'; fab.type = 'button'; document.body.appendChild(fab); fab.onclick = () => T.quickResult(); }
   fab.innerHTML = `<span aria-hidden="true">+</span> ${esc(t('quick_btn'))}`; fab.hidden = !(signed && can('team')) || r === 'login' || r.startsWith('live/');
   $('.foot-in').innerHTML = `<div>${BRAND}<p class="mute">${esc(t('footer_text'))}</p></div>
-    <nav aria-label="Footer">${PUBLIC.slice(1).map(([k, l]) => `<a href="#/${k}">${esc(t(l))}</a>`).join('')}<a href="#/portal">${esc(t('portal'))}</a>${CONFIG.INSTAGRAM ? `<a href="${esc(CONFIG.INSTAGRAM)}" target="_blank" rel="noopener" class="ig-text">${IG_ICON} Instagram</a>` : ''}</nav>
+    <nav aria-label="Footer">${PUBLIC.slice(1).map(([k, l]) => `<a href="#/${k}">${esc(t(l))}</a>`).join('')}<a href="#/privacy">${esc(t('p_privacy'))}</a><a href="#/portal">${esc(t('portal'))}</a>${CONFIG.INSTAGRAM ? `<a href="${esc(CONFIG.INSTAGRAM)}" target="_blank" rel="noopener" class="ig-text">${IG_ICON} Instagram</a>` : ''}</nav>
     <p class="small mute">© ${new Date().getFullYear()} Monolith 40k · ${esc(t('footer_note'))}</p>`;
 }
 function subnav() {
@@ -95,6 +97,7 @@ function login(el) {
       ${up ? `<label>${esc(t('display_name'))}<input name="name" required maxlength="40" autocomplete="nickname"></label>` : ''}
       <label>${esc(t('email'))}<input name="email" type="email" required autocomplete="email"></label>
       ${authMode !== 'reset' ? `<label>${esc(t('password'))}<input name="password" type="password" required minlength="8" autocomplete="${up ? 'new-password' : 'current-password'}"></label>` : ''}
+      ${up ? `<p class="mute small">${esc(t('signup_privacy'))} <a href="#/privacy" target="_blank">${esc(t('p_privacy'))}</a></p>` : ''}
       <button class="btn primary block">${esc(authMode === 'reset' ? t('forgot') : up ? t('sign_up') : t('sign_in'))}</button>
       ${CONFIG.GOOGLE_LOGIN && authMode !== 'reset' ? `<button type="button" class="btn ghost block" data-google>${esc(t('google'))}</button>` : ''}
       ${authMsg ? `<p class="notice" role="status">${esc(authMsg)}</p>` : ''}
@@ -126,11 +129,16 @@ function profile(el) {
       <label>${esc(t('fav_army'))}<select name="fav_army">${opts(FACTIONS, pl.fav_army || '', '–')}</select></label>
       <label>${esc(t('bio'))}<textarea name="bio" rows="4" maxlength="600" placeholder="${esc(t('bio_ph'))}">${esc(pl.bio || '')}</textarea><small class="mute"><span data-bioc>${(pl.bio || '').length}</span>/600</small></label>
       <div class="form-actions"><button class="btn primary">${esc(t('save'))}</button><a class="btn ghost" href="#/team">${esc(t('site_view'))}</a></div></form>`; })() : ''}
-    ${DEMO ? '' : `<form class="card form" id="pw"><h2>${esc(t('password'))}</h2><label>${esc(t('new_password'))}<input name="password" type="password" minlength="8" required autocomplete="new-password"></label><div class="form-actions"><button class="btn primary">${esc(t('save_password'))}</button></div></form>`}</div>`;
+    ${DEMO ? '' : `<form class="card form" id="pw"><h2>${esc(t('password'))}</h2><label>${esc(t('new_password'))}<input name="password" type="password" minlength="8" required autocomplete="new-password"></label><div class="form-actions"><button class="btn primary">${esc(t('save_password'))}</button></div></form>`}</div>
+    <section class="card"><h2>${esc(t('my_data'))}</h2><p class="mute">${esc(t('my_data_intro'))} <a href="#/privacy">${esc(t('p_privacy'))}</a></p>
+      <div class="form-actions"><button type="button" class="btn ghost" data-export>⬇ ${esc(t('export_data'))}</button>
+      ${can('admin') ? `<span class="mute small">${esc(t('delete_admin_first'))}</span>` : `<button type="button" class="btn ghost danger-text" data-delme>${esc(t('delete_account'))}</button>`}</div></section>`;
   $('#pf').addEventListener('submit', async e => { e.preventDefault(); const f = e.target; if (!f.reportValidity()) return;
     const patch = { display_name: f.display_name.value.trim(), lang: f.lang.value };
     if (await act(() => db.update('profiles', { id: me.id }, patch), null)) { Object.assign(state.me, patch); setLang(patch.lang); try { localStorage.setItem('monolith.lang', patch.lang); } catch (_) {} render(); } });
-  el.onclick = e => { const b = e.target.closest('[data-myphoto]'); if (b) T.changePhoto(+b.dataset.myphoto); };
+  el.onclick = async e => { const b = e.target.closest('[data-myphoto]'); if (b) T.changePhoto(+b.dataset.myphoto);
+    if (e.target.closest('[data-export]')) exportMyData();
+    if (e.target.closest('[data-delme]')) deleteMe(); };
   const bio = $('#bio'); if (bio) {
     bio.bio.addEventListener('input', () => { $('[data-bioc]', bio).textContent = bio.bio.value.length; });
     bio.addEventListener('submit', async e => { e.preventDefault();
@@ -139,6 +147,28 @@ function profile(el) {
 }
 
 // ---------------------------------------------------------------- Members
+// ---------------------------------------------------------------- GDPR: own data export and account deletion
+async function exportMyData() {
+  const uid = state.session?.user?.id; if (!uid) return;
+  const safe = async f => { try { return await f(); } catch (e) { return null; } };
+  const out = { exported_at: new Date().toISOString(), account: { email: state.session.user.email, ...(state.me || {}) } };
+  const pid = state.me?.player_id;
+  if (pid) { out.player = (state.data.players || []).find(p => p.id === pid) || null; out.team_games = (state.data.matches || []).filter(m => m.player_id === pid || m.opp_player_id === pid); out.rsvps = (state.data.rsvps || []).filter(r => r.player_id === pid); out.payments = (state.data.payments || []).filter(r => r.player_id === pid); }
+  out.match_history = await safe(() => db.list('personal_games', ['played_on', 'desc']));
+  out.collection = await safe(async () => (await db.list('collections')).filter(c => c.user_id === uid));
+  out.news_articles = await safe(async () => (await db.list('news')).filter(n => n.author_id === uid));
+  const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `monolith-meine-daten-${new Date().toISOString().slice(0, 10)}.json`; document.body.appendChild(a); a.click(); a.remove();
+  toast(t('export_done'));
+}
+async function deleteMe() {
+  const r = await modal(t('delete_account'), `<p>${esc(t('delete_account_q'))}</p><label>${esc(t('delete_type'))}<input name="confirm" autocomplete="off" required></label>`, { submit: t('delete_account'), danger: true });
+  if (!r) return;
+  if ((r.confirm || '').trim().toUpperCase() !== t('delete_word')) return toast(t('delete_word_wrong'), true);
+  try { await db.rpc('delete_my_account'); } catch (e) { return toast(t('error') + ': ' + e.message, true); }
+  H.resetHistory(); await db.signOut().catch(() => {}); state.session = null; state.me = null; state.data = {}; location.hash = '#/home'; render(); toast(t('account_deleted'));
+}
+
 // ---------------------------------------------------------------- Admin: accounts and players
 let mList = [];
 async function members(el) {

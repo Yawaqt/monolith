@@ -401,3 +401,6 @@ table.stats-t{width:100%}table.stats-t th,table.stats-t td{padding:8px 6px;borde
 ul.pop{list-style:none;margin:0;padding:0}ul.pop li{display:grid;grid-template-columns:minmax(0,1.3fr) 2fr 36px;gap:10px;align-items:center;padding:5px 0;font-size:14.5px}
 .pbar{height:9px;border-radius:5px;background:var(--line);overflow:hidden}.pbar i{display:block;height:100%;background:var(--ink)}
 @media(max-width:600px){.rbar{width:40px}table.stats-t th,table.stats-t td{padding:7px 4px;font-size:14px}.hlist li{flex-wrap:wrap}.hlist li>span.nowrap{white-space:normal}ul.pop li{grid-template-columns:minmax(0,1.4fr) 1fr 30px}}
+/* legal page */
+.legal h2{font-size:24px;margin:34px 0 10px}.legal h3{font-size:18px;margin:24px 0 6px}.legal p{line-height:1.65;margin:0 0 12px}
+.todo{background:#fff3cd;color:#7a5b00;padding:1px 6px;border-radius:4px;font-size:.92em}

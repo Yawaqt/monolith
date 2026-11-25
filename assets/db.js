@@ -1,5 +1,5 @@
 // Data access: Supabase when configured, otherwise a demo backend in localStorage.
-import { CONFIG } from './config.js?v=202611251931';
+import { CONFIG } from './config.js?v=202611251953';
 
 export const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY;
 export const TABLES = ['players', 'matches', 'events', 'rsvps', 'payments', 'ratings', 'opponent_teams', 'pairings', 'settings', 'tevents', 'tevent_rounds', 'news'];
@@ -12,7 +12,7 @@ let sb = null;
 export async function client() {
   if (DEMO) return null;
   if (!sb) {
-    const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
+    const { createClient } = await import('./vendor/supabase.js');
     sb = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
   }
   return sb;
@@ -134,6 +134,7 @@ const demo = {
     }
     if (name === 'public_events') return (T.events || []).filter(e => (e.ends_on || e.starts_on) >= today).sort((a, b) => a.starts_on.localeCompare(b.starts_on)).map(e => ({ starts_on: e.starts_on, ends_on: e.ends_on || e.starts_on, title: e.title, location: e.location, kind: e.kind, team_size: e.team_size }));
     if (name === 'owner_players') return [2, 4];
+    if (name === 'delete_my_account') return null;
     if (name === 'game_stats') { const by = new Map(); const G = tbl('personal_games');
       for (const g of G) { const k = g.army + '|' + g.opp_army; const x = by.get(k) || { army: g.army, opp_army: g.opp_army, games: 0, wins: 0, draws: 0, losses: 0, pts_for: 0, pts_against: 0 };
         x.games++; if (g.my_score > g.opp_score) x.wins++; else if (g.my_score < g.opp_score) x.losses++; else x.draws++; x.pts_for += g.my_score; x.pts_against += g.opp_score; by.set(k, x); }

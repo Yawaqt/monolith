@@ -1,8 +1,8 @@
 // Admin: content of the public team page – "about us" text and group photos (captains and admins).
-import { db } from './db.js?v=202611251931';
-import { t } from './i18n.js?v=202611251931';
-import { state, esc, $, act, toast, pageHead, resizeImage, safeImg, confirmBox } from './core.js?v=202611251931';
-import { md } from './pages-news.js?v=202611251931';
+import { db } from './db.js?v=202611251953';
+import { t } from './i18n.js?v=202611251953';
+import { state, esc, $, act, toast, pageHead, resizeImage, safeImg, confirmBox } from './core.js?v=202611251953';
+import { md } from './pages-news.js?v=202611251953';
 
 const site = () => (state.pub && state.pub.site) || {};
 const save = (key, value) => act(() => db.upsert('site_content', { key, value, updated_at: new Date().toISOString() }), ['site_content']);
@@ -10,11 +10,17 @@ const save = (key, value) => act(() => db.upsert('site_content', { key, value, u
 export function editor(el) {
   const about = (site().about && site().about.text) || '';
   const photos = (site().group_photos || []).filter(safeImg);
+  const L = site().legal || {};
   el.innerHTML = pageHead(t('nav_site'), t('site_intro'), `<a class="btn ghost" href="#/team">${esc(t('site_view'))}</a>`) +
     `<form class="card form" id="about"><h2>${esc(t('about_us'))}</h2>
       <div class="nsplit"><label class="ntext">${esc(t('news_text'))}<textarea name="text" rows="8" maxlength="3000">${esc(about)}</textarea></label>
       <div class="npreview"><span class="lbl">${esc(t('news_preview'))}</span><div class="post-body about" id="apv">${md(about)}</div></div></div>
       <p class="mute small">${esc(t('news_help'))}</p>
+      <div class="form-actions"><button class="btn primary">${esc(t('save'))}</button></div></form>
+    <form class="card form" id="legal"><h2>${esc(t('legal_title'))}</h2><p class="mute small">${esc(t('legal_hint'))} <a href="#/privacy">${esc(t('p_privacy'))} →</a></p>
+      <div class="grid3"><label>${esc(t('legal_owner'))}<input name="owner" maxlength="120" value="${esc(L.owner || '')}"></label>
+      <label>${esc(t('legal_place'))}<input name="place" maxlength="160" value="${esc(L.place || '')}"></label>
+      <label>${esc(t('legal_email'))}<input name="email" type="email" maxlength="120" value="${esc(L.email || '')}"></label></div>
       <div class="form-actions"><button class="btn primary">${esc(t('save'))}</button></div></form>
     <section class="card"><h2>${esc(t('group_photos'))}</h2><p class="mute">${esc(t('group_photos_hint'))}</p>
       <div class="gphotos">${photos.map((u, i) => `<figure><img src="${esc(u)}" alt="${esc(t('group_photo'))} ${i + 1}"><figcaption>
@@ -25,6 +31,7 @@ export function editor(el) {
   const f = $('#about');
   f.text.addEventListener('input', () => { $('#apv').innerHTML = md(f.text.value); });
   f.onsubmit = e => { e.preventDefault(); save('about', { text: f.text.value.trim() }); };
+  const lf = $('#legal'); lf.onsubmit = e => { e.preventDefault(); if (!lf.reportValidity()) return; save('legal', { owner: lf.owner.value.trim(), place: lf.place.value.trim(), email: lf.email.value.trim() }); };
   el.onclick = async e => {
     const mv = e.target.closest('[data-mv]');
     if (mv) { const [i, d] = mv.dataset.mv.split(':').map(Number); const list = photos.slice(); [list[i], list[i + d]] = [list[i + d], list[i]]; return save('group_photos', list); }
