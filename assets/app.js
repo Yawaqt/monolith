@@ -22,8 +22,8 @@ const ROUTES = Object.fromEntries([
   ...PUBLIC.map(([k, label, fn]) => [k, { label, min: 'anon', fn, pub: true }]),
   ...PORTAL.flatMap(g => g.items).map(([k, label, min, fn]) => [k, { label, min, fn }]),
 ]);
-// Wordmark until the official logo file is added (assets/logo.svg)
-const BRAND = `<span class="wordmark">MONOLITH<span>40K</span></span>`;
+// Official logo (mark + MONOLITH)
+const BRAND = `<span class="lockup"><img src="assets/logo-mark.svg" alt="" width="130" height="250"><span class="wm">MONOLITH</span></span>`;
 
 const route = () => { const h = location.hash.replace(/^#\/?/, '').split('?')[0]; return h || 'home'; };
 const label = (k, l) => k === 'cash' && !can('admin') ? t('cash_own') : t(l);

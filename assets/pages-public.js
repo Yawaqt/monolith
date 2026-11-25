@@ -36,7 +36,7 @@ export function home(el) {
   const all = summarize(recs(results)); const tours = tournaments();
   el.innerHTML = `<section class="hero"><div class="hero-text"><p class="kicker">${esc(t('hero_kicker'))}</p><h1 class="hero-title">Monolith 40k</h1><p class="lead">${esc(t('hero_text'))}</p>
       <div class="hero-cta"><a class="btn primary" href="#/results">${esc(t('see_results'))}</a><a class="btn ghost" href="#/upcoming">${esc(t('see_events'))}</a></div></div>
-      ${events[0] ? `<a class="hero-card" href="#/upcoming"><span class="kicker">${esc(t('next_up'))}</span><b class="hero-date">${esc(fmtDate(events[0].starts_on, { day: 'numeric', month: 'long' }))}</b><span class="hero-ev">${esc(events[0].title)}</span><span class="mute">${esc([events[0].location, events[0].start_time].filter(Boolean).join(' · '))}</span></a>` : ''}</section>
+      <div class="hero-mark" aria-hidden="true"><img src="assets/logo-mark.svg" alt="" width="130" height="250"></div></section>
     <section class="stats">
       <div><b class="num">${players.length}</b><span>${esc(t('s_players'))}</span></div>
       <div><b class="num">${tours.length}</b><span>${esc(t('s_tournaments'))}</span></div>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="125 65 130 250" width="130" height="250" role="img" aria-label="Monolith"><title>Monolith</title>
+<defs><clipPath id="mclip"><polygon points="190,130 250,100 250,280 190,310"/><polygon points="190,130 130,100 130,280 190,310"/></clipPath></defs>
+<polygon points="190,70 250,100 190,130 130,100" fill="#111315"/>
+<polygon points="190,130 250,100 250,280 190,310" fill="#111315"/>
+<polygon points="190,130 130,100 130,280 190,310" fill="#111315"/>
+<rect x="187" y="100" width="6" height="230" fill="#1D9E75" clip-path="url(#mclip)"/>
+<g stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"><line x1="130" y1="100" x2="190" y2="130"/><line x1="250" y1="100" x2="190" y2="130"/><line x1="130" y1="280" x2="190" y2="310"/><line x1="250" y1="280" x2="190" y2="310"/></g>
+</svg>
