@@ -1,8 +1,8 @@
 // Team events (5s / 8s): line-up with rule checks, prediction heatmap, pairings, results, live sharing.
-import { db } from './db.js?v=202611251746';
-import { t } from './i18n.js?v=202611251746';
-import { state, can, myPlayer, esc, $, $$, opts, players, playerById, pname, fmtDate, act, modal, confirmBox, empty, pageHead, toast, resultBadge, loadData, setting, evRange } from './core.js?v=202611251746';
-import { FACTIONS, MATRIX_COLS, DISPOSITIONS, gp, resultOf, scoreStr, records, avg, fmt1, today } from './data.js?v=202611251746';
+import { db } from './db.js?v=202611251754';
+import { t } from './i18n.js?v=202611251754';
+import { state, can, myPlayer, esc, $, $$, opts, players, playerById, pname, fmtDate, act, modal, confirmBox, empty, pageHead, toast, resultBadge, loadData, setting, evRange } from './core.js?v=202611251754';
+import { FACTIONS, MATRIX_COLS, DISPOSITIONS, gp, resultOf, scoreStr, records, avg, fmt1, today } from './data.js?v=202611251754';
 
 const D = () => state.data;
 const CHAPTERS = ['Black Templars', 'Blood Angels', 'Dark Angels', 'Deathwatch', 'Imperial Fists', 'Iron Hands', 'Raven Guard', 'Salamanders', 'Space Wolves', 'Ultramarines', 'White Scars'];
@@ -87,6 +87,9 @@ function saveLater(key, fn, ms = 700) {
   pending.set(key, setTimeout(async () => { pending.delete(key); try { await fn(); } catch (e) { toast(t('error') + ': ' + e.message, true); } }, ms));
 }
 const tev = () => (D().tevents || []).find(e => e.id === sel);
+// Who may edit: players in the line-up, captains and admins. Everyone else in the team can look.
+const inLineup = e => !!myPlayer() && (e.lineup || []).some(l => +l.player_id === +myPlayer());
+const canEditTE = e => can('captain') || inLineup(e);
 const rounds = id => (D().tevent_rounds || []).filter(r => r.tevent_id === id).sort((a, b) => a.round_no - b.round_no);
 // Changes made in quick succession are merged, so none of them gets lost.
 const queued = new Map();
@@ -127,7 +130,7 @@ function listView(el, list) {
     (list.length ? `<div class="te-list">${list.map(e => { const ev = (D().events || []).find(x => x.id === e.event_id); const rs = rounds(e.id);
       const errs = checkLineup(e.lineup || [], e.rules);
       return `<button class="te-card" data-open="${e.id}"><b>${esc(e.title)}</b><span class="mute">${e.size}er Team${ev ? ' · ' + esc(fmtDate(ev.starts_on)) : ''} · ${rs.length} ${esc(t('te_rounds'))}</span>
-        <span class="tag${errs.length ? ' warn-tag' : ''}">${errs.length ? '⚠ ' + errs.length : '✓'} ${esc(t('te_lineup'))}</span></button>`; }).join('')}</div>` : empty(t('te_none')));
+        <span class="tag${errs.length ? ' warn-tag' : ''}">${errs.length ? '⚠ ' + errs.length : '✓'} ${esc(t('te_lineup'))}</span>${inLineup(e) ? ` <span class="tag team">${esc(t('te_you_tag'))}</span>` : ''}</button>`; }).join('')}</div>` : empty(t('te_none')));
   el.onclick = e => {
     const o = e.target.closest('[data-open]'); if (o) { sel = +o.dataset.open; roundSel = 1; step = 'lineup'; state.render(); return; }
     if (e.target.closest('[data-new]')) editEvent(null);
@@ -160,7 +163,8 @@ function detail(el) {
   const e = tev(); const size = e.size;
   const lineup = [...Array(size)].map((_, i) => Object.assign({ player_id: null, faction: '', disposition: '' }, (e.lineup || [])[i] || {}));
   // Older events have no matrix yet: take it from the Live Matrix once
-  if (!e.matrix || !Object.keys(e.matrix).length) { const m = liveRatings(teamArmies()); if (Object.keys(m).length) patchEvent({ matrix: m }); }
+  const ro = !canEditTE(e);
+  if (!ro && (!e.matrix || !Object.keys(e.matrix).length)) { const m = liveRatings(teamArmies()); if (Object.keys(m).length) patchEvent({ matrix: m }); }
   const errs = checkLineup(lineup, e.rules); const bad = new Set(errs.flatMap(x => x.slots));
   const rs = rounds(e.id); if (!rs.find(r => r.round_no === roundSel)) roundSel = rs[0]?.round_no || 1;
   const rd = rs.find(r => r.round_no === roundSel);
@@ -187,10 +191,17 @@ function detail(el) {
   el.innerHTML = `<button class="link" data-back>${esc(t('te_back'))}</button>
     ${pageHead(e.title, `${size}er Team${ev ? ' · ' + evRange(ev) + (ev.location ? ' · ' + ev.location : '') : ''} · ${t('te_saved_auto')}`,
       `<span class="live-dot" title="${esc(t('te_live'))}">● ${esc(t('te_live'))}</span>${can('captain') ? `<button class="btn ghost sm" data-share>${esc(t('te_share'))}</button><button class="btn ghost sm" data-settings>${esc(t('te_settings'))}</button>` : ''}`)}
+    ${ro ? `<p class="notice">👁 ${esc(t('te_readonly'))}</p>` : inLineup(e) && !can('captain') ? `<p class="notice ok">✓ ${esc(t('te_you_play'))}</p>` : ''}
     <nav class="steps" aria-label="${esc(t('st_nav'))}">${steps.map(([k, l, ok], i) => `<button type="button" data-step="${k}" aria-current="${step === k ? 'step' : 'false'}"><span class="st-n">${ok ? '✓' : i + 1}</span>${esc(l)}</button>`).join('')}</nav>
     ${body}`;
-  bind(el, e, lineup, rd);
+  bind(el, e, lineup, rd, ro);
   if (rd && step === 'rounds') updateTotals(rd);
+  // Read-only: lock every field and remove the editing buttons (navigation stays)
+  if (!can('captain')) $$('[data-slot] select', el).forEach(x => { x.disabled = true; });
+  if (ro) {
+    $$('input, select, textarea', el).forEach(x => { if (x.dataset.allcols === undefined) x.disabled = true; });
+    $$('[data-oppadd],[data-oppdel],[data-mxfill],[data-mxreset],[data-apply],[data-usepair],[data-tolog],[data-addround],[data-oppround]', el).forEach(b => b.remove());
+  }
 }
 const nextBtn = k => `<div class="form-actions"><button type="button" class="btn primary" data-step="${k}">${esc(t('st_next'))}: ${esc(t('st_' + k))} →</button></div>`;
 
@@ -310,11 +321,12 @@ async function roundForOpp(e, lineup, oid) {
   const n = Math.max(0, ...rs.map(r => r.round_no)) + 1;
   await act(async () => { await db.insert('tevent_rounds', Object.assign({ tevent_id: e.id, round_no: n, pairings: [] }, patch)); roundSel = n; step = 'rounds'; }, ['tevent_rounds'], false);
 }
-function bind(el, e, lineup, rd) {
+function bind(el, e, lineup, rd, ro) {
   el.onclick = async ev => {
     const b = ev.target.closest('button'); if (!b) return;
     if (b.dataset.back !== undefined) { sel = null; return state.render(); }
     if (b.dataset.step) { step = b.dataset.step; state.render(); return window.scrollTo({ top: 0 }); }
+    if (ro && !b.dataset.round && b.dataset.back === undefined) return;
     if (b.dataset.mxfill !== undefined) { const add = liveRatings([...new Set([...lineup.map(l => l.faction).filter(Boolean), ...teamArmies()])], e.matrix || {});
       patchEvent({ matrix: Object.assign({}, e.matrix, add) }); toast(t('mx_filled', { n: Object.keys(add).length })); return state.render(); }
     if (b.dataset.mxreset !== undefined) { if (!await confirmBox(t('mx_reset_q'))) return; patchEvent({ matrix: liveRatings([...new Set([...lineup.map(l => l.faction).filter(Boolean), ...teamArmies()])]) }); return state.render(); }
@@ -346,6 +358,9 @@ function bind(el, e, lineup, rd) {
   };
   el.onchange = ev => {
     const s = ev.target;
+    if (s.dataset.allcols !== undefined) { allCols = s.checked; return state.render(); }
+    if (ro) return;
+    if (s.closest('[data-slot]') && !can('captain')) return;
     if (s.dataset.mx) { const m = Object.assign({}, e.matrix); if (s.value === '') delete m[s.dataset.mx]; else m[s.dataset.mx] = +s.value; patchEvent({ matrix: m }); return state.render(); }
     if (s.dataset.allcols !== undefined) { allCols = s.checked; return state.render(); }
     const oc = s.closest('[data-opp]'); const orow = s.closest('[data-op]');
@@ -372,7 +387,7 @@ function bind(el, e, lineup, rd) {
     if (s.dataset.us !== undefined || s.dataset.them !== undefined) { scoreInput(s, rd); return; }
   };
   el.oninput = ev => {
-    const s = ev.target;
+    const s = ev.target; if (ro) return;
     if (s.dataset.evnotes !== undefined) return patchEvent({ notes: s.value });
     const oc = s.closest('[data-opp]');
     if (oc) { oppOpen = oc.dataset.opp; const orow = s.closest('[data-op]');

@@ -68,6 +68,12 @@ const S = {
   te_suggest_note2: ['≈ Vorschlag aus der Turnier-Matrix (sonst aus dem Match Log). „Vorschläge übernehmen“ füllt leere Felder.', '≈ suggestion from the event matrix (otherwise from the match log). "Use suggestions" fills empty cells.'],
   ps_title: ['Pairing-Vorschlag', 'Suggested pairing'], ps_use: ['Vorschlag übernehmen', 'Use suggestion'], ps_need: ['Sobald alle Armeen beider Teams feststehen, erscheint hier ein Pairing-Vorschlag.', 'Once both line-ups are complete, a suggested pairing appears here.'],
   rd_notes: ['Notizen zur Runde', 'Round notes'], rd_notes_ph: ['Warum dieses Pairing, wie liefen die Spiele, was lernen wir …', 'Why this pairing, how the games went, what we learned …'],
+  te_readonly: ['Nur Ansicht: Bearbeiten können die Spieler dieses Teamturniers, Captains und Admins.', 'View only: the players of this team event, captains and admins can edit.'],
+  te_you_play: ['Du spielst bei diesem Teamturnier mit und kannst Matrix, Gegnerteams, Runden und Notizen bearbeiten. Die Aufstellung legen Captains fest.', 'You play in this team event and can edit the matrix, opponent teams, rounds and notes. Captains set the line-up.'],
+  te_you_tag: ['Du spielst mit', 'You play'],
+  pend_one: ['1 neue Anmeldung wartet auf Freischaltung', '1 new sign-up is waiting for approval'], pend_many: ['{n} neue Anmeldungen warten auf Freischaltung', '{n} new sign-ups are waiting for approval'],
+  pend_open: ['Ansehen', 'Review'], pend_later: ['Später', 'Later'], pend_approve: ['Freischalten', 'Approve'], pend_keep: ['Gast lassen', 'Keep as guest'],
+  pend_approved: ['Freigeschaltet – jetzt noch den Spieler verknüpfen', 'Approved – now link the player'], pend_kept: ['Bleibt Gast', 'Stays a guest'],
   // team events
   nav_teams: ['Teamturniere', 'Team events'], teams_intro: ['Team-Events für 5er und 8er Teams: Aufstellung mit Regelprüfung, Vorhersagen pro Paarung, Pairings und Ergebnisse live mit dem ganzen Team.', 'Team events for 5s and 8s: line-up with rule checks, a prediction per matchup, pairings and results live with the whole team.'],
   new_tevent: ['Neues Teamturnier', 'New team event'], te_size: ['Teamgröße', 'Team size'], te_rules: ['Regeln', 'Rules'], te_link_event: ['Mit Event verknüpfen', 'Link to event'],

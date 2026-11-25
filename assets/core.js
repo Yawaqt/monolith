@@ -1,6 +1,6 @@
 // Shared state and UI helpers.
-import { db, TABLES } from './db.js?v=202611251746';
-import { t } from './i18n.js?v=202611251746';
+import { db, TABLES } from './db.js?v=202611251754';
+import { t } from './i18n.js?v=202611251754';
 
 export const state = { session: null, me: null, data: {}, loadedAt: 0, render: () => {} };
 const RANK = { anon: 0, guest: 1, team: 2, captain: 3, admin: 4 };

@@ -1,15 +1,15 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611251746';
-import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251746';
-import { t, setLang, getLang } from './i18n.js?v=202611251746';
-import { state, role, can, esc, $, opts, players, pname, loadData, act, toast, pageHead } from './core.js?v=202611251746';
-import * as T from './pages-team.js?v=202611251746';
-import * as A from './pages-analysis.js?v=202611251746';
-import * as P from './pages-public.js?v=202611251746';
-import * as TE from './pages-teams.js?v=202611251746';
-import { FACTIONS } from './data.js?v=202611251746';
-import * as SITE from './pages-site.js?v=202611251746';
-import * as N from './pages-news.js?v=202611251746';
+import { CONFIG } from './config.js?v=202611251754';
+import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251754';
+import { t, setLang, getLang } from './i18n.js?v=202611251754';
+import { state, role, can, esc, $, opts, players, pname, loadData, act, toast, pageHead } from './core.js?v=202611251754';
+import * as T from './pages-team.js?v=202611251754';
+import * as A from './pages-analysis.js?v=202611251754';
+import * as P from './pages-public.js?v=202611251754';
+import * as TE from './pages-teams.js?v=202611251754';
+import { FACTIONS } from './data.js?v=202611251754';
+import * as SITE from './pages-site.js?v=202611251754';
+import * as N from './pages-news.js?v=202611251754';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
@@ -54,14 +54,14 @@ function subnav() {
   if (ROUTES[r]?.pub || r === 'login' || r.startsWith('live/') || r.startsWith('news/') || !state.session) { el.innerHTML = ''; el.hidden = true; return; }
   el.hidden = false;
   const items = PORTAL.flatMap(g => g.items.filter(([, , min]) => can(min)).map((it, i) => ({ it, first: i === 0 && g.group })));
-  el.innerHTML = `<div class="sub-in"><nav class="subnav scroll" aria-label="${esc(t('portal'))}">${items.map(({ it: [k, l], first }) => `${first ? '<span class="sep" aria-hidden="true"></span>' : ''}<a href="#/${k}"${r === k ? ' aria-current="page"' : ''}>${esc(label(k, l))}</a>`).join('')}</nav>
+  el.innerHTML = `<div class="sub-in"><nav class="subnav scroll" aria-label="${esc(t('portal'))}">${items.map(({ it: [k, l], first }) => `${first ? '<span class="sep" aria-hidden="true"></span>' : ''}<a href="#/${k}"${r === k ? ' aria-current="page"' : ''}>${esc(label(k, l))}${k === 'members' && pendingList().length ? ` <span class="badge">${pendingList().length}</span>` : ''}</a>`).join('')}</nav>
     <div class="who"><span>${esc(state.me?.display_name || '')}</span><span class="tag role-${esc(role())}">${esc(t('r_' + role()))}</span>${DEMO ? '' : `<button class="link" data-out>${esc(t('sign_out'))}</button>`}</div></div>
     ${DEMO ? `<div class="demo"><b>${esc(t('demo'))}</b> · ${esc(t('demo_as'))} <select id="demoRole" aria-label="${esc(t('demo_as'))}">${opts(['guest', 'team', 'captain', 'admin'].map(x => [x, t('r_' + x)]), demoRole())}</select><button class="link" data-reset>${esc(t('demo_reset'))}</button></div>` : ''}`;
   const cur = $('[aria-current]', el); if (cur) cur.scrollIntoView({ block: 'nearest', inline: 'center' });
 }
 
 export function render() {
-  header(); subnav();
+  header(); subnav(); pendingPopup();
   document.body.classList.remove('nav-open');
   const el = $('#view'); el.onclick = null; el.onchange = null;
   const r = route();
@@ -145,13 +145,18 @@ async function members(el) {
   const admin = can('admin');
   list.sort((a, b) => (a.role === 'guest' ? 0 : 1) - (b.role === 'guest' ? 0 : 1) || (b.created_at || '').localeCompare(a.created_at || ''));
   el.innerHTML = pageHead(t('nav_members'), t('members_intro')) + `<section class="card"><div class="scroll"><table class="stack"><thead><tr><th>${esc(t('display_name'))}</th><th>${esc(t('role'))}</th><th>${esc(t('linked_player'))}</th><th>${esc(t('joined'))}</th></tr></thead><tbody>
-    ${list.map(p => `<tr${p.role === 'guest' ? ' class="pending"' : ''}><td><b>${esc(p.display_name || '')}</b>${p.role === 'guest' ? ` <span class="tag">${esc(t('waiting'))}</span>` : ''}${state.me && p.id === state.me.id ? ' <span class="tag">★</span>' : ''}</td>
+    ${list.map(p => `<tr${p.role === 'guest' && !p.reviewed_at ? ' class="pending"' : ''}><td><b>${esc(p.display_name || '')}</b>${p.role === 'guest' && !p.reviewed_at ? ` <span class="tag warn-tag">${esc(t('waiting'))}</span>${admin ? `<span class="pend-btns"><button type="button" class="btn primary xs" data-approve="${esc(p.id)}">${esc(t('pend_approve'))}</button><button type="button" class="btn ghost xs" data-keepguest="${esc(p.id)}">${esc(t('pend_keep'))}</button></span>` : ''}` : ''}${state.me && p.id === state.me.id ? ' <span class="tag">★</span>' : ''}</td>
       <td>${admin && p.id !== state.me?.id ? `<select data-role="${esc(p.id)}" aria-label="${esc(t('role'))}">${opts(['guest', 'team', 'captain', 'admin'].map(r => [r, t('r_' + r)]), p.role)}</select>` : `<span class="tag role-${esc(p.role)}">${esc(t('r_' + p.role))}</span>`}</td>
       <td>${admin ? `<select data-link="${esc(p.id)}" aria-label="${esc(t('linked_player'))}">${opts(players(true).map(q => [q.id, q.name]), p.player_id, t('none_linked'))}</select>` : esc(p.player_id ? pname(p.player_id) : '–')}</td>
       <td class="nowrap">${esc((p.created_at || '').slice(0, 10))}</td></tr>`).join('')}</tbody></table></div></section>`;
+  el.onclick = async e => {
+    const ap = e.target.closest('[data-approve]'), kg = e.target.closest('[data-keepguest]');
+    if (ap) { if (await act(() => db.update('profiles', { id: ap.dataset.approve }, { role: 'team', reviewed_at: new Date().toISOString() }), null, t('pend_approved'))) { await loadPending(); render(); } }
+    if (kg) { if (await act(() => db.update('profiles', { id: kg.dataset.keepguest }, { reviewed_at: new Date().toISOString() }), null, t('pend_kept'))) { await loadPending(); render(); } }
+  };
   el.onchange = async e => {
     const r = e.target.closest('[data-role]'), l = e.target.closest('[data-link]');
-    if (r) await act(() => db.update('profiles', { id: r.dataset.role }, { role: r.value }), null);
+    if (r) { await act(() => db.update('profiles', { id: r.dataset.role }, { role: r.value, reviewed_at: new Date().toISOString() }), null); await loadPending(); render(); }
     if (l) await act(() => db.update('profiles', { id: l.dataset.link }, { player_id: l.value ? +l.value : null }), null);
   };
 }
@@ -169,7 +174,25 @@ async function refreshMe() {
   try { state.me = await db.me(state.session.user.id); } catch (e) { state.me = null; }
   if (DEMO && state.me) state.me.role = demoRole();
   if (state.me && state.me.lang) { setLang(state.me.lang); try { localStorage.setItem('monolith.lang', state.me.lang); } catch (_) {} }
+  await loadPending();
 }
+// ---------------------------------------------------------------- New sign-ups waiting for an admin
+const pendingList = () => (can('admin') && state.pending) || [];
+async function loadPending() {
+  if (!can('admin')) { state.pending = []; return; }
+  try { state.pending = (await db.list('profiles', ['created_at', 'desc'])).filter(p => p.role === 'guest' && !p.reviewed_at && p.id !== state.me?.id); } catch (e) { state.pending = []; }
+}
+function pendingPopup() {
+  let box = $('#pending');
+  const list = pendingList(); const r = route();
+  let hidden = false; try { hidden = sessionStorage.getItem('monolith.pendingSeen') === list.map(p => p.id).join(','); } catch (_) {}
+  if (!list.length || hidden || r === 'members' || r === 'login' || r.startsWith('live/')) { if (box) box.remove(); return; }
+  if (!box) { box = document.createElement('aside'); box.id = 'pending'; box.className = 'pending-pop'; box.setAttribute('role', 'status'); document.body.appendChild(box); }
+  box.innerHTML = `<div><b>🔔 ${esc(t(list.length === 1 ? 'pend_one' : 'pend_many', { n: list.length }))}</b><p class="mute small">${list.slice(0, 3).map(p => esc(p.display_name || '?')).join(', ')}${list.length > 3 ? ' …' : ''}</p></div>
+    <div class="pp-actions"><a class="btn primary sm" href="#/members">${esc(t('pend_open'))}</a><button type="button" class="btn ghost sm" data-pendlater>${esc(t('pend_later'))}</button></div>`;
+  box.onclick = e => { if (e.target.closest('[data-pendlater]')) { try { sessionStorage.setItem('monolith.pendingSeen', list.map(p => p.id).join(',')); } catch (_) {} box.remove(); } };
+}
+setInterval(async () => { if (can('admin') && !document.hidden) { const before = pendingList().length; await loadPending(); if (pendingList().length !== before) render(); } }, 60000);
 async function boot() {
   let saved = null; try { saved = localStorage.getItem('monolith.lang'); } catch (e) {}
   setLang(saved || CONFIG.DEFAULT_LANG || (navigator.language || 'de').slice(0, 2));
