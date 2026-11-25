@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Monolith 40k</title>
+<meta name="description" content="Monolith 40k – Team-Portal: Match Log, Events, Live Matrix, Statistik, Pairing und Apps.">
+<meta name="theme-color" content="#111315">
+<link rel="icon" href="assets/icon-192.png">
+<link rel="apple-touch-icon" href="assets/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<a class="skip" href="#view">Skip to content</a>
+<div class="topbar"><button class="icon" id="menuBtn" aria-label="Menu" aria-controls="side">☰</button><span id="topTitle"></span></div>
+<aside id="side" class="side"></aside>
+<div class="scrim" onclick="document.body.classList.remove('nav-open')"></div>
+<main id="view" class="view" tabindex="-1"></main>
+<div id="modal" class="modal" role="dialog" aria-modal="true"></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script src="assets/demo-data.js"></script>
+<script type="module" src="assets/app.js"></script>
+<noscript>Diese Seite braucht JavaScript. / This site needs JavaScript.</noscript>
+</body>
+</html>
