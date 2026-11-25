@@ -375,3 +375,13 @@ details.opp>*:not(summary){margin-left:20px;margin-right:20px}details.opp>.form-
 .tab-ico{font-size:17px;line-height:1}
 @media(max-width:600px){.te-tabs{grid-template-columns:1fr 1fr}.te-tabs button{min-height:48px;font-size:14px}}
 .btn.danger-text{color:#c0392b}.btn.danger-text:hover{border-color:#c0392b}
+/* player profile sheets */
+.pcard.sheet .pcard-top{flex-direction:column;align-items:center;text-align:center;gap:10px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.pcard.sheet .avatar{width:112px;height:112px;font-size:40px}.pcard.sheet h3{font-size:21px;margin:0}
+.sheet-dl{display:grid;grid-template-columns:auto 1fr;gap:10px 14px;margin:14px 0 0;align-items:start}
+.sheet-dl dt{font-size:13px;color:var(--mute);font-weight:600;padding-top:3px;white-space:nowrap}
+.sheet-dl dd{margin:0;line-height:1.5}.sheet-dl dd .chips{margin:0}.sheet-dl dd.bio{white-space:pre-line}
+@media(max-width:420px){.sheet-dl{grid-template-columns:1fr;gap:2px}.sheet-dl dd{margin-bottom:10px}}
+.pgrid:has(.pcard.sheet){grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
+.sheet-dl{grid-template-columns:1fr;gap:0}.sheet-dl dt{padding-top:0;margin-top:12px;text-transform:uppercase;letter-spacing:.04em;font-size:11.5px}.sheet-dl dt:first-child{margin-top:0}
+.sheet-dl dd{margin:4px 0 0}.sheet-dl dd .chips{gap:6px}

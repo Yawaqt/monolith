@@ -46,8 +46,8 @@ const S = {
   quick_saved: ['Ergebnis gespeichert', 'Result saved'],
   date_from: ['Von', 'From'], date_to: ['Bis', 'To'], date_order: ['Das End-Datum liegt vor dem Start.', 'The end date is before the start.'], te_size_n: ['{n}er Team', 'team of {n}'],
   photo_saved: ['Foto gespeichert', 'Photo saved'], signed_out: ['Du bist abgemeldet.', 'You are signed out.'],
-  fav_army: ['Lieblingsarmee', 'Favourite army'], played_at_tours: ['Auf Turnieren gespielt', 'Played at tournaments'], group_photo: ['Gruppenfoto', 'Group photo'],
-  sl_prev: ['Vorheriges Foto', 'Previous photo'], sl_next: ['Nächstes Foto', 'Next photo'], profiles: ['Unsere Spieler', 'Our players'],
+  fav_army: ['Lieblingsarmee', 'Favourite army'], played_at_tours: ['In Turnieren gespielt', 'Played in tournaments'], group_photo: ['Gruppenfoto', 'Group photo'],
+  sl_prev: ['Vorheriges Foto', 'Previous photo'], sl_next: ['Nächstes Foto', 'Next photo'], profiles: ['Steckbriefe', 'Player profiles'],
   nav_site: ['Team-Seite', 'Team page'], site_intro: ['Text „Über uns“ und Gruppenfotos für die öffentliche Team-Seite. Die Steckbriefe füllt jedes Mitglied selbst im Profil aus.', '"About us" text and group photos for the public team page. Every member fills in their own profile.'],
   site_view: ['Team-Seite ansehen', 'View team page'], about_us: ['Über uns', 'About us'], group_photos: ['Gruppenfotos (Slideshow)', 'Group photos (slideshow)'],
   group_photos_hint: ['Erscheinen als Slideshow auf der Team-Seite, in dieser Reihenfolge. Mehrere Fotos auf einmal auswählen geht auch.', 'Shown as a slideshow on the team page, in this order. You can pick several photos at once.'],
@@ -76,6 +76,7 @@ const S = {
   pend_approved: ['Freigeschaltet – jetzt noch den Spieler verknüpfen', 'Approved – now link the player'], pend_kept: ['Bleibt Gast', 'Stays a guest'],
   te_delete_q: ['Teamturnier „{title}“ mit allen Runden, Gegnerteams und Notizen löschen? Spiele, die schon im Match Log stehen, bleiben erhalten.', 'Delete team event "{title}" with all rounds, opponent teams and notes? Games already in the match log stay.'],
   te_deleted: ['Teamturnier gelöscht', 'Team event deleted'], rd_delete: ['Runde {n} löschen', 'Delete round {n}'], rd_delete_q: ['Runde {n} mit Pairings, Ergebnissen und Notizen löschen? Spiele im Match Log bleiben erhalten.', 'Delete round {n} with pairings, results and notes? Games in the match log stay.'],
+  bcp_open: ['Profil öffnen', 'Open profile'],
   // team events
   nav_teams: ['Teamturniere', 'Team events'], teams_intro: ['Team-Events für 5er und 8er Teams: Aufstellung mit Regelprüfung, Vorhersagen pro Paarung, Pairings und Ergebnisse live mit dem ganzen Team.', 'Team events for 5s and 8s: line-up with rule checks, a prediction per matchup, pairings and results live with the whole team.'],
   new_tevent: ['Neues Teamturnier', 'New team event'], te_size: ['Teamgröße', 'Team size'], te_rules: ['Regeln', 'Rules'], te_link_event: ['Mit Event verknüpfen', 'Link to event'],
