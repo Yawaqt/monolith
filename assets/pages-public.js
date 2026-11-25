@@ -1,10 +1,10 @@
 // Public pages: visible to everyone, built only from the safe public data.
-import { t } from './i18n.js?v=202611251631';
-import { state, esc, fmtDate, empty, safeImg, evRange, evKind } from './core.js?v=202611251631';
-import { newsCard } from './pages-news.js?v=202611251631';
-import { typeLabel, pct } from './data.js?v=202611251631';
-import { appsCards } from './pages-team.js?v=202611251631';
-import { CONFIG } from './config.js?v=202611251631';
+import { t } from './i18n.js?v=202611251746';
+import { state, can, esc, fmtDate, empty, safeImg, evRange, evKind } from './core.js?v=202611251746';
+import { newsCard, md } from './pages-news.js?v=202611251746';
+import { typeLabel, pct } from './data.js?v=202611251746';
+import { appsCards } from './pages-team.js?v=202611251746';
+import { CONFIG } from './config.js?v=202611251746';
 const IG_ICON = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>';
 
 const PUB = () => state.pub || { players: [], results: [], events: [] };
@@ -19,11 +19,34 @@ function eventRow(e) {
   return `<li class="pev"><div class="pev-date"><b>${esc(fmtDate(e.starts_on, { day: '2-digit' }))}</b><span>${esc(fmtDate(e.starts_on, { month: 'short' }))}</span></div>
     <div><h3>${esc(e.title)}</h3><p class="mute">${esc(evRange(e, true))}${e.location ? ' · ' + esc(e.location) : ''}</p><span class="tag kind${e.kind === 'Team Tournament' ? ' team' : ''}">${esc(evKind(e))}</span></div></li>`;
 }
-function playerCard(p) {
-  return `<article class="pcard"><div class="pcard-top"><span class="avatar${safeImg(p.photo_url) ? ' photo' : ''}" aria-hidden="true">${safeImg(p.photo_url) ? `<img src="${esc(safeImg(p.photo_url))}" alt="" loading="lazy">` : esc(p.name.slice(0, 1))}</span><div><h3>${esc(p.name)}</h3></div></div>
-    ${p.armies.length ? `<div class="chips">${p.armies.map(a => `<span class="chip">${esc(a)}</span>`).join('')}</div>` : ''}
-    ${p.bcp_url && /^https:\/\/([a-z0-9-]+\.)*bestcoastpairings\.com\//i.test(p.bcp_url) ? `<a class="pcard-link" href="${esc(p.bcp_url)}" target="_blank" rel="noopener">${esc(t('bcp_profile'))} ↗</a>` : ''}</article>`;
+function playerCard(p, full = false) {
+  const bcp = p.bcp_url && /^https:\/\/([a-z0-9-]+\.)*bestcoastpairings\.com\//i.test(p.bcp_url);
+  return `<article class="pcard${full ? ' full' : ''}"><div class="pcard-top"><span class="avatar${safeImg(p.photo_url) ? ' photo' : ''}" aria-hidden="true">${safeImg(p.photo_url) ? `<img src="${esc(safeImg(p.photo_url))}" alt="" loading="lazy">` : esc(p.name.slice(0, 1))}</span>
+    <div><h3>${esc(p.name)}</h3>${p.fav_army ? `<p class="fav"><span class="mute">${esc(t('fav_army'))}</span> <b>${esc(p.fav_army)}</b></p>` : ''}</div></div>
+    ${full && p.bio ? `<p class="bio">${esc(p.bio)}</p>` : ''}
+    ${p.armies.length ? `${full ? `<p class="mute small lbl">${esc(t('played_at_tours'))}</p>` : ''}<div class="chips">${p.armies.map(a => `<span class="chip">${esc(a)}</span>`).join('')}</div>` : ''}
+    ${bcp ? `<a class="pcard-link" href="${esc(p.bcp_url)}" target="_blank" rel="noopener">${esc(t('bcp_profile'))} ↗</a>` : ''}</article>`;
 }
+// Group photo slideshow: swipe on the phone, arrows and dots, advances by itself every 6 s
+export function slideshow(photos) {
+  const list = (photos || []).map(safeImg).filter(Boolean); if (!list.length) return '';
+  return `<div class="slides" data-slides><div class="slides-track">${list.map((u, i) => `<figure class="slide"><img src="${esc(u)}" alt="${esc(t('group_photo'))} ${i + 1}" loading="${i ? 'lazy' : 'eager'}"></figure>`).join('')}</div>
+    ${list.length > 1 ? `<button type="button" class="slides-nav prev" data-sl="-1" aria-label="${esc(t('sl_prev'))}">‹</button><button type="button" class="slides-nav next" data-sl="1" aria-label="${esc(t('sl_next'))}">›</button>
+    <div class="slides-dots">${list.map((_, i) => `<button type="button" data-dot="${i}" aria-label="${esc(t('group_photo'))} ${i + 1}"${i ? '' : ' aria-current="true"'}></button>`).join('')}</div>` : ''}</div>`;
+}
+let slideTimer = null;
+export function bindSlides(root) {
+  clearInterval(slideTimer);
+  const box = root.querySelector('[data-slides]'); if (!box) return;
+  const track = box.querySelector('.slides-track'); const n = track.children.length; if (n < 2) return;
+  const cur = () => Math.round(track.scrollLeft / track.clientWidth);
+  const go = i => track.scrollTo({ left: ((i + n) % n) * track.clientWidth, behavior: 'smooth' });
+  track.addEventListener('scroll', () => { const c = cur(); box.querySelectorAll('[data-dot]').forEach((d, i) => d.toggleAttribute('aria-current', i === c)); }, { passive: true });
+  box.addEventListener('click', e => { const s = e.target.closest('[data-sl]'); if (s) go(cur() + +s.dataset.sl); const d = e.target.closest('[data-dot]'); if (d) go(+d.dataset.dot); restart(); });
+  const restart = () => { clearInterval(slideTimer); slideTimer = setInterval(() => { if (!document.body.contains(box)) return clearInterval(slideTimer); if (!document.hidden) go(cur() + 1); }, 6000); };
+  box.addEventListener('pointerdown', restart); restart();
+}
+
 function tourCard(r) {
   const s = sum([r]);
   return `<article class="tour"><header><div><h3>${esc(r.tournament)}</h3><p class="mute">${esc(dateRange(r.date_from, r.date_to))} · <span class="tag">${esc(typeLabel(r.type, t))}</span> · ${esc(t('n_games', { n: r.games }))}</p></div>
@@ -47,14 +70,19 @@ export function home(el) {
       ${events.length ? `<ul class="plist">${events.slice(0, 3).map(eventRow).join('')}</ul>` : empty(t('no_events'))}</section>
     ${tours[0] ? `<section class="block"><div class="block-head"><h2>${esc(t('latest_tournament'))}</h2><a href="#/results">${esc(t('all_results'))} →</a></div>${tourCard(tours[0])}</section>` : ''}
     <section class="block"><div class="block-head"><h2>${esc(t('meet_team'))}</h2><a href="#/team">${esc(t('whole_team'))} →</a></div>
-      <div class="pgrid">${players.slice(0, 6).map(playerCard).join('')}</div></section>
+      <div class="pgrid">${players.slice(0, 6).map(p => playerCard(p)).join('')}</div></section>
     ${CONFIG.INSTAGRAM ? `<section class="block"><a class="follow" href="${esc(CONFIG.INSTAGRAM)}" target="_blank" rel="noopener"><span class="follow-ico">${IG_ICON}</span><span><b>${esc(t('follow_title'))}</b><span class="mute">${esc(t('follow_text'))}</span></span><span class="btn primary sm">${esc(t('follow_btn'))} ↗</span></a></section>` : ''}
     <section class="block"><div class="block-head"><h2>${esc(t('p_apps'))}</h2></div>${appsCards()}</section>`;
 }
 export function team(el) {
-  const { players } = PUB();
-  el.innerHTML = `<div class="page-head"><div><h1>${esc(t('meet_team'))}</h1><p class="intro">${esc(t('team_intro'))}</p></div></div>
-    <div class="pgrid">${players.map(playerCard).join('') || empty()}</div>`;
+  const { players } = PUB(); const site = PUB().site || {};
+  const about = site.about && site.about.text;
+  el.innerHTML = `<div class="page-head"><div><h1>${esc(t('meet_team'))}</h1></div>${can('captain') ? `<a class="btn ghost sm" href="#/site">${esc(t('edit'))}</a>` : ''}</div>
+    ${about ? `<div class="about">${md(about)}</div>` : ''}
+    ${slideshow(site.group_photos)}
+    <h2 class="sec">${esc(t('profiles'))}</h2>
+    <div class="pgrid">${players.map(p => playerCard(p, true)).join('') || empty()}</div>`;
+  bindSlides(el);
 }
 export function results(el) {
   const tours = tournaments(); const s = sum(tours);

@@ -1,12 +1,12 @@
 // Data access: Supabase when configured, otherwise a demo backend in localStorage.
-import { CONFIG } from './config.js?v=202611251631';
+import { CONFIG } from './config.js?v=202611251746';
 
 export const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY;
 export const TABLES = ['players', 'matches', 'events', 'rsvps', 'payments', 'ratings', 'opponent_teams', 'pairings', 'settings', 'tevents', 'tevent_rounds', 'news'];
 // Tables whose API columns are restricted (never select *)
-const COLS = { tevents: 'id,title,event_id,size,rules,lineup,share_code,created_by,created_at,updated_at' };
+const COLS = { tevents: 'id,title,event_id,size,rules,lineup,share_code,created_by,created_at,updated_at,matrix,opponents,notes' };
 const cols = t => COLS[t] || '*';
-const KEYS = { rsvps: ['event_id', 'player_id'], ratings: ['player_id', 'faction'], settings: ['key'], collections: ['user_id'], profiles: ['id'] };
+const KEYS = { rsvps: ['event_id', 'player_id'], ratings: ['player_id', 'faction'], settings: ['key'], collections: ['user_id'], profiles: ['id'], site_content: ['key'] };
 
 let sb = null;
 export async function client() {
@@ -68,6 +68,7 @@ export function resetDemo(reload = true) {
   store = { tables: {}, profiles: [], seq: {}, role: 'admin' };
   for (const t of TABLES) store.tables[t] = d[t] || [];
   store.tables.collections = [];
+  store.tables.site_content = [{ key: 'about', value: { text: 'Wir sind Monolith 40k – ein kompetitives Warhammer-40k-Team aus Wien. Wir spielen Singles und Teamturniere in ganz Österreich und trainieren jede Woche zusammen.' } }];
   for (const e of store.tables.events || []) { e.ends_on = e.ends_on || e.starts_on; if (e.kind !== 'Singles' && e.kind !== 'Team Tournament') e.kind = /\bteams?\b/i.test(e.title) ? 'Team Tournament' : 'Singles'; if (e.kind === 'Singles') e.team_size = null; }
   if (!store.tables.news.length) store.tables.news = [{ id: 1, title: 'Willkommen auf der neuen Monolith-Seite', body: 'Ab sofort findet ihr hier **Turnierberichte**, Ergebnisse und alles rund ums Team.\n\n## Was kommt\n- Berichte von jedem Turnier\n- Bilder unserer Armeen\n\nFolgt uns auch auf [Instagram](https://www.instagram.com/monolith40k/).', cover_url: null, published: true, author_id: 'demo-user', author_name: 'Miki', created_at: '2026-11-25T10:00:00Z', updated_at: '2026-11-25T10:00:00Z' }];
   store.profiles = [
@@ -114,7 +115,7 @@ const demo = {
     const tourArmies = (ms, pid) => { const c = new Map(); for (const m of ms) if (m.player_id === pid && (m.type === 'Tournament' || m.type === 'Team Tournament')) c.set(m.army, (c.get(m.army) || 0) + 1); return [...c.entries()].sort((a, b) => b[1] - a[1]).map(x => x[0]); };
     const T = load().tables; const P = T.players || []; const nm = id => (P.find(p => p.id === id) || {}).name;
     const today = new Date().toISOString().slice(0, 10);
-    if (name === 'public_players') return P.filter(p => p.active).sort((a, b) => a.sort - b.sort).map(p => ({ name: p.name, sort: p.sort, armies: tourArmies(T.matches || [], p.id), bcp_url: p.bcp_url || null, photo_url: p.photo_url || null }));
+    if (name === 'public_players') return P.filter(p => p.active).sort((a, b) => a.sort - b.sort).map(p => ({ name: p.name, sort: p.sort, armies: tourArmies(T.matches || [], p.id), bcp_url: p.bcp_url || null, photo_url: p.photo_url || null, fav_army: p.fav_army || null, bio: p.bio || null }));
     if (name === 'public_results') {
       const by = new Map();
       for (const m of T.matches || []) {

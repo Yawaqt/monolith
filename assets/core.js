@@ -1,6 +1,6 @@
 // Shared state and UI helpers.
-import { db, TABLES } from './db.js?v=202611251631';
-import { t } from './i18n.js?v=202611251631';
+import { db, TABLES } from './db.js?v=202611251746';
+import { t } from './i18n.js?v=202611251746';
 
 export const state = { session: null, me: null, data: {}, loadedAt: 0, render: () => {} };
 const RANK = { anon: 0, guest: 1, team: 2, captain: 3, admin: 4 };
@@ -34,7 +34,7 @@ export async function loadData(tables = TABLES) {
 }
 // Run a write, reload the affected tables, re-render, and report errors.
 export async function act(fn, tables, okMsg) {
-  try { await fn(); if (tables) await loadData(tables); if (tables && state.reloadPublic && tables.some(x => ['matches', 'players', 'events', 'news'].includes(x))) await state.reloadPublic().catch(() => {}); state.render(); if (okMsg !== false) toast(okMsg || t('saved')); return true; }
+  try { await fn(); if (tables) await loadData(tables); if (tables && state.reloadPublic && tables.some(x => ['matches', 'players', 'events', 'news', 'site_content'].includes(x))) await state.reloadPublic().catch(() => {}); state.render(); if (okMsg !== false) toast(okMsg || t('saved')); return true; }
   catch (e) { toast(t('error') + ': ' + (e.message || e), true); return false; }
 }
 

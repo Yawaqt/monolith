@@ -1,24 +1,25 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611251631';
-import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251631';
-import { t, setLang, getLang } from './i18n.js?v=202611251631';
-import { state, role, can, esc, $, opts, players, pname, loadData, act, toast, pageHead } from './core.js?v=202611251631';
-import * as T from './pages-team.js?v=202611251631';
-import * as A from './pages-analysis.js?v=202611251631';
-import * as P from './pages-public.js?v=202611251631';
-import * as TE from './pages-teams.js?v=202611251631';
-import * as N from './pages-news.js?v=202611251631';
+import { CONFIG } from './config.js?v=202611251746';
+import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251746';
+import { t, setLang, getLang } from './i18n.js?v=202611251746';
+import { state, role, can, esc, $, opts, players, pname, loadData, act, toast, pageHead } from './core.js?v=202611251746';
+import * as T from './pages-team.js?v=202611251746';
+import * as A from './pages-analysis.js?v=202611251746';
+import * as P from './pages-public.js?v=202611251746';
+import * as TE from './pages-teams.js?v=202611251746';
+import { FACTIONS } from './data.js?v=202611251746';
+import * as SITE from './pages-site.js?v=202611251746';
+import * as N from './pages-news.js?v=202611251746';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
 // Team area (needs an account); grouped for the sub-navigation
 const PORTAL = [
   { group: null, items: [['portal', 'nav_home', 'guest', T.home]] },
-  { group: 'nav_team', items: [['roster', 'nav_roster', 'team', T.roster], ['matches', 'nav_matches', 'team', T.matches], ['archive', 'nav_archive', 'team', T.archive],
-    ['events', 'nav_events', 'team', T.events], ['teams', 'nav_teams', 'team', TE.teams], ['newsedit', 'nav_newsedit', 'team', N.editor]] },
-  { group: 'nav_analysis', items: [['matrix', 'nav_matrix', 'team', A.matrix], ['stats', 'nav_stats', 'team', A.stats], ['master', 'nav_master', 'team', A.master],
-    ['masterteam', 'nav_masterteam', 'team', A.masterteam], ['pairing', 'nav_pairing', 'team', A.pairing]] },
-  { group: 'nav_admin', items: [['members', 'nav_members', 'captain', members], ['profile', 'nav_profile', 'guest', profile]] },
+  { group: 'nav_team', items: [['matches', 'nav_matches', 'team', T.matches], ['archive', 'nav_archive', 'team', T.archive], ['events', 'nav_events', 'team', T.events],
+    ['teams', 'nav_teams', 'team', TE.teams], ['newsedit', 'nav_newsedit', 'team', N.editor], ['roster', 'nav_roster', 'team', T.roster]] },
+  { group: 'nav_analysis', items: [['matrix', 'nav_matrix', 'team', A.matrix], ['stats', 'nav_stats', 'team', A.stats]] },
+  { group: 'nav_admin', items: [['site', 'nav_site', 'captain', SITE.editor], ['members', 'nav_members', 'captain', members], ['profile', 'nav_profile', 'guest', profile]] },
 ];
 const ROUTES = Object.fromEntries([
   ...PUBLIC.map(([k, label, fn]) => [k, { label, min: 'anon', fn, pub: true }]),
@@ -117,13 +118,21 @@ function profile(el) {
       <label>${esc(t('language'))}<select name="lang">${opts([['de', 'Deutsch'], ['en', 'English']], me.lang || getLang())}</select></label>
       <p class="mute">${esc(t('role'))}: <b>${esc(t('r_' + role()))}</b> · ${esc(t('linked_player'))}: <b>${esc(me.player_id ? pname(me.player_id) : t('none_linked'))}</b></p>
       <div class="form-actions"><button class="btn primary">${esc(t('save'))}</button>${DEMO ? '' : `<button type="button" class="btn ghost" data-out>${esc(t('sign_out'))}</button>`}</div></form>
-    ${me.player_id && can('team') ? (() => { const pl = (state.data.players || []).find(x => x.id === me.player_id) || { name: pname(me.player_id) }; return `<section class="card"><h2>${esc(t('photo'))}</h2>
-      <div class="photo-edit">${T.avatar(pl, 'lg')}<div><p class="mute small">${esc(t('photo_hint'))}</p><button type="button" class="btn primary sm" data-myphoto="${me.player_id}">${esc(t('photo_pick'))}</button></div></div></section>`; })() : ''}
+    ${me.player_id && can('team') ? (() => { const pl = (state.data.players || []).find(x => x.id === me.player_id) || { name: pname(me.player_id) }; return `<form class="card form" id="bio"><h2>${esc(t('my_profile'))}</h2>
+      <p class="mute small">${esc(t('my_profile_hint'))}</p>
+      <div class="photo-edit">${T.avatar(pl, 'lg')}<div><p class="mute small">${esc(t('photo_hint'))}</p><button type="button" class="btn ghost sm" data-myphoto="${me.player_id}">${esc(t('photo_pick'))}</button></div></div>
+      <label>${esc(t('fav_army'))}<select name="fav_army">${opts(FACTIONS, pl.fav_army || '', '–')}</select></label>
+      <label>${esc(t('bio'))}<textarea name="bio" rows="4" maxlength="600" placeholder="${esc(t('bio_ph'))}">${esc(pl.bio || '')}</textarea><small class="mute"><span data-bioc>${(pl.bio || '').length}</span>/600</small></label>
+      <div class="form-actions"><button class="btn primary">${esc(t('save'))}</button><a class="btn ghost" href="#/team">${esc(t('site_view'))}</a></div></form>`; })() : ''}
     ${DEMO ? '' : `<form class="card form" id="pw"><h2>${esc(t('password'))}</h2><label>${esc(t('new_password'))}<input name="password" type="password" minlength="8" required autocomplete="new-password"></label><div class="form-actions"><button class="btn primary">${esc(t('save_password'))}</button></div></form>`}</div>`;
   $('#pf').addEventListener('submit', async e => { e.preventDefault(); const f = e.target; if (!f.reportValidity()) return;
     const patch = { display_name: f.display_name.value.trim(), lang: f.lang.value };
     if (await act(() => db.update('profiles', { id: me.id }, patch), null)) { Object.assign(state.me, patch); setLang(patch.lang); try { localStorage.setItem('monolith.lang', patch.lang); } catch (_) {} render(); } });
   el.onclick = e => { const b = e.target.closest('[data-myphoto]'); if (b) T.changePhoto(+b.dataset.myphoto); };
+  const bio = $('#bio'); if (bio) {
+    bio.bio.addEventListener('input', () => { $('[data-bioc]', bio).textContent = bio.bio.value.length; });
+    bio.addEventListener('submit', async e => { e.preventDefault();
+      await act(() => db.update('players', { id: me.player_id }, { fav_army: bio.fav_army.value || null, bio: bio.bio.value.trim() || null }), ['players'], t('profile_saved')); }); }
   const pw = $('#pw'); if (pw) pw.addEventListener('submit', async e => { e.preventDefault(); if (!pw.reportValidity()) return; await act(() => db.setPassword(pw.password.value), null); pw.reset(); });
 }
 
@@ -149,9 +158,10 @@ async function members(el) {
 
 // ---------------------------------------------------------------- Boot
 async function loadPublic() {
-  const [players, results, events, news] = await Promise.all([...['public_players', 'public_results', 'public_events'].map(n => db.rpc(n).catch(() => [])),
-    db.list('news', ['created_at', 'desc']).catch(() => [])]);
-  state.pub = { players, results, events, news: news.filter(n => n.published) };
+  const [players, results, events, news, siteRows] = await Promise.all([...['public_players', 'public_results', 'public_events'].map(n => db.rpc(n).catch(() => [])),
+    db.list('news', ['created_at', 'desc']).catch(() => []), db.list('site_content').catch(() => [])]);
+  const site = Object.fromEntries((siteRows || []).map(r => [r.key, r.value]));
+  state.pub = { players, results, events, news: news.filter(n => n.published), site };
 }
 state.reloadPublic = loadPublic;
 async function refreshMe() {

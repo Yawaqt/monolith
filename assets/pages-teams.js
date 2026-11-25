@@ -1,8 +1,8 @@
 // Team events (5s / 8s): line-up with rule checks, prediction heatmap, pairings, results, live sharing.
-import { db } from './db.js?v=202611251631';
-import { t } from './i18n.js?v=202611251631';
-import { state, can, myPlayer, esc, $, $$, opts, players, playerById, pname, fmtDate, act, modal, confirmBox, empty, pageHead, toast, resultBadge, loadData } from './core.js?v=202611251631';
-import { FACTIONS, DISPOSITIONS, gp, resultOf, scoreStr, records, avg, fmt1, today } from './data.js?v=202611251631';
+import { db } from './db.js?v=202611251746';
+import { t } from './i18n.js?v=202611251746';
+import { state, can, myPlayer, esc, $, $$, opts, players, playerById, pname, fmtDate, act, modal, confirmBox, empty, pageHead, toast, resultBadge, loadData, setting, evRange } from './core.js?v=202611251746';
+import { FACTIONS, MATRIX_COLS, DISPOSITIONS, gp, resultOf, scoreStr, records, avg, fmt1, today } from './data.js?v=202611251746';
 
 const D = () => state.data;
 const CHAPTERS = ['Black Templars', 'Blood Angels', 'Dark Angels', 'Deathwatch', 'Imperial Fists', 'Iron Hands', 'Raven Guard', 'Salamanders', 'Space Wolves', 'Ultramarines', 'White Scars'];
@@ -10,6 +10,9 @@ const RATING_GP = { 1: 3, 1.5: 4.5, 2: 6, 2.5: 8, 3: 10, 3.5: 12, 4: 14, 4.5: 15
 const PRED_VALUES = [2, 4, 6, 8, 9, 10, 11, 12, 14, 16, 18];
 let sel = null;          // selected team event id
 let roundSel = 1;        // selected round number
+let step = 'lineup';     // lineup | matrix | opps | rounds
+let allCols = false;     // matrix: show all factions
+let oppOpen = null;      // opponent team shown open
 const pending = new Map(); // debounced saves: key -> timer
 
 const heat = v => v == null || v === '' ? 'h0' : v <= 6 ? 'h1' : v < 9 ? 'h2' : v <= 11 ? 'h3' : v < 14 ? 'h4' : 'h5';
@@ -44,6 +47,40 @@ function suggest(slot, oppFaction) {
   return null;
 }
 
+// ---------- event matrix (our army vs. opponent faction, rating 1–5)
+// Taken from the Live Matrix when the event is created; editable afterwards.
+const RATINGS = ['1', '1.5', '2', '2.5', '3', '3.5', '4', '4.5', '5'];
+const gpToRating = g => { const r = Math.round(g); return r <= 4 ? 1 : r <= 7 ? 2 : r <= 9 ? 2.5 : r === 10 ? 3 : r <= 12 ? 3.5 : r <= 14 ? 4 : 5; };
+const mkey = (army, f) => `${army}|${f}`;
+function teamArmies() {
+  return [...new Set([...setting('matrix_armies', []), ...players().flatMap(p => (p.armies || []).map(a => a.army)).filter(Boolean)])];
+}
+function liveRatings(armies, onlyMissing = {}) {
+  const recs = records(D().matches || []); const out = {};
+  for (const a of armies) for (const f of FACTIONS) {
+    const k = mkey(a, f); if (onlyMissing[k] != null) continue;
+    const l = recs.filter(r => r.army === a && r.opp === f);
+    if (l.length) out[k] = gpToRating(avg(l.map(r => r.g)));
+  }
+  return out;
+}
+const rateOf = (e, army, f) => { const v = (e.matrix || {})[mkey(army, f)]; return v == null ? null : +v; };
+const rtClass = v => v == null ? '' : 'rt' + Math.round(v);
+// Best pairing: every possible assignment (fine up to 8 players), highest predicted total wins
+function bestPairing(n, value) {
+  const idx = [...Array(n).keys()]; let best = null, bestSum = -1;
+  const perm = (arr, k) => { if (k === arr.length) { let s = 0; for (let i = 0; i < n; i++) s += value(i, arr[i]); if (s > bestSum) { bestSum = s; best = arr.slice(); } return; }
+    for (let i = k; i < arr.length; i++) { [arr[k], arr[i]] = [arr[i], arr[k]]; perm(arr, k + 1); [arr[k], arr[i]] = [arr[i], arr[k]]; } };
+  if (n) perm(idx, 0); return { map: best, total: bestSum };
+}
+const newOpp = size => ({ id: Math.random().toString(36).slice(2, 10), name: '', note: '', players: [...Array(size)].map(() => ({ faction: '', disposition: '', name: '', note: '' })) });
+
+// Prediction for a matchup: event matrix first, otherwise match log / master ratings
+function predictFor(e, l, faction) {
+  const r = l && l.faction && faction ? rateOf(e, l.faction, faction) : null;
+  if (r != null) return { v: RATING_GP[r] ?? 10, n: 0, src: 'x', r };
+  return suggest(l, faction);
+}
 // ---------- saving (debounced, so live typing doesn't spam the database)
 function saveLater(key, fn, ms = 700) {
   clearTimeout(pending.get(key));
@@ -92,7 +129,7 @@ function listView(el, list) {
       return `<button class="te-card" data-open="${e.id}"><b>${esc(e.title)}</b><span class="mute">${e.size}er Team${ev ? ' · ' + esc(fmtDate(ev.starts_on)) : ''} · ${rs.length} ${esc(t('te_rounds'))}</span>
         <span class="tag${errs.length ? ' warn-tag' : ''}">${errs.length ? '⚠ ' + errs.length : '✓'} ${esc(t('te_lineup'))}</span></button>`; }).join('')}</div>` : empty(t('te_none')));
   el.onclick = e => {
-    const o = e.target.closest('[data-open]'); if (o) { sel = +o.dataset.open; roundSel = 1; state.render(); return; }
+    const o = e.target.closest('[data-open]'); if (o) { sel = +o.dataset.open; roundSel = 1; step = 'lineup'; state.render(); return; }
     if (e.target.closest('[data-new]')) editEvent(null);
   };
 }
@@ -113,36 +150,88 @@ async function editEvent(ev) {
   if (ev) return act(() => db.update('tevents', { id: ev.id }, row), ['tevents']);
   await act(async () => {
     const lineup = [...Array(row.size)].map(() => ({ player_id: null, faction: '', disposition: '' }));
-    const saved = await db.insert('tevents', Object.assign(row, { lineup }));
+    const saved = await db.insert('tevents', Object.assign(row, { lineup, matrix: liveRatings(teamArmies()), opponents: [] }));
     await db.insert('tevent_rounds', { tevent_id: saved.id, round_no: 1, opp_name: '', opp: [...Array(row.size)].map(() => ({ faction: '', disposition: '', name: '' })), predictions: {}, pairings: [] });
-    sel = saved.id; roundSel = 1;
+    sel = saved.id; roundSel = 1; step = 'lineup';
   }, ['tevents', 'tevent_rounds']);
 }
 
 function detail(el) {
   const e = tev(); const size = e.size;
   const lineup = [...Array(size)].map((_, i) => Object.assign({ player_id: null, faction: '', disposition: '' }, (e.lineup || [])[i] || {}));
+  // Older events have no matrix yet: take it from the Live Matrix once
+  if (!e.matrix || !Object.keys(e.matrix).length) { const m = liveRatings(teamArmies()); if (Object.keys(m).length) patchEvent({ matrix: m }); }
   const errs = checkLineup(lineup, e.rules); const bad = new Set(errs.flatMap(x => x.slots));
   const rs = rounds(e.id); if (!rs.find(r => r.round_no === roundSel)) roundSel = rs[0]?.round_no || 1;
   const rd = rs.find(r => r.round_no === roundSel);
   const ev = (D().events || []).find(x => x.id === e.event_id);
+  const opps = e.opponents || [];
+  const filled = lineup.filter(l => l.player_id && l.faction).length;
+  const steps = [['lineup', t('st_lineup'), filled === size && !errs.length], ['matrix', t('st_matrix'), Object.keys(e.matrix || {}).length > 0], ['opps', t('st_opps'), opps.length > 0], ['rounds', t('st_rounds'), rs.some(r => r.logged)]];
   const rulesTxt = [e.rules?.no_dup && t('rule_no_dup'), e.rules?.chapters_as_sm && t('rule_chapters'), e.rules?.disp_max && `${t('rule_disp_max')}: ${e.rules.disp_max}`].filter(Boolean);
-  el.innerHTML = `<button class="link" data-back>${esc(t('te_back'))}</button>
-    ${pageHead(e.title, `${size}er Team${ev ? ' · ' + fmtDate(ev.starts_on) + (ev.location ? ' · ' + ev.location : '') : ''} · ${t('te_saved_auto')}`,
-      `<span class="live-dot" title="${esc(t('te_live'))}">● ${esc(t('te_live'))}</span>${can('captain') ? `<button class="btn ghost sm" data-share>${esc(t('te_share'))}</button><button class="btn ghost sm" data-settings>${esc(t('te_settings'))}</button>` : ''}`)}
-    <div class="chips te-rules">${rulesTxt.map(x => `<span class="chip">${esc(x)}</span>`).join('')}</div>
-    <section class="card"><h2>${esc(t('te_lineup'))}</h2>
+  let body = '';
+  if (step === 'lineup') body = `<section class="card"><h2>${esc(t('te_lineup'))}</h2>
+      <div class="chips te-rules">${rulesTxt.map(x => `<span class="chip">${esc(x)}</span>`).join('')}</div>
       <div class="lineup">${lineup.map((l, i) => { const pl = playerById(l.player_id); const armies = (pl?.armies || []).map(a => a.army).filter(Boolean);
         return `<div class="lu${bad.has(i + 1) ? ' bad' : ''}" data-slot="${i}"><span class="lu-n">${i + 1}</span>
           <select data-f="player_id" aria-label="${esc(t('player'))} ${i + 1}">${opts(players().map(p => [p.id, p.name]), l.player_id, t('player'))}</select>
           <select data-f="faction" aria-label="${esc(t('faction'))} ${i + 1}">${opts([...new Set([...armies, ...FACTIONS])], l.faction, t('faction'))}</select>
           <select data-f="disposition" aria-label="${esc(t('disposition'))} ${i + 1}">${opts(DISPOSITIONS, l.disposition, t('disposition'))}</select></div>`; }).join('')}</div>
       <div class="rule-msgs" aria-live="polite">${errs.length ? errs.map(x => `<p class="rule-err">⚠ ${esc(x.msg)}</p>`).join('') : `<p class="rule-ok">✓ ${esc(t('te_ok'))}</p>`}</div></section>
-    <div class="round-tabs" role="tablist">${rs.map(r => `<button role="tab" type="button" data-round="${r.round_no}" aria-selected="${r.round_no === roundSel}">${esc(t('round'))} ${r.round_no}${r.opp_name ? ` · ${esc(r.opp_name)}` : ''}</button>`).join('')}
-      <button type="button" class="add-round" data-addround>${esc(t('add_round_te'))}</button></div>
-    ${rd ? roundView(e, lineup, rd) : ''}`;
+    <section class="card"><h2>${esc(t('te_notes'))}</h2><textarea class="notes" data-evnotes rows="4" maxlength="8000" placeholder="${esc(t('te_notes_ph'))}">${esc(e.notes || '')}</textarea></section>
+    ${nextBtn('matrix')}`;
+  if (step === 'matrix') body = matrixView(e, lineup) + nextBtn('opps');
+  if (step === 'opps') body = oppsView(e, lineup) + nextBtn('rounds');
+  if (step === 'rounds') body = `<div class="round-tabs" role="tablist">${rs.map(r => `<button role="tab" type="button" data-round="${r.round_no}" aria-selected="${r.round_no === roundSel}">${esc(t('round'))} ${r.round_no}${r.opp_name ? ` · ${esc(r.opp_name)}` : ''}${r.logged ? ' ✓' : ''}</button>`).join('')}
+      <button type="button" class="add-round" data-addround>${esc(t('add_round_te'))}</button></div>${rd ? roundView(e, lineup, rd) : ''}`;
+  el.innerHTML = `<button class="link" data-back>${esc(t('te_back'))}</button>
+    ${pageHead(e.title, `${size}er Team${ev ? ' · ' + evRange(ev) + (ev.location ? ' · ' + ev.location : '') : ''} · ${t('te_saved_auto')}`,
+      `<span class="live-dot" title="${esc(t('te_live'))}">● ${esc(t('te_live'))}</span>${can('captain') ? `<button class="btn ghost sm" data-share>${esc(t('te_share'))}</button><button class="btn ghost sm" data-settings>${esc(t('te_settings'))}</button>` : ''}`)}
+    <nav class="steps" aria-label="${esc(t('st_nav'))}">${steps.map(([k, l, ok], i) => `<button type="button" data-step="${k}" aria-current="${step === k ? 'step' : 'false'}"><span class="st-n">${ok ? '✓' : i + 1}</span>${esc(l)}</button>`).join('')}</nav>
+    ${body}`;
   bind(el, e, lineup, rd);
-  if (rd) updateTotals(rd);
+  if (rd && step === 'rounds') updateTotals(rd);
+}
+const nextBtn = k => `<div class="form-actions"><button type="button" class="btn primary" data-step="${k}">${esc(t('st_next'))}: ${esc(t('st_' + k))} →</button></div>`;
+
+function matrixCols(e) {
+  const fromOpps = [...new Set((e.opponents || []).flatMap(o => o.players.map(p => p.faction)).filter(Boolean))];
+  return allCols || !fromOpps.length ? MATRIX_COLS : fromOpps;
+}
+function matrixView(e, lineup) {
+  const rows = lineup.filter(l => l.faction); const cols = matrixCols(e);
+  const hasOpps = (e.opponents || []).some(o => o.players.some(p => p.faction));
+  return `<section class="card"><div class="block-head"><h2>${esc(t('st_matrix'))}</h2>
+      <div class="row-actions">${hasOpps ? `<label class="check small"><input type="checkbox" data-allcols${allCols ? ' checked' : ''}> ${esc(t('mx_all'))}</label>` : ''}
+      <button type="button" class="btn ghost sm" data-mxfill>${esc(t('mx_fill'))}</button>${can('captain') ? `<button type="button" class="btn ghost sm" data-mxreset>${esc(t('mx_reset'))}</button>` : ''}</div></div>
+      <p class="mute small">${esc(t('mx_intro'))}</p>
+      ${rows.length ? `<div class="scroll matrix-wrap"><table class="matrix ratings evmx"><thead><tr><th class="corner">${esc(t('our_lineup'))}</th>${cols.map(f => `<th class="vert" title="${esc(f)}"><span>${esc(short(f))}</span></th>`).join('')}<th>Ø</th></tr></thead><tbody>
+        ${rows.map(l => { const vals = cols.map(f => rateOf(e, l.faction, f)); const ok = vals.filter(v => v != null);
+          return `<tr><th>${esc(l.player_id ? pname(l.player_id) : '')}<br><small class="mute">${esc(short(l.faction))}</small></th>${cols.map((f, j) => `<td class="rt ${rtClass(vals[j])}"><select data-mx="${esc(mkey(l.faction, f))}" aria-label="${esc(l.faction)} vs ${esc(f)}">${opts(RATINGS, vals[j] != null ? String(vals[j]) : '', '·')}</select></td>`).join('')}
+            <td class="num">${ok.length ? fmt1(avg(ok)) : ''}</td></tr>`; }).join('')}</tbody></table></div>
+        <div class="chips mx-legend">${[['1', 'mx_l1'], ['2', 'mx_l2'], ['3', 'mx_l3'], ['4', 'mx_l4'], ['5', 'mx_l5']].map(([v, k]) => `<span class="chip rt rt${v}"><b>${v}</b> ${esc(t(k))}</span>`).join('')}</div>`
+      : `<p class="notice">${esc(t('mx_need_lineup'))}</p>`}</section>`;
+}
+
+function oppsView(e, lineup) {
+  const opps = e.opponents || []; const ours = lineup.filter(l => l.faction);
+  return `<p class="mute">${esc(t('opps_intro'))}</p>
+    ${opps.map((o, oi) => { const isOpen = oppOpen === o.id || (oppOpen == null && oi === opps.length - 1);
+      const factions = o.players.filter(p => p.faction);
+      const pv = (l, p) => rateOf(e, l.faction, p.faction);
+      return `<details class="card opp" data-opp="${o.id}"${isOpen ? ' open' : ''}><summary><b>${esc(o.name || t('opp_unnamed'))}</b> <span class="mute small">${factions.map(p => esc(short(p.faction))).join(' · ') || ''}</span></summary>
+      <div class="grid2"><label>${esc(t('opp_team_name'))}<input data-oname value="${esc(o.name)}" maxlength="60"></label><span></span></div>
+      <div class="opp-rows">${o.players.map((p, j) => `<div class="opp-row" data-op="${j}"><span class="lu-n">${String.fromCharCode(65 + j)}</span>
+        <select data-k="faction" aria-label="${esc(t('opp_faction'))} ${j + 1}">${opts(FACTIONS, p.faction, t('opp_faction'))}</select>
+        <select data-k="disposition" aria-label="${esc(t('opp_disp'))} ${j + 1}">${opts(DISPOSITIONS, p.disposition, t('opp_disp'))}</select>
+        <input data-k="name" value="${esc(p.name || '')}" maxlength="40" placeholder="${esc(t('opp_name'))}">
+        <input data-k="note" class="wide" value="${esc(p.note || '')}" maxlength="200" placeholder="${esc(t('opp_player_note'))}"></div>`).join('')}</div>
+      ${ours.length && factions.length ? `<h3 class="sub">${esc(t('mt_title'))}</h3><div class="scroll matrix-wrap"><table class="matrix ratings"><thead><tr><th class="corner"></th>${ours.map(l => `<th>${esc(l.player_id ? pname(l.player_id) : '')}<br><small class="mute">${esc(short(l.faction))}</small></th>`).join('')}<th>Ø</th></tr></thead><tbody>
+        ${factions.map(p => { const vals = ours.map(l => pv(l, p)); const ok = vals.filter(v => v != null); return `<tr><th>${esc(short(p.faction))}${p.disposition ? `<br><small class="mute">${esc(p.disposition)}</small>` : ''}</th>${vals.map(v => `<td class="rt ${rtClass(v)}">${v ?? '·'}</td>`).join('')}<td class="num">${ok.length ? fmt1(avg(ok)) : ''}</td></tr>`; }).join('')}
+        <tr class="sum"><th>Ø</th>${ours.map(l => { const ok = factions.map(p => pv(l, p)).filter(v => v != null); return `<td class="num">${ok.length ? fmt1(avg(ok)) : ''}</td>`; }).join('')}<td></td></tr></tbody></table></div>` : ''}
+      <label>${esc(t('opp_team_note'))}<textarea class="notes" data-onote rows="3" maxlength="2000">${esc(o.note || '')}</textarea></label>
+      <div class="form-actions"><button type="button" class="btn primary sm" data-oppround="${o.id}"${factions.length ? '' : ' disabled'}>${esc(t('opp_to_round'))}</button>${can('captain') ? `<button type="button" class="btn ghost sm" data-oppdel="${o.id}">${esc(t('delete'))}</button>` : ''}</div></details>`; }).join('')}
+    <button type="button" class="btn ghost" data-oppadd>+ ${esc(t('opp_add'))}</button>`;
 }
 
 function roundView(e, lineup, rd) {
@@ -167,30 +256,74 @@ function roundView(e, lineup, rd) {
       <td class="num ${deltaCls(delta)}" data-delta="${o}">${deltaTxt(delta)}</td></tr>`;
   }).join('');
   const allDone = done === size && size > 0;
-  return `<section class="card"><div class="grid2"><label>${esc(t('opp_team_name'))}<input data-oppname value="${esc(rd.opp_name || '')}" maxlength="60"></label></div>
-      <h3 class="sub">${esc(t('te_opp_lineup'))}</h3>
+  const linked = (e.opponents || []).find(o => o.id === rd.opp_team);
+  // Best pairing from the predictions (or the matrix where nothing was entered)
+  const val = (o, j) => { const v = pred[`${o}-${j}`]; if (v != null) return +v; const sg = predictFor(e, lineup[o], opp[j].faction); return sg ? sg.v : 10; };
+  const ready = opp.every(x => x.faction) && lineup.every(l => l.faction);
+  const bp = ready ? bestPairing(size, val) : null;
+  return `<section class="card"><div class="grid2"><label>${esc(t('rd_opp_team'))}<select data-opplink>${opts((e.opponents || []).map(o => [o.id, o.name || t('opp_unnamed')]), rd.opp_team || '', t('rd_manual'))}</select></label>
+      <label>${esc(t('opp_team_name'))}<input data-oppname value="${esc(rd.opp_name || '')}" maxlength="60"${linked ? ' readonly' : ''}></label></div>
+      ${linked ? `<div class="chips opp-chips">${opp.map((x, j) => `<span class="chip"><b>${String.fromCharCode(65 + j)}</b> ${esc(x.faction || '–')}${x.disposition ? ` · <small>${esc(x.disposition)}</small>` : ''}${x.name ? ` · <small>${esc(x.name)}</small>` : ''}</span>`).join('')}</div><p class="mute small">${esc(t('rd_linked_hint'))}</p>` : `<h3 class="sub">${esc(t('te_opp_lineup'))}</h3>
       <div class="lineup">${opp.map((x, j) => `<div class="lu" data-oslot="${j}"><span class="lu-n">${String.fromCharCode(65 + j)}</span>
         <select data-of="faction" aria-label="${esc(t('opp_faction'))} ${j + 1}">${opts(FACTIONS, x.faction, t('opp_faction'))}</select>
         <select data-of="disposition" aria-label="${esc(t('opp_disp'))} ${j + 1}">${opts(DISPOSITIONS, x.disposition, t('opp_disp'))}</select>
-        <input data-of="name" value="${esc(x.name || '')}" maxlength="40" placeholder="${esc(t('opp_name'))}" aria-label="${esc(t('opp_name'))} ${j + 1}"></div>`).join('')}</div></section>
+        <input data-of="name" value="${esc(x.name || '')}" maxlength="40" placeholder="${esc(t('opp_name'))}" aria-label="${esc(t('opp_name'))} ${j + 1}"></div>`).join('')}</div>`}</section>
     <section class="card"><div class="block-head"><h2>${esc(t('te_matrix'))}</h2><button class="btn ghost sm" data-apply>${esc(t('te_apply'))}</button></div>
       <div class="scroll matrix-wrap"><table class="matrix heat"><thead><tr><th class="corner"></th>${opp.map((x, j) => `<th><span class="oh">${String.fromCharCode(65 + j)}</span>${esc(short(x.faction) || '–')}${x.name ? `<br><small class="mute">${esc(x.name)}</small>` : ''}</th>`).join('')}<th>Ø</th></tr></thead><tbody>
       ${lineup.map((l, o) => { const vals = [];
-        const cells = opp.map((x, j) => { const v = pred[`${o}-${j}`]; const sg = suggest(l, x.faction); if (v != null) vals.push(+v);
+        const cells = opp.map((x, j) => { const v = pred[`${o}-${j}`]; const sg = predictFor(e, l, x.faction); if (v != null) vals.push(+v);
           const paired = (pairOf(o) || {}).t; const isPair = paired !== '' && paired != null && +paired === j;
           return `<td class="${heat(v ?? null)}${isPair ? ' paired' : ''}"><select data-pred="${o}-${j}" aria-label="${esc(pname(l.player_id))} vs ${esc(x.faction || '')}">${opts(PRED_VALUES.map(n => [n, String(n)]), v ?? '', '·')}</select>
-            ${sg ? `<small class="sg" title="${esc(sg.src === 'm' ? 'Master Matrix' : sg.src === 'p' ? t('player') : 'Team')}">≈${esc(fmt1(sg.v).replace('.0', ''))}${sg.n ? ` (${sg.n})` : ''}</small>` : ''}</td>`; }).join('');
+            ${sg ? `<small class="sg" title="${esc(sg.src === 'x' ? t('st_matrix') + ' ' + sg.r : sg.src === 'm' ? 'Master Matrix' : sg.src === 'p' ? t('player') : 'Team')}">≈${esc(fmt1(sg.v).replace('.0', ''))}${sg.n ? ` (${sg.n})` : ''}</small>` : ''}</td>`; }).join('');
         return `<tr><th>${esc(l.player_id ? pname(l.player_id) : t('te_slot') + ' ' + (o + 1))}<br><small class="mute">${esc(short(l.faction) || '–')}</small></th>${cells}<td class="num ${heat(vals.length ? avg(vals) : null)}">${vals.length ? fmt1(avg(vals)) : ''}</td></tr>`; }).join('')}
-      </tbody></table></div><p class="mute small">${esc(t('te_suggest_note'))}</p></section>
-    <section class="card"><h2>${esc(t('te_pairings'))}</h2><div class="scroll"><table class="pairs"><thead><tr><th>${esc(t('player'))}</th><th>${esc(t('te_vs'))}</th><th>${esc(t('te_pred'))}</th><th>${esc(t('te_scores'))}</th><th>${esc(t('te_actual'))}</th><th>${esc(t('te_delta'))}</th></tr></thead><tbody>${rows}</tbody>
+      </tbody></table></div><p class="mute small">${esc(t('te_suggest_note2'))}</p></section>
+    <section class="card"><h2>${esc(t('te_pairings'))}</h2>
+      ${bp ? `<div class="pair-sug"><div><b>${esc(t('ps_title'))}</b> <span class="mute">≈ ${fmt1(bp.total).replace('.0', '')} GP</span><br><small>${bp.map.map((j, o) => `${esc(lineup[o].player_id ? pname(lineup[o].player_id) : t('te_slot') + ' ' + (o + 1))} → ${String.fromCharCode(65 + j)} ${esc(short(opp[j].faction))}`).join(' · ')}</small></div>
+        <button type="button" class="btn ghost sm" data-usepair="${bp.map.join(',')}">${esc(t('ps_use'))}</button></div>` : `<p class="mute small">${esc(t('ps_need'))}</p>`}
+      <div class="scroll"><table class="pairs"><thead><tr><th>${esc(t('player'))}</th><th>${esc(t('te_vs'))}</th><th>${esc(t('te_pred'))}</th><th>${esc(t('te_scores'))}</th><th>${esc(t('te_actual'))}</th><th>${esc(t('te_delta'))}</th></tr></thead><tbody>${rows}</tbody>
       <tfoot><tr><th colspan="2">${esc(t('te_total'))}</th><td class="num" data-tot="pred">${predN ? fmt1(predTot).replace('.0', '') : '–'}</td><td></td><td><b class="num" data-tot="act">${done ? `${ourTot}–${theirTot}` : '–'}</b></td><td class="num" data-tot="delta"></td></tr></tfoot></table></div>
-      <div class="form-actions">${rd.logged ? `<span class="tag">✓ ${esc(t('te_logged'))}</span>` : can('captain') ? `<button class="btn primary sm" data-tolog ${allDone ? '' : 'disabled'}>${esc(t('te_to_log'))}</button>` : `<small class="mute">${esc(t('te_log_captain'))}</small>`}</div></section>`;
+      <div class="form-actions">${rd.logged ? `<span class="tag">✓ ${esc(t('te_logged'))}</span>` : can('captain') ? `<button class="btn primary sm" data-tolog ${allDone ? '' : 'disabled'}>${esc(t('te_to_log'))}</button>` : `<small class="mute">${esc(t('te_log_captain'))}</small>`}</div></section>
+    <section class="card"><h2>${esc(t('rd_notes'))}</h2><textarea class="notes" data-rdnotes rows="4" maxlength="8000" placeholder="${esc(t('rd_notes_ph'))}">${esc(rd.notes || '')}</textarea></section>`;
 }
 
+// Opponent teams are kept on the event; rounds linked to a team follow its changes until they are logged.
+function patchOpps(e, opponents) {
+  patchEvent({ opponents });
+  for (const r of rounds(e.id)) { const o = opponents.find(x => x.id === r.opp_team); if (!o || r.logged) continue;
+    const opp = o.players.map(p => ({ faction: p.faction, disposition: p.disposition, name: p.name }));
+    if (JSON.stringify(opp) !== JSON.stringify(r.opp) || r.opp_name !== o.name) patchRound(r, { opp, opp_name: o.name }); }
+}
+function editOpp(e, id, fn) { const list = JSON.parse(JSON.stringify(e.opponents || [])); const o = list.find(x => x.id === id); if (!o) return; fn(o); patchOpps(e, list); }
+function fillPred(e, lineup, oppPlayers, cur) {
+  const pred = Object.assign({}, cur || {});
+  lineup.forEach((l, o) => oppPlayers.forEach((x, j) => { const k = `${o}-${j}`; if (pred[k] == null) { const sg = predictFor(e, l, x.faction); if (sg) pred[k] = Math.round(sg.v); } }));
+  return pred;
+}
+async function roundForOpp(e, lineup, oid) {
+  const o = (e.opponents || []).find(x => x.id === oid); if (!o) return;
+  const rs = rounds(e.id);
+  const existing = rs.find(r => r.opp_team === oid);
+  if (existing) { roundSel = existing.round_no; step = 'rounds'; return state.render(); }
+  const empty = rs.find(r => !r.logged && !r.opp_team && !(r.opp || []).some(x => x.faction) && !(r.pairings || []).length);
+  const patch = { opp_team: o.id, opp_name: o.name, opp: o.players.map(p => ({ faction: p.faction, disposition: p.disposition, name: p.name })), predictions: fillPred(e, lineup, o.players, {}) };
+  if (empty) { patchRound(empty, patch); roundSel = empty.round_no; step = 'rounds'; return state.render(); }
+  const n = Math.max(0, ...rs.map(r => r.round_no)) + 1;
+  await act(async () => { await db.insert('tevent_rounds', Object.assign({ tevent_id: e.id, round_no: n, pairings: [] }, patch)); roundSel = n; step = 'rounds'; }, ['tevent_rounds'], false);
+}
 function bind(el, e, lineup, rd) {
   el.onclick = async ev => {
     const b = ev.target.closest('button'); if (!b) return;
     if (b.dataset.back !== undefined) { sel = null; return state.render(); }
+    if (b.dataset.step) { step = b.dataset.step; state.render(); return window.scrollTo({ top: 0 }); }
+    if (b.dataset.mxfill !== undefined) { const add = liveRatings([...new Set([...lineup.map(l => l.faction).filter(Boolean), ...teamArmies()])], e.matrix || {});
+      patchEvent({ matrix: Object.assign({}, e.matrix, add) }); toast(t('mx_filled', { n: Object.keys(add).length })); return state.render(); }
+    if (b.dataset.mxreset !== undefined) { if (!await confirmBox(t('mx_reset_q'))) return; patchEvent({ matrix: liveRatings([...new Set([...lineup.map(l => l.faction).filter(Boolean), ...teamArmies()])]) }); return state.render(); }
+    if (b.dataset.oppadd !== undefined) { const o = newOpp(e.size); oppOpen = o.id; patchOpps(e, [...(e.opponents || []), o]); return state.render(); }
+    if (b.dataset.oppdel) { const o = (e.opponents || []).find(x => x.id === b.dataset.oppdel); if (o && await confirmBox(o.name || t('opp_unnamed'))) { patchOpps(e, e.opponents.filter(x => x.id !== o.id)); state.render(); } return; }
+    if (b.dataset.oppround) return roundForOpp(e, lineup, b.dataset.oppround);
+    if (b.dataset.usepair && rd) { const map = b.dataset.usepair.split(',').map(Number); const old = rd.pairings || [];
+      const pairs = map.map((j, o) => { const p = old.find(x => x.o === o && +x.t === j) || {}; return { o, t: j, us: p.us ?? '', them: p.them ?? '' }; });
+      patchRound(rd, { pairings: pairs }); return state.render(); }
     if (b.dataset.round) { roundSel = +b.dataset.round; return state.render(); }
     if (b.dataset.settings !== undefined) return editEvent(e);
     if (b.dataset.share !== undefined) return share(e);
@@ -200,7 +333,7 @@ function bind(el, e, lineup, rd) {
     }
     if (b.dataset.apply !== undefined && rd) {
       const pred = Object.assign({}, rd.predictions);
-      lineup.forEach((l, o) => (rd.opp || []).forEach((x, j) => { const k = `${o}-${j}`; if (pred[k] == null) { const sg = suggest(l, x.faction); if (sg) pred[k] = Math.round(sg.v); } }));
+      lineup.forEach((l, o) => (rd.opp || []).forEach((x, j) => { const k = `${o}-${j}`; if (pred[k] == null) { const sg = predictFor(e, l, x.faction); if (sg) pred[k] = Math.round(sg.v); } }));
       patchRound(rd, { predictions: pred }); return state.render();
     }
     if (b.dataset.tolog !== undefined && rd) {
@@ -213,13 +346,22 @@ function bind(el, e, lineup, rd) {
   };
   el.onchange = ev => {
     const s = ev.target;
+    if (s.dataset.mx) { const m = Object.assign({}, e.matrix); if (s.value === '') delete m[s.dataset.mx]; else m[s.dataset.mx] = +s.value; patchEvent({ matrix: m }); return state.render(); }
+    if (s.dataset.allcols !== undefined) { allCols = s.checked; return state.render(); }
+    const oc = s.closest('[data-opp]'); const orow = s.closest('[data-op]');
+    if (oc && orow && s.tagName === 'SELECT') { oppOpen = oc.dataset.opp; editOpp(e, oc.dataset.opp, o => { o.players[+orow.dataset.op][s.dataset.k] = s.value; }); return state.render(); }
+    if (s.dataset.opplink !== undefined && rd) { const o = (e.opponents || []).find(x => x.id === s.value);
+      if (o) patchRound(rd, Object.assign({ opp_team: o.id, opp_name: o.name, opp: o.players.map(p => ({ faction: p.faction, disposition: p.disposition, name: p.name })) }, { predictions: fillPred(e, lineup, o.players, rd.predictions) }));
+      else patchRound(rd, { opp_team: null });
+      return state.render(); }
     const lu = s.closest('[data-slot]');
     if (lu && s.dataset.f) {
       const i = +lu.dataset.slot; const next = lineup.map(x => Object.assign({}, x));
       next[i][s.dataset.f] = s.dataset.f === 'player_id' ? (s.value ? +s.value : null) : s.value;
       if (s.dataset.f === 'player_id' && s.value) { const a = (playerById(s.value)?.armies || []).find(x => x.army); if (a && !next[i].faction) { next[i].faction = a.army; next[i].disposition = next[i].disposition || a.d1 || ''; } }
       if (s.dataset.f === 'faction') { const a = (playerById(next[i].player_id)?.armies || []).find(x => x.army === s.value); if (a && a.d1 && !next[i].disposition) next[i].disposition = a.d1; }
-      patchEvent({ lineup: next }); return state.render();
+      const missing = liveRatings(next.map(x => x.faction).filter(Boolean), e.matrix || {});
+      patchEvent(Object.keys(missing).length ? { lineup: next, matrix: Object.assign({}, e.matrix, missing) } : { lineup: next }); return state.render();
     }
     if (!rd) return;
     const os = s.closest('[data-oslot]');
@@ -230,7 +372,16 @@ function bind(el, e, lineup, rd) {
     if (s.dataset.us !== undefined || s.dataset.them !== undefined) { scoreInput(s, rd); return; }
   };
   el.oninput = ev => {
-    const s = ev.target; if (!rd) return;
+    const s = ev.target;
+    if (s.dataset.evnotes !== undefined) return patchEvent({ notes: s.value });
+    const oc = s.closest('[data-opp]');
+    if (oc) { oppOpen = oc.dataset.opp; const orow = s.closest('[data-op]');
+      if (s.dataset.oname !== undefined) { editOpp(e, oc.dataset.opp, o => { o.name = s.value; }); const sum = oc.querySelector('summary b'); if (sum) sum.textContent = s.value || t('opp_unnamed'); }
+      if (s.dataset.onote !== undefined) editOpp(e, oc.dataset.opp, o => { o.note = s.value; });
+      if (orow && s.tagName === 'INPUT') editOpp(e, oc.dataset.opp, o => { o.players[+orow.dataset.op][s.dataset.k] = s.value; });
+      return; }
+    if (!rd) return;
+    if (s.dataset.rdnotes !== undefined) return patchRound(rd, { notes: s.value });
     if (s.dataset.oppname !== undefined) patchRound(rd, { opp_name: s.value });
     const os = s.closest('[data-oslot]'); if (os && s.dataset.of === 'name') { const opp = (rd.opp || []).map(x => Object.assign({}, x)); while (opp.length < e.size) opp.push({ faction: '', disposition: '', name: '' }); opp[+os.dataset.oslot].name = s.value; patchRound(rd, { opp }); }
     if (s.dataset.us !== undefined || s.dataset.them !== undefined) scoreInput(s, rd);

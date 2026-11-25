@@ -1,8 +1,8 @@
 // Team pages: home, roster, match log, archive, events, calendar, line-up, cash.
-import { db } from './db.js?v=202611251631';
-import { t } from './i18n.js?v=202611251631';
-import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611251631';
-import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611251631';
+import { db } from './db.js?v=202611251746';
+import { t } from './i18n.js?v=202611251746';
+import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611251746';
+import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611251746';
 
 const D = () => state.data;
 const rsvpOf = (eid, pid) => (D().rsvps || []).find(r => r.event_id === eid && r.player_id === pid)?.status;
@@ -106,6 +106,8 @@ async function editPlayer(p) {
     <div class="photo-edit"><span class="avatar lg" data-pv>${safeImg(p.photo_url) ? `<img src="${esc(safeImg(p.photo_url))}" alt="">` : esc((p.name || '?').slice(0, 1))}</span>
       <div><b>${esc(t('photo'))}</b><p class="mute small">${esc(t('photo_hint'))}</p><label class="btn ghost sm file">${esc(t('photo_pick'))}<input type="file" accept="image/*" data-photo hidden></label>
       ${p.photo_url ? `<label class="check small"><input type="checkbox" name="photo_remove"> ${esc(t('photo_remove'))}</label>` : ''}</div></div>
+    <div class="grid2"><label>${esc(t('fav_army'))}<select name="fav_army">${opts(FACTIONS, p.fav_army || '', '–')}</select></label><span></span></div>
+    <label>${esc(t('bio'))}<textarea name="bio" rows="3" maxlength="600" placeholder="${esc(t('bio_ph'))}">${esc(p.bio || '')}</textarea></label>
     <label>${esc(t('bcp_profile'))}<input name="bcp_url" type="url" inputmode="url" placeholder="https://www.bestcoastpairings.com/…" value="${esc(p.bcp_url || '')}"><small class="mute">${esc(t('bcp_hint'))}</small></label>
     ${slots.map((a, i) => `<fieldset class="slot"><legend>${esc(t('army'))} ${i + 1}</legend><div class="grid3">
       <label>${esc(t('army'))}<select name="a${i}">${opts(FACTIONS, a.army, '–')}</select></label>
@@ -121,7 +123,7 @@ async function editPlayer(p) {
   const armies = slots.map((_, i) => ({ army: r['a' + i], d1: r['d1_' + i], d2: r['d2_' + i] })).filter(a => a.army);
   const bcp = (r.bcp_url || '').trim();
   if (bcp && !/^https:\/\/([a-z0-9-]+\.)*bestcoastpairings\.com\//i.test(bcp)) return toast(t('bcp_invalid'), true);
-  const patch = { armies, bcp_url: bcp || null };
+  const patch = { armies, bcp_url: bcp || null, fav_army: r.fav_army || null, bio: (r.bio || '').trim() || null };
   if (r.photo_remove) patch.photo_url = null;
   if (photo) { try { toast(t('uploading')); patch.photo_url = await db.upload(`players/${p.id || 'new'}-${Date.now()}.jpg`, photo); } catch (err) { return toast(t('error') + ': ' + err.message, true); } }
   if (can('captain')) Object.assign(patch, { name: r.name.trim(), sort: +r.sort || 0, active: !!r.active });
