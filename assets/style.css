@@ -385,3 +385,9 @@ details.opp>*:not(summary){margin-left:20px;margin-right:20px}details.opp>.form-
 .pgrid:has(.pcard.sheet){grid-template-columns:repeat(auto-fill,minmax(270px,1fr))}
 .sheet-dl{grid-template-columns:1fr;gap:0}.sheet-dl dt{padding-top:0;margin-top:12px;text-transform:uppercase;letter-spacing:.04em;font-size:11.5px}.sheet-dl dt:first-child{margin-top:0}
 .sheet-dl dd{margin:4px 0 0}.sheet-dl dd .chips{gap:6px}
+/* admin */
+.adm-add{display:flex;gap:8px;margin:6px 0 14px;flex-wrap:wrap}.adm-add input{flex:1;min-width:180px}
+table.adm input.rename{border:1px solid transparent;background:transparent;font-weight:700;padding:6px 8px;border-radius:8px;width:100%;min-width:120px}
+table.adm input.rename:hover,table.adm input.rename:focus{border-color:var(--line);background:#fff}
+table.adm tr.inactive td{opacity:.6}.switch{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-size:14px}
+.switch{white-space:nowrap;flex-direction:row}table.adm td{vertical-align:middle}

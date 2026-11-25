@@ -1,5 +1,5 @@
 // Data access: Supabase when configured, otherwise a demo backend in localStorage.
-import { CONFIG } from './config.js?v=202611251807';
+import { CONFIG } from './config.js?v=202611251815';
 
 export const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY;
 export const TABLES = ['players', 'matches', 'events', 'rsvps', 'payments', 'ratings', 'opponent_teams', 'pairings', 'settings', 'tevents', 'tevent_rounds', 'news'];
@@ -100,7 +100,9 @@ const demo = {
     tbl(table).push(r); persist(); return JSON.parse(JSON.stringify(r));
   },
   async update(table, m, patch) { const r = tbl(table).find(x => matches(x, m)); if (!r) fail({ message: 'not found' }); Object.assign(r, patch); persist(); return JSON.parse(JSON.stringify(r)); },
-  async remove(table, m) { const a = tbl(table); for (let i = a.length - 1; i >= 0; i--) if (matches(a[i], m)) a.splice(i, 1); persist(); },
+  async remove(table, m) {
+    if (table === 'players') { for (const t2 of ['matches', 'rsvps', 'payments', 'ratings']) { const arr = tbl(t2); for (let i = arr.length - 1; i >= 0; i--) if (String(arr[i].player_id) === String(m.id)) arr.splice(i, 1); } for (const p of load().profiles) if (String(p.player_id) === String(m.id)) p.player_id = null; }
+    const a = tbl(table); for (let i = a.length - 1; i >= 0; i--) if (matches(a[i], m)) a.splice(i, 1); persist(); },
   async upsert(table, row) {
     const keys = KEYS[table] || ['id']; const m = {}; for (const k of keys) m[k] = row[k];
     const r = tbl(table).find(x => matches(x, m));
@@ -128,6 +130,7 @@ const demo = {
       return [...by.values()].sort((a, b) => b.date_to.localeCompare(a.date_to));
     }
     if (name === 'public_events') return (T.events || []).filter(e => (e.ends_on || e.starts_on) >= today).sort((a, b) => a.starts_on.localeCompare(b.starts_on)).map(e => ({ starts_on: e.starts_on, ends_on: e.ends_on || e.starts_on, title: e.title, location: e.location, kind: e.kind, team_size: e.team_size }));
+    if (name === 'admin_delete_user') { const P2 = load().profiles; const i = P2.findIndex(p => p.id === args.p_id); if (i >= 0) P2.splice(i, 1); persist(); return null; }
     if (name === 'set_tevent_password') { const ev = (T.tevents || []).find(e => e.id === args.p_id); if (ev) { ev._pw = args.p_password || null; persist(); } return null; }
     if (name === 'tevent_has_password') return !!((T.tevents || []).find(e => e.id === args.p_id) || {})._pw;
     if (name === 'public_tevent') {

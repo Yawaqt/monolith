@@ -1,15 +1,15 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611251807';
-import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251807';
-import { t, setLang, getLang } from './i18n.js?v=202611251807';
-import { state, role, can, esc, $, opts, players, pname, loadData, act, toast, pageHead } from './core.js?v=202611251807';
-import * as T from './pages-team.js?v=202611251807';
-import * as A from './pages-analysis.js?v=202611251807';
-import * as P from './pages-public.js?v=202611251807';
-import * as TE from './pages-teams.js?v=202611251807';
-import { FACTIONS } from './data.js?v=202611251807';
-import * as SITE from './pages-site.js?v=202611251807';
-import * as N from './pages-news.js?v=202611251807';
+import { CONFIG } from './config.js?v=202611251815';
+import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251815';
+import { t, setLang, getLang } from './i18n.js?v=202611251815';
+import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox } from './core.js?v=202611251815';
+import * as T from './pages-team.js?v=202611251815';
+import * as A from './pages-analysis.js?v=202611251815';
+import * as P from './pages-public.js?v=202611251815';
+import * as TE from './pages-teams.js?v=202611251815';
+import { FACTIONS } from './data.js?v=202611251815';
+import * as SITE from './pages-site.js?v=202611251815';
+import * as N from './pages-news.js?v=202611251815';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
@@ -19,7 +19,7 @@ const PORTAL = [
   { group: 'nav_team', items: [['matches', 'nav_matches', 'team', T.matches], ['archive', 'nav_archive', 'team', T.archive], ['events', 'nav_events', 'team', T.events],
     ['teams', 'nav_teams', 'team', TE.teams], ['newsedit', 'nav_newsedit', 'team', N.editor], ['roster', 'nav_roster', 'team', T.roster]] },
   { group: 'nav_analysis', items: [['matrix', 'nav_matrix', 'team', A.matrix], ['stats', 'nav_stats', 'team', A.stats]] },
-  { group: 'nav_admin', items: [['site', 'nav_site', 'captain', SITE.editor], ['members', 'nav_members', 'captain', members], ['profile', 'nav_profile', 'guest', profile]] },
+  { group: 'nav_admin', items: [['site', 'nav_site', 'captain', SITE.editor], ['members', 'nav_members', 'admin', members], ['profile', 'nav_profile', 'guest', profile]] },
 ];
 const ROUTES = Object.fromEntries([
   ...PUBLIC.map(([k, label, fn]) => [k, { label, min: 'anon', fn, pub: true }]),
@@ -137,27 +137,64 @@ function profile(el) {
 }
 
 // ---------------------------------------------------------------- Members
+// ---------------------------------------------------------------- Admin: accounts and players
+let mList = [];
 async function members(el) {
-  el.innerHTML = pageHead(t('nav_members'), t('members_intro')) + `<p class="mute">${esc(t('loading'))}</p>`;
-  let list = [];
-  try { list = await db.list('profiles', ['created_at', 'desc']); } catch (e) { el.innerHTML += `<div class="notice bad">${esc(e.message)}</div>`; return; }
+  el.innerHTML = pageHead(t('nav_members'), t('admin_intro')) + `<p class="mute">${esc(t('loading'))}</p>`;
+  try { mList = await db.list('profiles', ['created_at', 'desc']); } catch (e) { el.innerHTML += `<div class="notice bad">${esc(e.message)}</div>`; return; }
   if (location.hash !== '#/members') return;
-  const admin = can('admin');
-  list.sort((a, b) => (a.role === 'guest' ? 0 : 1) - (b.role === 'guest' ? 0 : 1) || (b.created_at || '').localeCompare(a.created_at || ''));
-  el.innerHTML = pageHead(t('nav_members'), t('members_intro')) + `<section class="card"><div class="scroll"><table class="stack"><thead><tr><th>${esc(t('display_name'))}</th><th>${esc(t('role'))}</th><th>${esc(t('linked_player'))}</th><th>${esc(t('joined'))}</th></tr></thead><tbody>
-    ${list.map(p => `<tr${p.role === 'guest' && !p.reviewed_at ? ' class="pending"' : ''}><td><b>${esc(p.display_name || '')}</b>${p.role === 'guest' && !p.reviewed_at ? ` <span class="tag warn-tag">${esc(t('waiting'))}</span>${admin ? `<span class="pend-btns"><button type="button" class="btn primary xs" data-approve="${esc(p.id)}">${esc(t('pend_approve'))}</button><button type="button" class="btn ghost xs" data-keepguest="${esc(p.id)}">${esc(t('pend_keep'))}</button></span>` : ''}` : ''}${state.me && p.id === state.me.id ? ' <span class="tag">★</span>' : ''}</td>
-      <td>${admin && p.id !== state.me?.id ? `<select data-role="${esc(p.id)}" aria-label="${esc(t('role'))}">${opts(['guest', 'team', 'captain', 'admin'].map(r => [r, t('r_' + r)]), p.role)}</select>` : `<span class="tag role-${esc(p.role)}">${esc(t('r_' + p.role))}</span>`}</td>
-      <td>${admin ? `<select data-link="${esc(p.id)}" aria-label="${esc(t('linked_player'))}">${opts(players(true).map(q => [q.id, q.name]), p.player_id, t('none_linked'))}</select>` : esc(p.player_id ? pname(p.player_id) : '–')}</td>
-      <td class="nowrap">${esc((p.created_at || '').slice(0, 10))}</td></tr>`).join('')}</tbody></table></div></section>`;
+  drawMembers(el);
+}
+function drawMembers(el) {
+  const list = mList.slice().sort((a, b) => (a.role === 'guest' && !a.reviewed_at ? 0 : 1) - (b.role === 'guest' && !b.reviewed_at ? 0 : 1) || (b.created_at || '').localeCompare(a.created_at || ''));
+  const waiting = p => p.role === 'guest' && !p.reviewed_at;
+  const ps = players(true).slice().sort((a, b) => (b.active - a.active) || (a.sort - b.sort) || a.name.localeCompare(b.name));
+  const games = id => (state.data.matches || []).filter(m => m.player_id === id || m.opp_player_id === id).length;
+  const accountsOf = id => mList.filter(p => p.player_id === id).map(p => p.display_name || '?');
+  el.innerHTML = pageHead(t('nav_members'), t('admin_intro')) +
+    `<section class="card"><h2>${esc(t('adm_accounts'))} <span class="mute small">(${list.length})</span></h2><p class="mute small">${esc(t('adm_accounts_hint'))}</p>
+      <div class="scroll"><table class="stack adm"><thead><tr><th>${esc(t('display_name'))}</th><th>${esc(t('role'))}</th><th>${esc(t('linked_player'))}</th><th>${esc(t('joined'))}</th><th></th></tr></thead><tbody>
+      ${list.map(p => { const me = p.id === state.me?.id; return `<tr${waiting(p) ? ' class="pending"' : ''}><td><b>${esc(p.display_name || '')}</b>${me ? ' <span class="tag">★</span>' : ''}${waiting(p) ? ` <span class="tag warn-tag">${esc(t('waiting'))}</span><span class="pend-btns"><button type="button" class="btn primary xs" data-approve="${esc(p.id)}">${esc(t('pend_approve'))}</button><button type="button" class="btn ghost xs" data-keepguest="${esc(p.id)}">${esc(t('pend_keep'))}</button></span>` : ''}</td>
+        <td>${me ? `<span class="tag role-${esc(p.role)}">${esc(t('r_' + p.role))}</span>` : `<select data-role="${esc(p.id)}" aria-label="${esc(t('role'))}">${opts(['guest', 'team', 'captain', 'admin'].map(r => [r, t('r_' + r)]), p.role)}</select>`}</td>
+        <td><select data-link="${esc(p.id)}" aria-label="${esc(t('linked_player'))}">${opts([...players(true).map(q => [q.id, q.name + (q.active ? '' : ' (' + t('inactive') + ')')]), ['__new', '+ ' + t('adm_new_player')]], p.player_id, t('none_linked'))}</select></td>
+        <td class="nowrap">${esc((p.created_at || '').slice(0, 10))}</td>
+        <td class="r">${me ? '' : `<button type="button" class="icon" data-deluser="${esc(p.id)}" aria-label="${esc(t('adm_del_account'))}: ${esc(p.display_name || '')}">🗑</button>`}</td></tr>`; }).join('')}
+      </tbody></table></div></section>
+    <section class="card"><h2>${esc(t('adm_players'))} <span class="mute small">(${ps.length})</span></h2><p class="mute small">${esc(t('adm_players_hint'))}</p>
+      <form class="adm-add" id="addp"><input name="name" required maxlength="40" placeholder="${esc(t('adm_player_name'))}" aria-label="${esc(t('adm_player_name'))}"><button class="btn primary">+ ${esc(t('adm_add_player'))}</button></form>
+      <div class="scroll"><table class="stack adm"><thead><tr><th>${esc(t('player'))}</th><th>${esc(t('active'))}</th><th>${esc(t('adm_accounts'))}</th><th class="r">${esc(t('games'))}</th><th></th></tr></thead><tbody>
+      ${ps.map(q => `<tr${q.active ? '' : ' class="inactive"'}><td><input class="rename" data-rename="${q.id}" value="${esc(q.name)}" maxlength="40" aria-label="${esc(t('player'))}"></td>
+        <td><label class="switch"><input type="checkbox" data-active="${q.id}"${q.active ? ' checked' : ''}> <span>${esc(q.active ? t('active') : t('inactive'))}</span></label></td>
+        <td>${accountsOf(q.id).map(esc).join(', ') || '<span class="mute">–</span>'}</td><td class="r num">${games(q.id)}</td>
+        <td class="r"><button type="button" class="icon" data-delplayer="${q.id}" aria-label="${esc(t('delete'))}: ${esc(q.name)}">🗑</button></td></tr>`).join('')}
+      </tbody></table></div></section>`;
+  const reload = async () => { mList = await db.list('profiles', ['created_at', 'desc']).catch(() => mList); await loadPending(); render(); };
+  $('#addp').onsubmit = async e => { e.preventDefault(); const name = e.target.name.value.trim(); if (!name) return;
+    if (await act(() => db.insert('players', { name, sort: players(true).length + 1, active: true, armies: [] }), ['players'], t('adm_player_added', { name }))) { await state.reloadPublic?.(); } };
   el.onclick = async e => {
-    const ap = e.target.closest('[data-approve]'), kg = e.target.closest('[data-keepguest]');
-    if (ap) { if (await act(() => db.update('profiles', { id: ap.dataset.approve }, { role: 'team', reviewed_at: new Date().toISOString() }), null, t('pend_approved'))) { await loadPending(); render(); } }
-    if (kg) { if (await act(() => db.update('profiles', { id: kg.dataset.keepguest }, { reviewed_at: new Date().toISOString() }), null, t('pend_kept'))) { await loadPending(); render(); } }
+    const ap = e.target.closest('[data-approve]'), kg = e.target.closest('[data-keepguest]'), du = e.target.closest('[data-deluser]'), dp = e.target.closest('[data-delplayer]');
+    if (ap) { if (await act(() => db.update('profiles', { id: ap.dataset.approve }, { role: 'team', reviewed_at: new Date().toISOString() }), null, t('pend_approved'))) await reload(); }
+    if (kg) { if (await act(() => db.update('profiles', { id: kg.dataset.keepguest }, { reviewed_at: new Date().toISOString() }), null, t('pend_kept'))) await reload(); }
+    if (du) { const p = mList.find(x => x.id === du.dataset.deluser);
+      if (await confirmBox(t('adm_del_account_q', { name: p?.display_name || '?' })) && await act(() => db.rpc('admin_delete_user', { p_id: p.id }), null, t('adm_account_deleted'))) await reload(); }
+    if (dp) { const q = playerById(dp.dataset.delplayer); const n = games(q.id);
+      if (!await confirmBox(n ? t('adm_del_player_games', { name: q.name, n }) : t('adm_del_player_q', { name: q.name }))) return;
+      if (await act(() => db.remove('players', { id: q.id }), ['players', 'matches', 'rsvps', 'payments', 'ratings'], t('adm_player_deleted', { name: q.name }))) await reload(); }
   };
   el.onchange = async e => {
-    const r = e.target.closest('[data-role]'), l = e.target.closest('[data-link]');
-    if (r) { await act(() => db.update('profiles', { id: r.dataset.role }, { role: r.value, reviewed_at: new Date().toISOString() }), null); await loadPending(); render(); }
-    if (l) await act(() => db.update('profiles', { id: l.dataset.link }, { player_id: l.value ? +l.value : null }), null);
+    const r = e.target.closest('[data-role]'), l = e.target.closest('[data-link]'), a = e.target.closest('[data-active]'), rn = e.target.closest('[data-rename]');
+    if (r) { if (await act(() => db.update('profiles', { id: r.dataset.role }, { role: r.value, reviewed_at: new Date().toISOString() }), null)) await reload(); }
+    if (l && l.value === '__new') {
+      const prof = mList.find(x => x.id === l.dataset.link);
+      const res = await modal(t('adm_new_player'), `<label>${esc(t('adm_player_name'))}<input name="name" required maxlength="40" value="${esc(prof?.display_name || '')}"></label><p class="mute small">${esc(t('adm_new_player_hint', { name: prof?.display_name || '' }))}</p>`, { submit: t('adm_create_link') });
+      if (!res || !res.name.trim()) { l.value = prof?.player_id || ''; return; }
+      let created = null;
+      if (await act(async () => { created = await db.insert('players', { name: res.name.trim(), sort: players(true).length + 1, active: true, armies: [] }); await db.update('profiles', { id: prof.id }, { player_id: created.id }); }, ['players'], t('adm_linked', { name: res.name.trim() }))) await reload();
+      return;
+    }
+    if (l) { if (await act(() => db.update('profiles', { id: l.dataset.link }, { player_id: l.value ? +l.value : null }), null)) await reload(); }
+    if (a) await act(() => db.update('players', { id: +a.dataset.active }, { active: a.checked }), ['players']);
+    if (rn) { const name = rn.value.trim(); if (name) await act(() => db.update('players', { id: +rn.dataset.rename }, { name }), ['players']); }
   };
 }
 
