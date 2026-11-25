@@ -2,7 +2,10 @@
 import { CONFIG } from './config.js';
 
 export const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY;
-export const TABLES = ['players', 'matches', 'events', 'rsvps', 'payments', 'ratings', 'opponent_teams', 'pairings', 'settings'];
+export const TABLES = ['players', 'matches', 'events', 'rsvps', 'payments', 'ratings', 'opponent_teams', 'pairings', 'settings', 'tevents', 'tevent_rounds'];
+// Tables whose API columns are restricted (never select *)
+const COLS = { tevents: 'id,title,event_id,size,rules,lineup,share_code,created_by,created_at,updated_at' };
+const cols = t => COLS[t] || '*';
 const KEYS = { rsvps: ['event_id', 'player_id'], ratings: ['player_id', 'faction'], settings: ['key'], collections: ['user_id'], profiles: ['id'] };
 
 let sb = null;
@@ -32,15 +35,17 @@ const real = {
   async signOut() { const c = await client(); await c.auth.signOut(); },
   async me(uid) { const c = await client(); const { data, error } = await c.from('profiles').select('*').eq('id', uid).maybeSingle(); if (error) fail(error); return data; },
   async list(table, order) {
-    const c = await client(); let q = c.from(table).select('*');
+    const c = await client(); let q = c.from(table).select(cols(table));
     if (order) q = q.order(order[0], { ascending: order[1] !== 'desc' });
     const { data, error } = await q; if (error) fail(error); return data || [];
   },
-  async insert(table, row) { const c = await client(); const { data, error } = await c.from(table).insert(row).select().single(); if (error) fail(error); return data; },
-  async update(table, match, patch) { const c = await client(); const { data, error } = await c.from(table).update(patch).match(match).select(); if (error) fail(error); if (!data || !data.length) fail({ message: 'not allowed' }); return data[0]; },
+  async insert(table, row) { const c = await client(); const { data, error } = await c.from(table).insert(row).select(cols(table)).single(); if (error) fail(error); return data; },
+  async update(table, match, patch) { const c = await client(); const { data, error } = await c.from(table).update(patch).match(match).select(cols(table)); if (error) fail(error); if (!data || !data.length) fail({ message: 'not allowed' }); return data[0]; },
   async remove(table, match) { const c = await client(); const { error } = await c.from(table).delete().match(match); if (error) fail(error); },
-  async upsert(table, row) { const c = await client(); const { data, error } = await c.from(table).upsert(row, { onConflict: (KEYS[table] || ['id']).join(',') }).select().single(); if (error) fail(error); return data; },
-  async rpc(name) { const c = await client(); const { data, error } = await c.rpc(name); if (error) fail(error); return data || []; },
+  async upsert(table, row) { const c = await client(); const { data, error } = await c.from(table).upsert(row, { onConflict: (KEYS[table] || ['id']).join(',') }).select(cols(table)).single(); if (error) fail(error); return data; },
+  async rpc(name, args) { const c = await client(); const { data, error } = await c.rpc(name, args); if (error) fail(error); return data ?? []; },
+  // Live updates: calls cb() whenever one of the tables changes on the server
+  subscribe(tables, cb) { client().then(c => { let ch = c.channel('live-' + tables.join('-')); for (const t of tables) ch = ch.on('postgres_changes', { event: '*', schema: 'public', table: t }, cb); ch.subscribe(); }).catch(() => {}); },
 };
 
 // ---------------- Demo (localStorage) ----------------
@@ -78,7 +83,7 @@ const demo = {
   async list(table, order) {
     const rows = tbl(table).slice();
     if (order) rows.sort((a, b) => (a[order[0]] > b[order[0]] ? 1 : a[order[0]] < b[order[0]] ? -1 : 0) * (order[1] === 'desc' ? -1 : 1));
-    return JSON.parse(JSON.stringify(rows));
+    return JSON.parse(JSON.stringify(rows)).map(r => { delete r._pw; return r; });
   },
   async insert(table, row) {
     const r = Object.assign({}, row);
@@ -94,7 +99,8 @@ const demo = {
     if (r) { Object.assign(r, row); persist(); return JSON.parse(JSON.stringify(r)); }
     return demo.insert(table, row);
   },
-  async rpc(name) {
+  subscribe() {},
+  async rpc(name, args = {}) {
     const T = load().tables; const P = T.players || []; const nm = id => (P.find(p => p.id === id) || {}).name;
     const today = new Date().toISOString().slice(0, 10);
     if (name === 'public_players') return P.filter(p => p.active).sort((a, b) => a.sort - b.sort).map(p => ({ name: p.name, sort: p.sort, armies: (p.armies || []).map(a => a.army).filter(Boolean), bcp_url: p.bcp_url || null }));
@@ -102,6 +108,15 @@ const demo = {
       .sort((a, b) => b.played_on.localeCompare(a.played_on) || b.id - a.id)
       .map(m => ({ played_on: m.played_on, tournament: m.tournament, player: nm(m.player_id), army: m.army, opp_faction: m.opp_faction, our_score: m.our_score, opp_score: m.opp_score }));
     if (name === 'public_events') return (T.events || []).filter(e => e.starts_on >= today).sort((a, b) => a.starts_on.localeCompare(b.starts_on)).map(e => ({ starts_on: e.starts_on, start_time: e.start_time, title: e.title, location: e.location, kind: e.kind }));
+    if (name === 'set_tevent_password') { const ev = (T.tevents || []).find(e => e.id === args.p_id); if (ev) { ev._pw = args.p_password || null; persist(); } return null; }
+    if (name === 'tevent_has_password') return !!((T.tevents || []).find(e => e.id === args.p_id) || {})._pw;
+    if (name === 'public_tevent') {
+      const ev = (T.tevents || []).find(e => e.share_code && e.share_code === args.p_code);
+      if (!ev) return { error: 'not_found' };
+      if (ev._pw && ev._pw !== args.p_password) return { error: 'password' };
+      return { title: ev.title, size: ev.size, updated_at: ev.updated_at, lineup: (ev.lineup || []).map(l => ({ player: nm(l.player_id), faction: l.faction, disposition: l.disposition })),
+        rounds: (T.tevent_rounds || []).filter(r => r.tevent_id === ev.id).sort((a, b) => a.round_no - b.round_no).map(r => ({ round_no: r.round_no, opp_name: r.opp_name, opp: r.opp, predictions: r.predictions, pairings: r.pairings })) };
+    }
     return [];
   },
 };

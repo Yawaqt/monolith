@@ -6,6 +6,7 @@ import { state, role, can, esc, $, opts, players, pname, loadData, act, toast, p
 import * as T from './pages-team.js';
 import * as A from './pages-analysis.js';
 import * as P from './pages-public.js';
+import * as TE from './pages-teams.js';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
@@ -13,7 +14,7 @@ const PUBLIC = [['home', 'p_home', P.home], ['team', 'p_team', P.team], ['result
 const PORTAL = [
   { group: null, items: [['portal', 'nav_home', 'guest', T.home]] },
   { group: 'nav_team', items: [['roster', 'nav_roster', 'team', T.roster], ['matches', 'nav_matches', 'team', T.matches], ['archive', 'nav_archive', 'team', T.archive],
-    ['events', 'nav_events', 'team', T.events], ['calendar', 'nav_calendar', 'team', T.calendar], ['lineup', 'nav_lineup', 'team', T.lineup], ['cash', 'nav_cash', 'team', T.cash]] },
+    ['events', 'nav_events', 'team', T.events], ['calendar', 'nav_calendar', 'team', T.calendar], ['lineup', 'nav_lineup', 'team', T.lineup], ['teams', 'nav_teams', 'team', TE.teams], ['cash', 'nav_cash', 'team', T.cash]] },
   { group: 'nav_analysis', items: [['matrix', 'nav_matrix', 'team', A.matrix], ['stats', 'nav_stats', 'team', A.stats], ['master', 'nav_master', 'team', A.master],
     ['masterteam', 'nav_masterteam', 'team', A.masterteam], ['pairing', 'nav_pairing', 'team', A.pairing]] },
   { group: 'nav_admin', items: [['members', 'nav_members', 'captain', members], ['profile', 'nav_profile', 'guest', profile]] },
@@ -45,7 +46,7 @@ function header() {
 }
 function subnav() {
   const r = route(); const el = $('#sub');
-  if (ROUTES[r]?.pub || r === 'login' || !state.session) { el.innerHTML = ''; el.hidden = true; return; }
+  if (ROUTES[r]?.pub || r === 'login' || r.startsWith('live/') || !state.session) { el.innerHTML = ''; el.hidden = true; return; }
   el.hidden = false;
   const items = PORTAL.flatMap(g => g.items.filter(([, , min]) => can(min)).map((it, i) => ({ it, first: i === 0 && g.group })));
   el.innerHTML = `<div class="sub-in"><nav class="subnav scroll" aria-label="${esc(t('portal'))}">${items.map(({ it: [k, l], first }) => `${first ? '<span class="sep" aria-hidden="true"></span>' : ''}<a href="#/${k}"${r === k ? ' aria-current="page"' : ''}>${esc(label(k, l))}</a>`).join('')}</nav>
@@ -61,6 +62,7 @@ export function render() {
   const r = route();
   document.body.dataset.area = ROUTES[r]?.pub || r === 'login' ? 'public' : 'portal';
   if (r === 'login') return state.session ? (location.hash = '#/portal') : login(el);
+  if (r.startsWith('live/')) { document.body.dataset.area = 'public'; document.title = `${t('live_title')} · ${CONFIG.TEAM_NAME || 'Monolith'}`; return TE.live(el, r.slice(5)); }
   const R = ROUTES[r];
   if (!R) { location.hash = '#/home'; return; }
   if (R.min !== 'anon' && !state.session) return login(el);

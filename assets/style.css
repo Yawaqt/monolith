@@ -235,6 +235,32 @@ a.app-card:hover{border-color:var(--ink)}.app-card p{color:var(--mute);margin:6p
 @media(max-width:640px){.rnd{grid-template-columns:repeat(6,minmax(0,1fr))}.rnd-n{grid-column:1/6}.rnd [data-rm]{grid-column:6;grid-row:1}
   .rnd [name=of]{grid-column:1/4}.rnd [name=od]{grid-column:4/7}.rnd [name=on]{grid-column:1/-1}.rnd [name=us]{grid-column:1/3}.rnd [name=them]{grid-column:3/5}.rnd [name=d]{grid-column:5/7}.rnd-res{grid-column:1/-1;text-align:left}}
 .tag.bcp{text-decoration:none;color:var(--ink);margin-left:4px}.pcard-link{font-weight:600;font-size:14px;text-decoration:none;color:var(--green-ink);margin-top:auto}
+/* team events */
+.te-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:14px}
+.te-card{display:flex;flex-direction:column;align-items:flex-start;gap:6px;text-align:left;border:1px solid var(--line);border-radius:var(--radius);padding:18px;background:#fff;cursor:pointer;font:inherit;color:var(--ink)}
+.te-card:hover{border-color:var(--ink)}.te-card b{font-family:Archivo,sans-serif;font-size:18px}.warn-tag{background:var(--amber-bg);color:var(--amber);border-color:#f0d6a8}
+.live-dot{color:var(--green-ink);font-weight:600;font-size:14px;display:inline-flex;align-items:center;gap:4px}
+.te-rules{margin:-14px 0 20px}
+.lineup{display:flex;flex-direction:column;gap:8px}
+.lu{display:grid;grid-template-columns:30px minmax(0,1fr) minmax(0,1.3fr) minmax(0,1fr);gap:8px;align-items:center;padding:6px;border-radius:10px;border:1px solid transparent}
+.lu.bad{border-color:#f0c7c1;background:var(--red-bg)}.lu-n{font-family:Archivo,sans-serif;font-weight:800;color:var(--mute);text-align:center}
+.lu select,.lu input{min-height:40px;font-size:15px}
+@media(max-width:640px){.lu{grid-template-columns:26px minmax(0,1fr) minmax(0,1fr)}.lu>:nth-child(4){grid-column:2/-1}}
+.rule-msgs{margin-top:12px}.rule-err{color:var(--red);margin:4px 0;font-weight:500}.rule-ok{color:var(--green-ink);margin:4px 0;font-weight:500}
+.round-tabs{display:flex;gap:6px;overflow-x:auto;margin:0 0 16px;padding-bottom:4px}
+.round-tabs button{flex:none;border:1px solid var(--line);background:#fff;border-radius:999px;padding:0 16px;min-height:40px;font-weight:600;color:var(--mute);cursor:pointer}
+.round-tabs button[aria-selected=true]{background:var(--ink);color:#fff;border-color:var(--ink)}.round-tabs .add-round{border-style:dashed}
+table.heat td{padding:4px;position:relative;min-width:76px}table.heat td select{border:0;background:transparent;font-weight:700;font-size:16px;min-height:38px;width:100%;text-align:center;cursor:pointer;padding:0}
+table.heat .sg{display:block;font-size:11px;color:var(--mute);line-height:1;padding-bottom:3px}
+table.heat th .oh{display:inline-block;font-weight:800;margin-right:4px;color:var(--mute)}
+.h1{background:#f6d4cf}.h2{background:#fbe9e6}.h3{background:var(--soft)}.h4{background:#e3f3ec}.h5{background:#c4e8d8}.h0{background:#fff}
+td.paired{outline:3px solid var(--ink);outline-offset:-3px}
+table.pairs td,table.pairs th{vertical-align:middle}table.pairs select{min-width:160px}
+.sc{width:68px;min-height:38px;text-align:center;padding:0 4px}
+table.pairs tfoot th,table.pairs tfoot td{font-weight:700;border-top:2px solid var(--ink)}
+.share-link{display:flex;gap:8px}.share-link input{flex:1}
+.live-lu{margin:0;padding-left:20px}.live-lu li{padding:4px 0}.live-score{font-size:24px;font-weight:800}
+.tag.h1,.tag.h2,.tag.h3,.tag.h4,.tag.h5{border-color:transparent;color:var(--ink)}
 /* dialog */
 .modal{position:fixed;inset:0;background:rgba(17,19,21,.4);display:none;align-items:center;justify-content:center;z-index:50;padding:12px}
 .modal.on{display:flex}
@@ -244,3 +270,7 @@ a.app-card:hover{border-color:var(--ink)}.app-card p{color:var(--mute);margin:6p
 .dialog-body{padding:8px 20px;overflow-y:auto;display:flex;flex-direction:column;gap:14px}
 .dialog footer{display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--line)}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+.card .block-head{flex-wrap:wrap;align-items:center}.card .block-head .btn{white-space:nowrap}
+@media(max-width:600px){.card .block-head h2{font-size:18px}}
+.live-pairs li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:center}.live-pairs li>span:last-child{text-align:right;white-space:nowrap}
+@media(max-width:600px){.live-pairs li{grid-template-columns:1fr}.live-pairs li>span:last-child{text-align:left}}
