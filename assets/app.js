@@ -1,13 +1,13 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611251610';
-import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251610';
-import { t, setLang, getLang } from './i18n.js?v=202611251610';
-import { state, role, can, esc, $, opts, players, pname, loadData, act, toast, pageHead } from './core.js?v=202611251610';
-import * as T from './pages-team.js?v=202611251610';
-import * as A from './pages-analysis.js?v=202611251610';
-import * as P from './pages-public.js?v=202611251610';
-import * as TE from './pages-teams.js?v=202611251610';
-import * as N from './pages-news.js?v=202611251610';
+import { CONFIG } from './config.js?v=202611251615';
+import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251615';
+import { t, setLang, getLang } from './i18n.js?v=202611251615';
+import { state, role, can, esc, $, opts, players, pname, loadData, act, toast, pageHead } from './core.js?v=202611251615';
+import * as T from './pages-team.js?v=202611251615';
+import * as A from './pages-analysis.js?v=202611251615';
+import * as P from './pages-public.js?v=202611251615';
+import * as TE from './pages-teams.js?v=202611251615';
+import * as N from './pages-news.js?v=202611251615';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];

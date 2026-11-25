@@ -1,5 +1,5 @@
 // Data access: Supabase when configured, otherwise a demo backend in localStorage.
-import { CONFIG } from './config.js?v=202611251610';
+import { CONFIG } from './config.js?v=202611251615';
 
 export const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY;
 export const TABLES = ['players', 'matches', 'events', 'rsvps', 'payments', 'ratings', 'opponent_teams', 'pairings', 'settings', 'tevents', 'tevent_rounds', 'news'];
@@ -109,9 +109,11 @@ const demo = {
   // Demo: pictures are kept inside the browser as data URLs
   async upload(path, blob) { return await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(blob); }); },
   async rpc(name, args = {}) {
+    // Public team page: only armies a player has used at tournaments, most played first
+    const tourArmies = (ms, pid) => { const c = new Map(); for (const m of ms) if (m.player_id === pid && (m.type === 'Tournament' || m.type === 'Team Tournament')) c.set(m.army, (c.get(m.army) || 0) + 1); return [...c.entries()].sort((a, b) => b[1] - a[1]).map(x => x[0]); };
     const T = load().tables; const P = T.players || []; const nm = id => (P.find(p => p.id === id) || {}).name;
     const today = new Date().toISOString().slice(0, 10);
-    if (name === 'public_players') return P.filter(p => p.active).sort((a, b) => a.sort - b.sort).map(p => ({ name: p.name, sort: p.sort, armies: (p.armies || []).map(a => a.army).filter(Boolean), bcp_url: p.bcp_url || null, photo_url: p.photo_url || null }));
+    if (name === 'public_players') return P.filter(p => p.active).sort((a, b) => a.sort - b.sort).map(p => ({ name: p.name, sort: p.sort, armies: tourArmies(T.matches || [], p.id), bcp_url: p.bcp_url || null, photo_url: p.photo_url || null }));
     if (name === 'public_results') {
       const by = new Map();
       for (const m of T.matches || []) {

@@ -10,7 +10,7 @@ const S = {
   latest_tournament: ['Letztes Turnier', 'Latest tournament'], all_results: ['Alle Ergebnisse', 'All results'], whole_team: ['Ganzes Team', 'Whole team'],
   meet_team: ['Das Team', 'The team'], next_up: ['Als Nächstes', 'Coming up'], all_events: ['Alle Termine', 'All events'],
   results_intro: ['Unsere Turniere als Team-Bilanz (Siege-Unentschieden-Niederlagen). Bei Teamturnieren zählt die 20-0-Wertung, bei Singles mehr Punkte = Sieg.', 'Our tournaments as team record (wins-draws-losses). Team tournaments use 20-0 scoring, singles: more points wins.'],
-  team_intro: ['Unsere Spieler und die Armeen, die sie spielen.', 'Our players and the armies they play.'],
+  team_intro: ['Unsere Spieler und die Armeen, mit denen sie auf Turnieren gespielt haben.', 'Our players and the armies they have played at tournaments.'],
   events_pub_intro: ['Hier spielen wir als Nächstes. Komm vorbei und sag Hallo.', 'Where we play next. Come by and say hi.'],
   no_events: ['Gerade keine Termine geplant.', 'No events planned right now.'], t_games: ['{n} Turnierspiele', '{n} tournament games'],
   apps_pub_intro: ['Werkzeuge für die 40k-Community. Mit einem kostenlosen Konto wird alles gespeichert.', 'Tools for the 40k community. With a free account everything is saved.'],

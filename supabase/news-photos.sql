@@ -44,7 +44,9 @@ create function public.public_players()
 returns table (name text, sort int, armies text[], bcp_url text, photo_url text)
 language sql stable security definer set search_path = public as $$
   select p.name, p.sort,
-         coalesce(array(select a->>'army' from jsonb_array_elements(p.armies) a where coalesce(a->>'army', '') <> ''), '{}'),
+         coalesce(array(select m.army from public.matches m
+                        where m.player_id = p.id and m.type in ('Tournament', 'Team Tournament')
+                        group by m.army order by count(*) desc, max(m.played_on) desc), '{}'),
          p.bcp_url, p.photo_url
   from public.players p
   where p.active
