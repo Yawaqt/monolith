@@ -40,6 +40,7 @@ const real = {
   async update(table, match, patch) { const c = await client(); const { data, error } = await c.from(table).update(patch).match(match).select(); if (error) fail(error); if (!data || !data.length) fail({ message: 'not allowed' }); return data[0]; },
   async remove(table, match) { const c = await client(); const { error } = await c.from(table).delete().match(match); if (error) fail(error); },
   async upsert(table, row) { const c = await client(); const { data, error } = await c.from(table).upsert(row, { onConflict: (KEYS[table] || ['id']).join(',') }).select().single(); if (error) fail(error); return data; },
+  async rpc(name) { const c = await client(); const { data, error } = await c.rpc(name); if (error) fail(error); return data || []; },
 };
 
 // ---------------- Demo (localStorage) ----------------
@@ -92,6 +93,16 @@ const demo = {
     const r = tbl(table).find(x => matches(x, m));
     if (r) { Object.assign(r, row); persist(); return JSON.parse(JSON.stringify(r)); }
     return demo.insert(table, row);
+  },
+  async rpc(name) {
+    const T = load().tables; const P = T.players || []; const nm = id => (P.find(p => p.id === id) || {}).name;
+    const today = new Date().toISOString().slice(0, 10);
+    if (name === 'public_players') return P.filter(p => p.active).sort((a, b) => a.sort - b.sort).map(p => ({ name: p.name, sort: p.sort, armies: (p.armies || []).map(a => a.army).filter(Boolean) }));
+    if (name === 'public_results') return (T.matches || []).filter(m => m.type === 'Tournament' && m.our_score != null && m.opp_score != null)
+      .sort((a, b) => b.played_on.localeCompare(a.played_on) || b.id - a.id)
+      .map(m => ({ played_on: m.played_on, tournament: m.tournament, player: nm(m.player_id), army: m.army, opp_faction: m.opp_faction, our_score: m.our_score, opp_score: m.opp_score }));
+    if (name === 'public_events') return (T.events || []).filter(e => e.starts_on >= today).sort((a, b) => a.starts_on.localeCompare(b.starts_on)).map(e => ({ starts_on: e.starts_on, start_time: e.start_time, title: e.title, location: e.location, kind: e.kind }));
+    return [];
   },
 };
 

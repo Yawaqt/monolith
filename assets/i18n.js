@@ -1,5 +1,22 @@
 // German / English strings. Faction and disposition names stay as in the game.
 const S = {
+  // public site
+  p_home: ['Start', 'Home'], p_team: ['Team', 'Team'], p_results: ['Ergebnisse', 'Results'], p_events: ['Termine', 'Events'], p_apps: ['Apps', 'Apps'],
+  portal: ['Teambereich', 'Team area'], my_account: ['Mein Konto', 'My account'],
+  hero_kicker: ['Warhammer 40.000 · Wien', 'Warhammer 40,000 · Vienna'],
+  hero_text: ['Kompetitives Warhammer-40k-Team aus Wien. Hier findest du unser Team, unsere Turnierergebnisse und wo wir als Nächstes spielen.', 'A competitive Warhammer 40k team from Vienna. Meet the team, see our tournament results and where we play next.'],
+  see_results: ['Ergebnisse ansehen', 'See results'], see_events: ['Nächste Termine', 'Upcoming events'],
+  s_players: ['Spieler', 'Players'], s_games: ['Turnierspiele', 'Tournament games'], s_record: ['Bilanz (S-U-N)', 'Record (W-D-L)'], s_tournaments: ['Turniere', 'Tournaments'],
+  latest_tournament: ['Letztes Turnier', 'Latest tournament'], all_results: ['Alle Ergebnisse', 'All results'], whole_team: ['Ganzes Team', 'Whole team'],
+  meet_team: ['Das Team', 'The team'], next_up: ['Als Nächstes', 'Coming up'], all_events: ['Alle Termine', 'All events'],
+  results_intro: ['Alle Turnierspiele unserer Spieler, neueste zuerst. Teamscore nach Punkte-Differenz (0–5 = 10-10, je 5 Punkte eine Stufe).', 'Every tournament game by our players, newest first. Team score from the point difference (0–5 = 10-10, one step per 5 points).'],
+  team_intro: ['Unsere Spieler und die Armeen, die sie spielen.', 'Our players and the armies they play.'],
+  events_pub_intro: ['Hier spielen wir als Nächstes. Komm vorbei und sag Hallo.', 'Where we play next. Come by and say hi.'],
+  no_events: ['Gerade keine Termine geplant.', 'No events planned right now.'], t_games: ['{n} Turnierspiele', '{n} tournament games'],
+  apps_pub_intro: ['Werkzeuge für die 40k-Community. Mit einem kostenlosen Konto wird alles gespeichert.', 'Tools for the 40k community. With a free account everything is saved.'],
+  footer_text: ['Kompetitives Warhammer-40k-Team aus Wien.', 'Competitive Warhammer 40k team from Vienna.'],
+  footer_note: ['Warhammer 40.000 ist eine Marke von Games Workshop. Diese Seite ist ein Fanprojekt und nicht mit Games Workshop verbunden.', 'Warhammer 40,000 is a trademark of Games Workshop. This is a fan site, not affiliated with Games Workshop.'],
+  filter_player: ['Spieler filtern', 'Filter by player'],
   // navigation
   nav_home: ['Übersicht', 'Home'], nav_team: ['Team', 'Team'], nav_analysis: ['Analyse', 'Analysis'], nav_apps: ['Apps', 'Apps'], nav_admin: ['Verwaltung', 'Admin'],
   nav_roster: ['Anmeldung', 'Roster'], nav_matches: ['Match Log', 'Match log'], nav_archive: ['Spiele-Archiv', 'Game archive'], nav_events: ['Events', 'Events'],
