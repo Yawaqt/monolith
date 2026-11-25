@@ -1,6 +1,6 @@
 // Shared state and UI helpers.
-import { db, TABLES } from './db.js?v=202611251551';
-import { t } from './i18n.js?v=202611251551';
+import { db, TABLES } from './db.js?v=202611251610';
+import { t } from './i18n.js?v=202611251610';
 
 export const state = { session: null, me: null, data: {}, loadedAt: 0, render: () => {} };
 const RANK = { anon: 0, guest: 1, team: 2, captain: 3, admin: 4 };
@@ -34,7 +34,7 @@ export async function loadData(tables = TABLES) {
 }
 // Run a write, reload the affected tables, re-render, and report errors.
 export async function act(fn, tables, okMsg) {
-  try { await fn(); if (tables) await loadData(tables); if (tables && state.reloadPublic && tables.some(x => ['matches', 'players', 'events'].includes(x))) await state.reloadPublic().catch(() => {}); state.render(); if (okMsg !== false) toast(okMsg || t('saved')); return true; }
+  try { await fn(); if (tables) await loadData(tables); if (tables && state.reloadPublic && tables.some(x => ['matches', 'players', 'events', 'news'].includes(x))) await state.reloadPublic().catch(() => {}); state.render(); if (okMsg !== false) toast(okMsg || t('saved')); return true; }
   catch (e) { toast(t('error') + ': ' + (e.message || e), true); return false; }
 }
 
@@ -67,3 +67,23 @@ export const resultBadge = r => r ? `<span class="res ${r}">${esc(t(r))}</span>`
 export const gpClass = g => g == null ? 'na' : g > 10.0001 ? 'up' : g < 9.9999 ? 'down' : 'even';
 export const empty = msg => `<div class="empty">${esc(msg || t('none'))}</div>`;
 export const pageHead = (title, intro, actions = '') => `<div class="page-head"><div><h1>${esc(title)}</h1>${intro ? `<p class="intro">${esc(intro)}</p>` : ''}</div>${actions ? `<div class="head-actions">${actions}</div>` : ''}</div>`;
+
+// Shrinks a picture in the browser before upload (JPEG). square = crop to a centred square (profile photos).
+export function resizeImage(file, max = 1600, square = false) {
+  return new Promise((resolve, reject) => {
+    if (!file || !/^image\//.test(file.type)) return reject(new Error(t('img_type')));
+    const img = new Image(); const url = URL.createObjectURL(file);
+    img.onload = () => {
+      let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
+      if (square) { const m = Math.min(sw, sh); sx = (sw - m) / 2; sy = (sh - m) / 2; sw = sh = m; }
+      const k = Math.min(1, max / Math.max(sw, sh)); const c = document.createElement('canvas');
+      c.width = Math.round(sw * k); c.height = Math.round(sh * k);
+      c.getContext('2d').drawImage(img, sx, sy, sw, sh, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+      c.toBlob(b => b ? resolve(b) : reject(new Error(t('img_type'))), 'image/jpeg', 0.85);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error(t('img_type'))); };
+    img.src = url;
+  });
+}
+// Only pictures from our own storage, https or the demo's data URLs may be shown.
+export const safeImg = u => typeof u === 'string' && (/^https:\/\/[^\s"'<>]+$/.test(u) || /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(u)) ? u : '';

@@ -116,6 +116,8 @@ footer a{color:inherit}
 .band h1{font-weight:800;letter-spacing:-.01em}.back{color:#6b7176!important}.back:hover{color:#111315!important}
 .tab[aria-selected=true]{background:#111315;border-color:#111315}.plus,.mode button[aria-pressed=true]{background:var(--green)!important}.back{color:#cfd5d2;text-decoration:none;font-size:14px;display:inline-block;margin-bottom:10px}.back:hover{color:#fff}.btnlink{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;border-radius:8px;background:var(--green);color:#fff;text-decoration:none;font-weight:600}
 h1,h2,h3{font-stretch:75%}
+.gate{max-width:520px;margin:40px auto;padding:28px;border:1px solid #ddd;border-radius:14px;text-align:center;background:#fff}.gate h2{margin:0 0 8px}.gate p{margin:0 0 18px;color:#666}
+body.gated #tabs,body.gated #view,body.gated #sheet,body.gated .actions,body.gated #notice,body.gated .tally,body.gated .bar,body.gated #checkBtn{display:none}
 </style>
 </head>
 <body>
@@ -132,6 +134,7 @@ h1,h2,h3{font-stretch:75%}
   <div class="src"><span id="srcLabel">Points: Munitorum Field Manual</span><button id="checkBtn" type="button" data-i="check">Check for new points</button><span id="saveState"></span></div>
 </div></header>
 <main><div class="wrap">
+  <div id="gate" class="gate" hidden></div>
   <nav class="tabs" id="tabs" aria-label="Factions"></nav>
   <div id="notice"></div>
   <section id="view"></section>
@@ -187,6 +190,7 @@ const LD = {
   copied:['Sammlung kopiert','Collection copied'], copy_blocked:['Kopieren wurde vom Browser blockiert','Copy was blocked by the browser'],
   new_points:['Neue Punkte geladen: MFM {v}','New points loaded: MFM {v}'], up_to_date:['Alles aktuell','Up to date'], no_source:['Punktequelle nicht erreichbar, bitte später erneut versuchen','Couldn’t reach the points source, try again later'],
   changed:['Deine Einheiten haben sich im MFM vom {v} geändert.','Your units changed in the MFM of {v}.'], more:['… und {n} weitere.','…and {n} more.'], gone:['{n} Einheit(en) sind nicht mehr im aktuellen MFM.','{n} unit(s) are no longer in the current MFM.'], got_it:['Verstanden','Got it'],
+  gate_title:['Bitte anmelden','Please sign in'], gate_text:['Deine Sammlung ist an dein Monolith-Konto gebunden. Melde dich an, um sie zu sehen und zu bearbeiten – auf jedem Gerät.','Your collection belongs to your Monolith account. Sign in to see and edit it – on any device.'],
   account:['Konto & Sync','Account & sync'], sign_in:['Auf der Monolith-Seite anmelden','Sign in on the Monolith site'], sign_in_sync:['Melde dich an, damit deine Sammlung in deinem Konto gespeichert wird und auf allen Geräten gleich ist. Ohne Anmeldung bleibt sie auf diesem Gerät.','Sign in so your collection is saved to your account and is the same on every device. Without signing in it stays on this device.'],
   cloud_on:['Deine Sammlung wird automatisch in deinem Monolith-Konto gespeichert.','Your collection saves to your Monolith account automatically.'], sync_now:['Jetzt synchronisieren','Sync now'],
   synced:['Synchronisiert','Synced'], sync_fail:['Sync fehlgeschlagen:','Sync failed:'], saved_device:['Auf diesem Gerät gespeichert','Saved on this device'], saved_account:['In deinem Konto gespeichert','Saved to your account'],
@@ -207,7 +211,9 @@ const fmtDate = v => /^\d{4}-\d{2}-\d{2}$/.test(v) ? new Date(v+'T12:00:00').toL
 let P = BASE;
 const cached = ls.get('wh40k.points');
 if (cached && cached.v && cached.units && cached.v > BASE.v) P = cached;
-let state = ls.get('wh40k.collection') || {items:[], ts:0};
+// Each account has its own collection; until we know who is signed in nothing is shown.
+let SK = 'wh40k.collection';
+let state = {items:[], ts:0};
 if (!Array.isArray(state.items)) state = {items:[], ts:0};
 let ui = Object.assign({f: null, sort: 'added', q: '', mode: 'roll'}, ls.get('wh40k.ui') || {});
 let lastDeleted = null;
@@ -349,7 +355,7 @@ function renderBrowse(){
 const newKey = () => Math.random().toString(36).slice(2,10) + Date.now().toString(36);
 function commit(opts){
   state.ts = Date.now();
-  ls.set('wh40k.collection', state);
+  ls.set(SK, state);
   render(); scheduleSave();
   if (!(opts && opts.noSheet)) scheduleSheet();
 }
@@ -400,6 +406,13 @@ $('copyBtn').addEventListener('click', async () => {
 function scheduleSave(){ }
 let sb = null, uid = null, cloudTimer = null, cloudBusy = false, cloudDirty = false, cloudMsg = '', cloudErr = false, undoImport = null, CFG = null;
 const LOGIN_URL = '../../#/login';
+document.addEventListener('click', e => { if (e.target.closest('[data-login]')) { try { sessionStorage.setItem('monolith.return', 'apps/collection/'); } catch (err) {} } }, true);
+function showGate(){
+  document.body.classList.add('gated');
+  const g = $('gate'); g.hidden = false;
+  g.innerHTML = `<h2>${esc(L('gate_title'))}</h2><p>${esc(L('gate_text'))}</p><a class="btnlink" href="${LOGIN_URL}" data-login>${esc(L('sign_in'))}</a>`;
+  $('saveState').textContent = '';
+}
 function setMsg(m, err){ cloudMsg = m; cloudErr = !!err; renderSheet(); }
 function closeDlg(){ $('dlg').classList.remove('on'); }
 $('dlgNo').addEventListener('click', () => closeDlg());
@@ -411,7 +424,7 @@ async function cloudPull(){
   const d = data && data.data;
   if (d && Array.isArray(d.items) && (d.ts || 0) > (state.ts || 0)) {
     state = {items: d.items, ts: d.ts}; if (d.notice) state.notice = d.notice;
-    ls.set('wh40k.collection', state); render(); return 'pulled';
+    ls.set(SK, state); render(); return 'pulled';
   }
   if ((!d || (d.ts || 0) < (state.ts || 0)) && state.items.length) { await cloudPush(); return 'pushed'; }
   return 'same';
@@ -434,7 +447,7 @@ function renderSheet(){
   const el = $('sheetBody'); if (!el) return;
   el.className = '';
   if (CFG && !CFG.SUPABASE_URL) { el.innerHTML = `<div class="msg">${esc(L('demo_store'))}</div>`; return; }
-  if (!uid) { el.innerHTML = `<div class="msg">${esc(L('sign_in_sync'))}</div><div class="row"><a class="btnlink" href="${LOGIN_URL}">${esc(L('sign_in'))}</a></div>`; return; }
+  if (!uid) { el.innerHTML = `<div class="msg">${esc(L('sign_in_sync'))}</div><div class="row"><a class="btnlink" href="${LOGIN_URL}" data-login>${esc(L('sign_in'))}</a></div>`; return; }
   el.innerHTML = `<div class="msg">${esc(L('cloud_on'))}</div><div class="row"><button type="button" class="pri" id="syncNow">${esc(L('sync_now'))}</button></div>${cloudMsg ? `<div class="msg${cloudErr ? ' err' : ''}" role="status">${esc(cloudMsg)}</div>` : ''}`;
 }
 document.addEventListener('click', e => {
@@ -444,13 +457,22 @@ document.addEventListener('click', e => {
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && uid) cloudPull().catch(() => {}); });
 (async () => {
   try { CFG = (await import('../../assets/config.js')).CONFIG; } catch (e) { CFG = {SUPABASE_URL: ''}; }
-  if (!CFG.SUPABASE_URL || !CFG.SUPABASE_ANON_KEY) { $('saveState').textContent = L('saved_device'); renderSheet(); return; }
+  if (!CFG.SUPABASE_URL || !CFG.SUPABASE_ANON_KEY) { state = ls.get(SK) || {items:[], ts:0}; render(); $('saveState').textContent = L('saved_device'); renderSheet(); return; }
   try {
     const { createClient } = await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm');
     sb = createClient(CFG.SUPABASE_URL, CFG.SUPABASE_ANON_KEY, {auth: {persistSession: true, autoRefreshToken: true}});
     const { data } = await sb.auth.getSession();
     uid = data.session ? data.session.user.id : null;
-    $('saveState').textContent = uid ? L('saved_account') : L('saved_device');
+    if (!uid) { showGate(); return; }
+    SK = 'wh40k.collection.' + uid;
+    state = ls.get(SK) || {items:[], ts:0};
+    // A collection kept on this device before accounts were required is taken over once by the first account that signs in here.
+    const old = ls.get('wh40k.collection');
+    if (old && Array.isArray(old.items) && old.items.length && !state.items.length) { state = old; ls.set(SK, state); }
+    try { localStorage.removeItem('wh40k.collection'); } catch (e) {}
+    sb.auth.onAuthStateChange((ev, s) => { if ((s ? s.user.id : null) !== uid) location.reload(); });
+    render();
+    $('saveState').textContent = L('saved_account');
     renderSheet();
     if (uid) { const r = await cloudPull(); setMsg(r === 'pulled' ? L('loaded_account') : L('synced') + ''); }
   } catch (e) { setMsg(L('sync_fail') + ' ' + (e.message || ''), true); }

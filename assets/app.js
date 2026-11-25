@@ -1,20 +1,21 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611251551';
-import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251551';
-import { t, setLang, getLang } from './i18n.js?v=202611251551';
-import { state, role, can, esc, $, opts, players, pname, loadData, act, toast, pageHead } from './core.js?v=202611251551';
-import * as T from './pages-team.js?v=202611251551';
-import * as A from './pages-analysis.js?v=202611251551';
-import * as P from './pages-public.js?v=202611251551';
-import * as TE from './pages-teams.js?v=202611251551';
+import { CONFIG } from './config.js?v=202611251610';
+import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251610';
+import { t, setLang, getLang } from './i18n.js?v=202611251610';
+import { state, role, can, esc, $, opts, players, pname, loadData, act, toast, pageHead } from './core.js?v=202611251610';
+import * as T from './pages-team.js?v=202611251610';
+import * as A from './pages-analysis.js?v=202611251610';
+import * as P from './pages-public.js?v=202611251610';
+import * as TE from './pages-teams.js?v=202611251610';
+import * as N from './pages-news.js?v=202611251610';
 
 // Public pages (top navigation)
-const PUBLIC = [['home', 'p_home', P.home], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
+const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
 // Team area (needs an account); grouped for the sub-navigation
 const PORTAL = [
   { group: null, items: [['portal', 'nav_home', 'guest', T.home]] },
   { group: 'nav_team', items: [['roster', 'nav_roster', 'team', T.roster], ['matches', 'nav_matches', 'team', T.matches], ['archive', 'nav_archive', 'team', T.archive],
-    ['events', 'nav_events', 'team', T.events], ['calendar', 'nav_calendar', 'team', T.calendar], ['lineup', 'nav_lineup', 'team', T.lineup], ['teams', 'nav_teams', 'team', TE.teams], ['cash', 'nav_cash', 'team', T.cash]] },
+    ['events', 'nav_events', 'team', T.events], ['teams', 'nav_teams', 'team', TE.teams], ['newsedit', 'nav_newsedit', 'team', N.editor]] },
   { group: 'nav_analysis', items: [['matrix', 'nav_matrix', 'team', A.matrix], ['stats', 'nav_stats', 'team', A.stats], ['master', 'nav_master', 'team', A.master],
     ['masterteam', 'nav_masterteam', 'team', A.masterteam], ['pairing', 'nav_pairing', 'team', A.pairing]] },
   { group: 'nav_admin', items: [['members', 'nav_members', 'captain', members], ['profile', 'nav_profile', 'guest', profile]] },
@@ -46,7 +47,7 @@ function header() {
 }
 function subnav() {
   const r = route(); const el = $('#sub');
-  if (ROUTES[r]?.pub || r === 'login' || r.startsWith('live/') || !state.session) { el.innerHTML = ''; el.hidden = true; return; }
+  if (ROUTES[r]?.pub || r === 'login' || r.startsWith('live/') || r.startsWith('news/') || !state.session) { el.innerHTML = ''; el.hidden = true; return; }
   el.hidden = false;
   const items = PORTAL.flatMap(g => g.items.filter(([, , min]) => can(min)).map((it, i) => ({ it, first: i === 0 && g.group })));
   el.innerHTML = `<div class="sub-in"><nav class="subnav scroll" aria-label="${esc(t('portal'))}">${items.map(({ it: [k, l], first }) => `${first ? '<span class="sep" aria-hidden="true"></span>' : ''}<a href="#/${k}"${r === k ? ' aria-current="page"' : ''}>${esc(label(k, l))}</a>`).join('')}</nav>
@@ -61,7 +62,14 @@ export function render() {
   const el = $('#view'); el.onclick = null; el.onchange = null;
   const r = route();
   document.body.dataset.area = ROUTES[r]?.pub || r === 'login' ? 'public' : 'portal';
-  if (r === 'login') return state.session ? (location.hash = '#/portal') : login(el);
+  if (r === 'login') {
+    if (!state.session) return login(el);
+    // Back to an app (e.g. the collection tracker) that sent the user here to sign in
+    let back = null; try { back = sessionStorage.getItem('monolith.return'); sessionStorage.removeItem('monolith.return'); } catch (e) {}
+    if (back && back.startsWith('apps/')) { location.href = back; return; }
+    return (location.hash = '#/portal');
+  }
+  if (r.startsWith('news/')) { document.body.dataset.area = 'public'; return N.article(el, r.slice(5)); }
   if (r.startsWith('live/')) { document.body.dataset.area = 'public'; document.title = `${t('live_title')} · ${CONFIG.TEAM_NAME || 'Monolith'}`; return TE.live(el, r.slice(5)); }
   const R = ROUTES[r];
   if (!R) { location.hash = '#/home'; return; }
@@ -134,8 +142,9 @@ async function members(el) {
 
 // ---------------------------------------------------------------- Boot
 async function loadPublic() {
-  const [players, results, events] = await Promise.all(['public_players', 'public_results', 'public_events'].map(n => db.rpc(n).catch(() => [])));
-  state.pub = { players, results, events };
+  const [players, results, events, news] = await Promise.all([...['public_players', 'public_results', 'public_events'].map(n => db.rpc(n).catch(() => [])),
+    db.list('news', ['created_at', 'desc']).catch(() => [])]);
+  state.pub = { players, results, events, news: news.filter(n => n.published) };
 }
 state.reloadPublic = loadPublic;
 async function refreshMe() {

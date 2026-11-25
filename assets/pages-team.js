@@ -1,8 +1,8 @@
 // Team pages: home, roster, match log, archive, events, calendar, line-up, cash.
-import { db } from './db.js?v=202611251551';
-import { t } from './i18n.js?v=202611251551';
-import { state, can, myPlayer, isMe, esc, $, $$, opts, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611251551';
-import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611251551';
+import { db } from './db.js?v=202611251610';
+import { t } from './i18n.js?v=202611251610';
+import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611251610';
+import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611251610';
 
 const D = () => state.data;
 const rsvpOf = (eid, pid) => (D().rsvps || []).find(r => r.event_id === eid && r.player_id === pid)?.status;
@@ -26,15 +26,18 @@ export function home(el) {
   }
   const pid = myPlayer();
   const recs = records(D().matches || []);
-  const mine = summarize(recs.filter(r => r.player_id === pid));
-  const team = summarize(recs.filter(r => !r.mirrored));
+  const isTour = r => r.m.type !== 'Practice';
+  const mineAll = recs.filter(r => r.player_id === pid);
+  const mineT = summarize(mineAll.filter(isTour)), mineP = summarize(mineAll.filter(r => !isTour(r)));
+  const teamT = summarize(recs.filter(r => !r.mirrored && isTour(r)));
   const next = upcomingEvents().slice(0, 3);
   const recent = (D().matches || []).slice().sort((a, b) => b.played_on.localeCompare(a.played_on) || b.id - a.id).slice(0, 6);
   el.innerHTML = pageHead(`${t('hello')} ${name}`, '', `<a class="btn primary" href="#/matches">${esc(t('open_games'))}</a>`) +
     (!pid ? `<div class="notice">${esc(t('not_linked'))}</div>` : '') +
     `<div class="tiles">
-      ${pid ? tile(t('my_form'), `${mine.w}-${mine.d}-${mine.l}`, `${pct(mine.rate)} · ${t('avg_gp')} ${fmt1(mine.avgGp)}`) : ''}
-      ${tile(t('team_form'), `${team.w}-${team.d}-${team.l}`, `${pct(team.rate)} · ${t('n_games', { n: team.n })}`)}
+      ${pid ? tile(t('my_tour'), `${mineT.w}-${mineT.d}-${mineT.l}`, mineT.n ? `${pct(mineT.rate)} ${t('winrate')} · ${t('n_games', { n: mineT.n })}` : t('no_games_yet'), 'main') : ''}
+      ${pid ? tile(t('my_practice'), `${mineP.w}-${mineP.d}-${mineP.l}`, mineP.n ? `${pct(mineP.rate)} · ${t('avg_gp')} ${fmt1(mineP.avgGp)}` : t('no_games_yet'), 'minor') : ''}
+      ${tile(t('team_tour'), `${teamT.w}-${teamT.d}-${teamT.l}`, `${pct(teamT.rate)} · ${t('n_games', { n: teamT.n })}`)}
       ${tile(t('next_events'), next[0] ? fmtDate(next[0].starts_on, { day: '2-digit', month: 'short' }) : '–', next[0] ? next[0].title : '')}
     </div>
     <div class="cols">
@@ -44,7 +47,7 @@ export function home(el) {
     </div>`;
   el.onclick = e => { const b = e.target.closest('[data-rsvp]'); if (b) setRsvp(+b.dataset.e, myPlayer(), b.dataset.rsvp); };
 }
-const tile = (label, big, sub) => `<div class="tile"><div class="tile-l">${esc(label)}</div><div class="tile-big num">${esc(big)}</div><div class="tile-s">${esc(sub)}</div></div>`;
+const tile = (label, big, sub, cls = '') => `<div class="tile ${cls}"><div class="tile-l">${esc(label)}</div><div class="tile-big num">${esc(big)}</div><div class="tile-s">${esc(sub)}</div></div>`;
 function eventMini(e) {
   const mine = rsvpOf(e.id, myPlayer());
   return `<div class="ev-mini"><div><b>${esc(e.title)}</b><br><small class="mute">${esc(fmtDate(e.starts_on))}${e.start_time ? ' · ' + esc(e.start_time) : ''}${e.location ? ' · ' + esc(e.location) : ''}</small></div>
@@ -62,6 +65,7 @@ export function appsCards() {
 const ICON_LIST = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1.4"/><circle cx="4" cy="12" r="1.4"/><circle cx="4" cy="18" r="1.4"/></svg>';
 
 // ---------------------------------------------------------------- Roster (Anmeldung)
+export const avatar = (p, cls = '') => `<span class="avatar ${cls}" aria-hidden="true">${safeImg(p.photo_url) ? `<img src="${esc(safeImg(p.photo_url))}" alt="" loading="lazy">` : esc((p.name || '?').slice(0, 1))}</span>`;
 export function roster(el) {
   const ps = players(can('captain'));
   const cov = new Map();
@@ -69,7 +73,7 @@ export function roster(el) {
   const missing = FACTIONS.filter(f => !cov.has(f));
   el.innerHTML = pageHead(t('nav_roster'), t('roster_intro'), can('captain') ? `<button class="btn primary" data-add>${esc(t('add_player'))}</button>` : '') +
     `<div class="roster">${ps.map(p => `<article class="card pl${p.active ? '' : ' inactive'}">
-      <header><h3>${esc(p.name)}${isMe(p.id) ? ' <span class="tag">★</span>' : ''}${p.bcp_url ? ` <a class="tag bcp" href="${esc(p.bcp_url)}" target="_blank" rel="noopener">BCP ↗</a>` : ''}</h3>${(can('captain') || isMe(p.id)) ? `<button class="btn ghost sm" data-edit="${p.id}">${esc(t('edit'))}</button>` : ''}</header>
+      <header><h3>${avatar(p)}${esc(p.name)}${isMe(p.id) ? ' <span class="tag">★</span>' : ''}${p.bcp_url ? ` <a class="tag bcp" href="${esc(p.bcp_url)}" target="_blank" rel="noopener">BCP ↗</a>` : ''}</h3>${(can('captain') || isMe(p.id)) ? `<button class="btn ghost sm" data-edit="${p.id}">${esc(t('edit'))}</button>` : ''}</header>
       ${(p.armies || []).filter(a => a.army).length ? `<ol class="armies">${p.armies.filter(a => a.army).map(a => `<li><b>${esc(a.army)}</b><span class="mute">${[a.d1, a.d2].filter(Boolean).map(esc).join(' · ')}</span>${a.d1 && a.d1 === a.d2 ? ` <span class="warn" title="${esc(t('same_disp'))}">!</span>` : ''}</li>`).join('')}</ol>` : `<p class="mute">–</p>`}
     </article>`).join('')}</div>
     <section class="card"><h2>${esc(t('coverage'))}</h2><div class="chips">${[...cov.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([f, s]) => `<span class="chip on" title="${esc(t('covered_by'))}: ${esc([...s].join(', '))}">${esc(f)} <b>${s.size}</b></span>`).join('')}</div>
@@ -85,12 +89,18 @@ async function editPlayer(p) {
   const body = `${can('captain') ? `<div class="grid2"><label>${esc(t('player'))}<input name="name" required maxlength="40" value="${esc(p.name)}"></label>
       <label>${esc(t('position'))}<input name="sort" type="number" min="0" max="99" value="${esc(p.sort)}"></label></div>
       <label class="check"><input type="checkbox" name="active" ${p.active ? 'checked' : ''}> ${esc(t('active'))}</label>` : ''}
+    <div class="photo-edit"><span class="avatar lg" data-pv>${safeImg(p.photo_url) ? `<img src="${esc(safeImg(p.photo_url))}" alt="">` : esc((p.name || '?').slice(0, 1))}</span>
+      <div><b>${esc(t('photo'))}</b><p class="mute small">${esc(t('photo_hint'))}</p><label class="btn ghost sm file">${esc(t('photo_pick'))}<input type="file" accept="image/*" data-photo hidden></label>
+      ${p.photo_url ? `<label class="check small"><input type="checkbox" name="photo_remove"> ${esc(t('photo_remove'))}</label>` : ''}</div></div>
     <label>${esc(t('bcp_profile'))}<input name="bcp_url" type="url" inputmode="url" placeholder="https://www.bestcoastpairings.com/…" value="${esc(p.bcp_url || '')}"><small class="mute">${esc(t('bcp_hint'))}</small></label>
     ${slots.map((a, i) => `<fieldset class="slot"><legend>${esc(t('army'))} ${i + 1}</legend><div class="grid3">
       <label>${esc(t('army'))}<select name="a${i}">${opts(FACTIONS, a.army, '–')}</select></label>
       <label>${esc(t('wish1'))}<select name="d1_${i}">${opts(DISPOSITIONS, a.d1, '–')}</select></label>
       <label>${esc(t('wish2'))}<select name="d2_${i}">${opts(DISPOSITIONS, a.d2, '–')}</select></label></div></fieldset>`).join('')}`;
+  let photo = null;
   const r = await modal(isNew ? t('add_player') : p.name, body, { wide: true, onOpen: f => {
+    $('[data-photo]', f).addEventListener('change', async e => { const file = e.target.files[0]; if (!file) return;
+      try { photo = await resizeImage(file, 600, true); $('[data-pv]', f).innerHTML = `<img src="${URL.createObjectURL(photo)}" alt="">`; } catch (err) { toast(err.message, true); } });
     const chk = () => $$('.slot', f).forEach((s, i) => { const a = f[`d1_${i}`].value, b = f[`d2_${i}`].value; s.classList.toggle('dup', !!a && a === b); });
     f.addEventListener('change', chk); chk(); } });
   if (!r) return;
@@ -98,6 +108,8 @@ async function editPlayer(p) {
   const bcp = (r.bcp_url || '').trim();
   if (bcp && !/^https:\/\/([a-z0-9-]+\.)*bestcoastpairings\.com\//i.test(bcp)) return toast(t('bcp_invalid'), true);
   const patch = { armies, bcp_url: bcp || null };
+  if (r.photo_remove) patch.photo_url = null;
+  if (photo) { try { toast(t('uploading')); patch.photo_url = await db.upload(`players/${p.id || 'new'}-${Date.now()}.jpg`, photo); } catch (err) { return toast(t('error') + ': ' + err.message, true); } }
   if (can('captain')) Object.assign(patch, { name: r.name.trim(), sort: +r.sort || 0, active: !!r.active });
   await act(() => isNew ? db.insert('players', patch) : db.update('players', { id: p.id }, patch), ['players']);
 }

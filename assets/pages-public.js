@@ -1,9 +1,10 @@
 // Public pages: visible to everyone, built only from the safe public data.
-import { t } from './i18n.js?v=202611251551';
-import { state, esc, fmtDate, empty } from './core.js?v=202611251551';
-import { typeLabel, pct } from './data.js?v=202611251551';
-import { appsCards } from './pages-team.js?v=202611251551';
-import { CONFIG } from './config.js?v=202611251551';
+import { t } from './i18n.js?v=202611251610';
+import { state, esc, fmtDate, empty, safeImg } from './core.js?v=202611251610';
+import { newsCard } from './pages-news.js?v=202611251610';
+import { typeLabel, pct } from './data.js?v=202611251610';
+import { appsCards } from './pages-team.js?v=202611251610';
+import { CONFIG } from './config.js?v=202611251610';
 const IG_ICON = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>';
 
 const PUB = () => state.pub || { players: [], results: [], events: [] };
@@ -20,7 +21,7 @@ function eventRow(e) {
     ${e.kind ? `<span class="tag">${esc(e.kind)}</span>` : ''}</li>`;
 }
 function playerCard(p) {
-  return `<article class="pcard"><div class="pcard-top"><span class="avatar" aria-hidden="true">${esc(p.name.slice(0, 1))}</span><div><h3>${esc(p.name)}</h3></div></div>
+  return `<article class="pcard"><div class="pcard-top"><span class="avatar${safeImg(p.photo_url) ? ' photo' : ''}" aria-hidden="true">${safeImg(p.photo_url) ? `<img src="${esc(safeImg(p.photo_url))}" alt="" loading="lazy">` : esc(p.name.slice(0, 1))}</span><div><h3>${esc(p.name)}</h3></div></div>
     ${p.armies.length ? `<div class="chips">${p.armies.map(a => `<span class="chip">${esc(a)}</span>`).join('')}</div>` : ''}
     ${p.bcp_url && /^https:\/\/([a-z0-9-]+\.)*bestcoastpairings\.com\//i.test(p.bcp_url) ? `<a class="pcard-link" href="${esc(p.bcp_url)}" target="_blank" rel="noopener">${esc(t('bcp_profile'))} ↗</a>` : ''}</article>`;
 }
@@ -42,6 +43,7 @@ export function home(el) {
       <div><b class="num">${tourCount(tours)}</b><span>${esc(t('s_tournaments'))}</span></div>
       <div><b class="num">${all.n}</b><span>${esc(t('s_games'))}</span></div>
       <div><b class="num">${record(all)}</b><span>${esc(t('s_record'))}</span></div></section>
+    ${(state.pub.news || []).length ? `<section class="block"><div class="block-head"><h2>${esc(t('news_latest'))}</h2><a href="#/news">${esc(t('news_all'))} →</a></div><div class="ngrid">${state.pub.news.slice(0, 3).map(newsCard).join('')}</div></section>` : ''}
     <section class="block"><div class="block-head"><h2>${esc(t('next_up'))}</h2><a href="#/upcoming">${esc(t('all_events'))} →</a></div>
       ${events.length ? `<ul class="plist">${events.slice(0, 3).map(eventRow).join('')}</ul>` : empty(t('no_events'))}</section>
     ${tours[0] ? `<section class="block"><div class="block-head"><h2>${esc(t('latest_tournament'))}</h2><a href="#/results">${esc(t('all_results'))} →</a></div>${tourCard(tours[0])}</section>` : ''}

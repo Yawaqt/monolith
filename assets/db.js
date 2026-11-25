@@ -1,8 +1,8 @@
 // Data access: Supabase when configured, otherwise a demo backend in localStorage.
-import { CONFIG } from './config.js?v=202611251551';
+import { CONFIG } from './config.js?v=202611251610';
 
 export const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY;
-export const TABLES = ['players', 'matches', 'events', 'rsvps', 'payments', 'ratings', 'opponent_teams', 'pairings', 'settings', 'tevents', 'tevent_rounds'];
+export const TABLES = ['players', 'matches', 'events', 'rsvps', 'payments', 'ratings', 'opponent_teams', 'pairings', 'settings', 'tevents', 'tevent_rounds', 'news'];
 // Tables whose API columns are restricted (never select *)
 const COLS = { tevents: 'id,title,event_id,size,rules,lineup,share_code,created_by,created_at,updated_at' };
 const cols = t => COLS[t] || '*';
@@ -44,6 +44,11 @@ const real = {
   async remove(table, match) { const c = await client(); const { error } = await c.from(table).delete().match(match); if (error) fail(error); },
   async upsert(table, row) { const c = await client(); const { data, error } = await c.from(table).upsert(row, { onConflict: (KEYS[table] || ['id']).join(',') }).select(cols(table)).single(); if (error) fail(error); return data; },
   async rpc(name, args) { const c = await client(); const { data, error } = await c.rpc(name, args); if (error) fail(error); return data ?? []; },
+  // Upload a picture to the public "media" bucket and return its public URL
+  async upload(path, blob) {
+    const c = await client(); const { error } = await c.storage.from('media').upload(path, blob, { contentType: blob.type || 'image/jpeg', upsert: true, cacheControl: '31536000' });
+    if (error) fail(error); return c.storage.from('media').getPublicUrl(path).data.publicUrl;
+  },
   // Live updates: calls cb() whenever one of the tables changes on the server
   subscribe(tables, cb) { client().then(c => { let ch = c.channel('live-' + tables.join('-')); for (const t of tables) ch = ch.on('postgres_changes', { event: '*', schema: 'public', table: t }, cb); ch.subscribe(); }).catch(() => {}); },
 };
@@ -63,6 +68,7 @@ export function resetDemo(reload = true) {
   store = { tables: {}, profiles: [], seq: {}, role: 'admin' };
   for (const t of TABLES) store.tables[t] = d[t] || [];
   store.tables.collections = [];
+  if (!store.tables.news.length) store.tables.news = [{ id: 1, title: 'Willkommen auf der neuen Monolith-Seite', body: 'Ab sofort findet ihr hier **Turnierberichte**, Ergebnisse und alles rund ums Team.\n\n## Was kommt\n- Berichte von jedem Turnier\n- Bilder unserer Armeen\n\nFolgt uns auch auf [Instagram](https://www.instagram.com/monolith40k/).', cover_url: null, published: true, author_id: 'demo-user', author_name: 'Miki', created_at: '2026-11-25T10:00:00Z', updated_at: '2026-11-25T10:00:00Z' }];
   store.profiles = [
     { id: 'demo-user', display_name: 'Miki', role: 'admin', player_id: 2, lang: 'de', created_at: '2026-10-21T09:00:00Z' },
     { id: 'demo-2', display_name: 'David', role: 'team', player_id: 4, lang: 'de', created_at: '2026-10-22T09:00:00Z' },
@@ -100,10 +106,12 @@ const demo = {
     return demo.insert(table, row);
   },
   subscribe() {},
+  // Demo: pictures are kept inside the browser as data URLs
+  async upload(path, blob) { return await new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(blob); }); },
   async rpc(name, args = {}) {
     const T = load().tables; const P = T.players || []; const nm = id => (P.find(p => p.id === id) || {}).name;
     const today = new Date().toISOString().slice(0, 10);
-    if (name === 'public_players') return P.filter(p => p.active).sort((a, b) => a.sort - b.sort).map(p => ({ name: p.name, sort: p.sort, armies: (p.armies || []).map(a => a.army).filter(Boolean), bcp_url: p.bcp_url || null }));
+    if (name === 'public_players') return P.filter(p => p.active).sort((a, b) => a.sort - b.sort).map(p => ({ name: p.name, sort: p.sort, armies: (p.armies || []).map(a => a.army).filter(Boolean), bcp_url: p.bcp_url || null, photo_url: p.photo_url || null }));
     if (name === 'public_results') {
       const by = new Map();
       for (const m of T.matches || []) {
