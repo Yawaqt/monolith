@@ -66,3 +66,6 @@ drop policy if exists media_update on storage.objects;
 create policy media_update on storage.objects for update to authenticated using (bucket_id = 'media' and public.has_role('team')) with check (bucket_id = 'media' and public.has_role('team'));
 drop policy if exists media_delete on storage.objects;
 create policy media_delete on storage.objects for delete to authenticated using (bucket_id = 'media' and (owner = auth.uid() or public.has_role('captain')));
+-- Uploading with "upsert" also needs read access to the bucket (added 25 Nov 2026)
+drop policy if exists media_select on storage.objects;
+create policy media_select on storage.objects for select to authenticated using (bucket_id = 'media');
