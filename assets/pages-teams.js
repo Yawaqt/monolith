@@ -1,8 +1,8 @@
 // Team events (5s / 8s): line-up with rule checks, prediction heatmap, pairings, results, live sharing.
-import { db } from './db.js?v=202611251754';
-import { t } from './i18n.js?v=202611251754';
-import { state, can, myPlayer, esc, $, $$, opts, players, playerById, pname, fmtDate, act, modal, confirmBox, empty, pageHead, toast, resultBadge, loadData, setting, evRange } from './core.js?v=202611251754';
-import { FACTIONS, MATRIX_COLS, DISPOSITIONS, gp, resultOf, scoreStr, records, avg, fmt1, today } from './data.js?v=202611251754';
+import { db } from './db.js?v=202611251803';
+import { t } from './i18n.js?v=202611251803';
+import { state, can, myPlayer, esc, $, $$, opts, players, playerById, pname, fmtDate, act, modal, confirmBox, empty, pageHead, toast, resultBadge, loadData, setting, evRange } from './core.js?v=202611251803';
+import { FACTIONS, MATRIX_COLS, DISPOSITIONS, gp, resultOf, scoreStr, records, avg, fmt1, today } from './data.js?v=202611251803';
 
 const D = () => state.data;
 const CHAPTERS = ['Black Templars', 'Blood Angels', 'Dark Angels', 'Deathwatch', 'Imperial Fists', 'Iron Hands', 'Raven Guard', 'Salamanders', 'Space Wolves', 'Ultramarines', 'White Scars'];
@@ -182,17 +182,17 @@ function detail(el) {
           <select data-f="faction" aria-label="${esc(t('faction'))} ${i + 1}">${opts([...new Set([...armies, ...FACTIONS])], l.faction, t('faction'))}</select>
           <select data-f="disposition" aria-label="${esc(t('disposition'))} ${i + 1}">${opts(DISPOSITIONS, l.disposition, t('disposition'))}</select></div>`; }).join('')}</div>
       <div class="rule-msgs" aria-live="polite">${errs.length ? errs.map(x => `<p class="rule-err">⚠ ${esc(x.msg)}</p>`).join('') : `<p class="rule-ok">✓ ${esc(t('te_ok'))}</p>`}</div></section>
-    <section class="card"><h2>${esc(t('te_notes'))}</h2><textarea class="notes" data-evnotes rows="4" maxlength="8000" placeholder="${esc(t('te_notes_ph'))}">${esc(e.notes || '')}</textarea></section>
-    ${nextBtn('matrix')}`;
-  if (step === 'matrix') body = matrixView(e, lineup) + nextBtn('opps');
-  if (step === 'opps') body = oppsView(e, lineup) + nextBtn('rounds');
+    <section class="card"><h2>${esc(t('te_notes'))}</h2><textarea class="notes" data-evnotes rows="4" maxlength="8000" placeholder="${esc(t('te_notes_ph'))}">${esc(e.notes || '')}</textarea></section>`;
+  if (step === 'matrix') body = matrixView(e, lineup);
+  if (step === 'opps') body = oppsView(e, lineup);
   if (step === 'rounds') body = `<div class="round-tabs" role="tablist">${rs.map(r => `<button role="tab" type="button" data-round="${r.round_no}" aria-selected="${r.round_no === roundSel}">${esc(t('round'))} ${r.round_no}${r.opp_name ? ` · ${esc(r.opp_name)}` : ''}${r.logged ? ' ✓' : ''}</button>`).join('')}
-      <button type="button" class="add-round" data-addround>${esc(t('add_round_te'))}</button></div>${rd ? roundView(e, lineup, rd) : ''}`;
+      <button type="button" class="add-round" data-addround>${esc(t('add_round_te'))}</button></div>${rd ? roundView(e, lineup, rd) : ''}
+    ${rd && can('captain') ? `<div class="form-actions"><button type="button" class="btn ghost sm danger-text" data-rddel="${rd.id}">${esc(t('rd_delete', { n: rd.round_no }))}</button></div>` : ''}`;
   el.innerHTML = `<button class="link" data-back>${esc(t('te_back'))}</button>
     ${pageHead(e.title, `${size}er Team${ev ? ' · ' + evRange(ev) + (ev.location ? ' · ' + ev.location : '') : ''} · ${t('te_saved_auto')}`,
-      `<span class="live-dot" title="${esc(t('te_live'))}">● ${esc(t('te_live'))}</span>${can('captain') ? `<button class="btn ghost sm" data-share>${esc(t('te_share'))}</button><button class="btn ghost sm" data-settings>${esc(t('te_settings'))}</button>` : ''}`)}
+      `<span class="live-dot" title="${esc(t('te_live'))}">● ${esc(t('te_live'))}</span>${can('captain') ? `<button class="btn ghost sm" data-share>${esc(t('te_share'))}</button><button class="btn ghost sm" data-settings>${esc(t('te_settings'))}</button><button class="btn ghost sm danger-text" data-tedel>${esc(t('delete'))}</button>` : ''}`)}
     ${ro ? `<p class="notice">👁 ${esc(t('te_readonly'))}</p>` : inLineup(e) && !can('captain') ? `<p class="notice ok">✓ ${esc(t('te_you_play'))}</p>` : ''}
-    <nav class="steps" aria-label="${esc(t('st_nav'))}">${steps.map(([k, l, ok], i) => `<button type="button" data-step="${k}" aria-current="${step === k ? 'step' : 'false'}"><span class="st-n">${ok ? '✓' : i + 1}</span>${esc(l)}</button>`).join('')}</nav>
+    <nav class="te-tabs" role="tablist" aria-label="${esc(t('st_nav'))}">${steps.map(([k, l]) => `<button type="button" role="tab" data-step="${k}" aria-selected="${step === k}"><span class="tab-ico" aria-hidden="true">${TAB_ICONS[k]}</span>${esc(l)}</button>`).join('')}</nav>
     ${body}`;
   bind(el, e, lineup, rd, ro);
   if (rd && step === 'rounds') updateTotals(rd);
@@ -203,7 +203,7 @@ function detail(el) {
     $$('[data-oppadd],[data-oppdel],[data-mxfill],[data-mxreset],[data-apply],[data-usepair],[data-tolog],[data-addround],[data-oppround]', el).forEach(b => b.remove());
   }
 }
-const nextBtn = k => `<div class="form-actions"><button type="button" class="btn primary" data-step="${k}">${esc(t('st_next'))}: ${esc(t('st_' + k))} →</button></div>`;
+const TAB_ICONS = { lineup: '👥', matrix: '▦', opps: '⚔', rounds: '⇄' };
 
 function matrixCols(e) {
   const fromOpps = [...new Set((e.opponents || []).flatMap(o => o.players.map(p => p.faction)).filter(Boolean))];
@@ -325,8 +325,14 @@ function bind(el, e, lineup, rd, ro) {
   el.onclick = async ev => {
     const b = ev.target.closest('button'); if (!b) return;
     if (b.dataset.back !== undefined) { sel = null; return state.render(); }
-    if (b.dataset.step) { step = b.dataset.step; state.render(); return window.scrollTo({ top: 0 }); }
+    if (b.dataset.step) { step = b.dataset.step; return state.render(); }
     if (ro && !b.dataset.round && b.dataset.back === undefined) return;
+    if (b.dataset.tedel !== undefined && can('captain')) {
+      if (!await confirmBox(t('te_delete_q', { title: e.title }))) return;
+      const id = e.id; sel = null; return act(() => db.remove('tevents', { id }), ['tevents', 'tevent_rounds'], t('te_deleted')); }
+    if (b.dataset.rddel && can('captain')) {
+      if (!await confirmBox(t('rd_delete_q', { n: rd.round_no }))) return;
+      roundSel = 1; return act(() => db.remove('tevent_rounds', { id: +b.dataset.rddel }), ['tevent_rounds']); }
     if (b.dataset.mxfill !== undefined) { const add = liveRatings([...new Set([...lineup.map(l => l.faction).filter(Boolean), ...teamArmies()])], e.matrix || {});
       patchEvent({ matrix: Object.assign({}, e.matrix, add) }); toast(t('mx_filled', { n: Object.keys(add).length })); return state.render(); }
     if (b.dataset.mxreset !== undefined) { if (!await confirmBox(t('mx_reset_q'))) return; patchEvent({ matrix: liveRatings([...new Set([...lineup.map(l => l.faction).filter(Boolean), ...teamArmies()])]) }); return state.render(); }

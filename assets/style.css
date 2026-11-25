@@ -367,3 +367,11 @@ details.opp>*:not(summary){margin-left:20px;margin-right:20px}details.opp>.form-
 .pending-pop{position:fixed;z-index:45;right:max(18px,env(safe-area-inset-right));top:84px;width:min(380px,calc(100vw - 36px));background:#fff;border:1px solid var(--line);border-left:4px solid #d9534f;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.15);padding:14px 16px;display:grid;gap:10px}
 .pending-pop p{margin:4px 0 0}.pp-actions{display:flex;gap:8px}
 .pend-btns{display:inline-flex;gap:6px;margin-left:8px;vertical-align:middle}.btn.xs{min-height:28px;padding:0 10px;font-size:13px}
+/* team event sections as tabs (any order, any time) */
+.te-tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 20px}
+.te-tabs button{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;padding:8px 10px;border:1px solid var(--line);border-radius:12px;background:#fff;font:600 15px Inter,sans-serif;color:var(--ink);cursor:pointer}
+.te-tabs button:hover{border-color:var(--ink)}
+.te-tabs button[aria-selected=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tab-ico{font-size:17px;line-height:1}
+@media(max-width:600px){.te-tabs{grid-template-columns:1fr 1fr}.te-tabs button{min-height:48px;font-size:14px}}
+.btn.danger-text{color:#c0392b}.btn.danger-text:hover{border-color:#c0392b}

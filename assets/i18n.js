@@ -54,7 +54,7 @@ const S = {
   move_left: ['Nach vorne', 'Move left'], move_right: ['Nach hinten', 'Move right'], photos_add: ['Fotos hinzufügen', 'Add photos'],
   my_profile: ['Mein Steckbrief', 'My profile'], my_profile_hint: ['Erscheint öffentlich auf der Team-Seite.', 'Shown publicly on the team page.'],
   bio: ['Über mich', 'About me'], bio_ph: ['Ein paar Sätze über dich: seit wann du spielst, was dir am Hobby gefällt …', 'A few lines about you: since when you play, what you like about the hobby …'], profile_saved: ['Steckbrief gespeichert', 'Profile saved'],
-  st_nav: ['Schritte', 'Steps'], st_lineup: ['Aufstellung', 'Line-up'], st_matrix: ['Matrix', 'Matrix'], st_opps: ['Gegnerteams', 'Opponent teams'], st_rounds: ['Runden & Pairing', 'Rounds & pairing'], st_next: ['Weiter', 'Next'],
+  st_nav: ['Bereiche', 'Sections'], st_lineup: ['Aufstellung', 'Line-up'], st_matrix: ['Matrix', 'Matrix'], st_opps: ['Gegnerteams', 'Opponent teams'], st_rounds: ['Runden & Pairing', 'Rounds & pairing'], st_next: ['Weiter', 'Next'],
   te_notes: ['Notizen zum Turnier', 'Tournament notes'], te_notes_ph: ['Mission-Pool, Terrain, Taktik, Erinnerungen …', 'Mission pool, terrain, tactics, reminders …'],
   mx_intro: ['Unsere Armeen gegen die Fraktionen der Gegnerteams (1 = sehr schlecht, 5 = sehr gut). Beim Anlegen des Turniers aus der Live Matrix übernommen – danach frei änderbar. Gilt nur für dieses Turnier.', 'Our armies against the opponent teams\' factions (1 = very bad, 5 = very good). Taken from the Live Matrix when the event was created – edit freely afterwards. Applies to this event only.'],
   mx_all: ['Alle Fraktionen', 'All factions'], mx_fill: ['Leere Felder aus Live Matrix', 'Fill gaps from Live Matrix'], mx_reset: ['Neu aus Live Matrix', 'Reload from Live Matrix'],
@@ -74,6 +74,8 @@ const S = {
   pend_one: ['1 neue Anmeldung wartet auf Freischaltung', '1 new sign-up is waiting for approval'], pend_many: ['{n} neue Anmeldungen warten auf Freischaltung', '{n} new sign-ups are waiting for approval'],
   pend_open: ['Ansehen', 'Review'], pend_later: ['Später', 'Later'], pend_approve: ['Freischalten', 'Approve'], pend_keep: ['Gast lassen', 'Keep as guest'],
   pend_approved: ['Freigeschaltet – jetzt noch den Spieler verknüpfen', 'Approved – now link the player'], pend_kept: ['Bleibt Gast', 'Stays a guest'],
+  te_delete_q: ['Teamturnier „{title}“ mit allen Runden, Gegnerteams und Notizen löschen? Spiele, die schon im Match Log stehen, bleiben erhalten.', 'Delete team event "{title}" with all rounds, opponent teams and notes? Games already in the match log stay.'],
+  te_deleted: ['Teamturnier gelöscht', 'Team event deleted'], rd_delete: ['Runde {n} löschen', 'Delete round {n}'], rd_delete_q: ['Runde {n} mit Pairings, Ergebnissen und Notizen löschen? Spiele im Match Log bleiben erhalten.', 'Delete round {n} with pairings, results and notes? Games in the match log stay.'],
   // team events
   nav_teams: ['Teamturniere', 'Team events'], teams_intro: ['Team-Events für 5er und 8er Teams: Aufstellung mit Regelprüfung, Vorhersagen pro Paarung, Pairings und Ergebnisse live mit dem ganzen Team.', 'Team events for 5s and 8s: line-up with rule checks, a prediction per matchup, pairings and results live with the whole team.'],
   new_tevent: ['Neues Teamturnier', 'New team event'], te_size: ['Teamgröße', 'Team size'], te_rules: ['Regeln', 'Rules'], te_link_event: ['Mit Event verknüpfen', 'Link to event'],
