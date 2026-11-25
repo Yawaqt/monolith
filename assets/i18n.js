@@ -45,6 +45,7 @@ const S = {
   type_singles_s: ['Singles', 'Singles'], quick_btn: ['Ergebnis', 'Result'], quick_title: ['Ergebnis eintragen', 'Log a result'], quick_more: ['Mehr Details (Spieler, Datum, Dispositionen, Gegnername …)', 'More details (player, date, dispositions, opponent name …)'],
   quick_saved: ['Ergebnis gespeichert', 'Result saved'],
   date_from: ['Von', 'From'], date_to: ['Bis', 'To'], date_order: ['Das End-Datum liegt vor dem Start.', 'The end date is before the start.'], te_size_n: ['{n}er Team', 'team of {n}'],
+  signed_out: ['Du bist abgemeldet.', 'You are signed out.'],
   // team events
   nav_teams: ['Teamturniere', 'Team events'], teams_intro: ['Team-Events für 5er und 8er Teams: Aufstellung mit Regelprüfung, Vorhersagen pro Paarung, Pairings und Ergebnisse live mit dem ganzen Team.', 'Team events for 5s and 8s: line-up with rule checks, a prediction per matchup, pairings and results live with the whole team.'],
   new_tevent: ['Neues Teamturnier', 'New team event'], te_size: ['Teamgröße', 'Team size'], te_rules: ['Regeln', 'Rules'], te_link_event: ['Mit Event verknüpfen', 'Link to event'],

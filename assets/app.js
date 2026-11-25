@@ -1,13 +1,13 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611251628';
-import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251628';
-import { t, setLang, getLang } from './i18n.js?v=202611251628';
-import { state, role, can, esc, $, opts, players, pname, loadData, act, toast, pageHead } from './core.js?v=202611251628';
-import * as T from './pages-team.js?v=202611251628';
-import * as A from './pages-analysis.js?v=202611251628';
-import * as P from './pages-public.js?v=202611251628';
-import * as TE from './pages-teams.js?v=202611251628';
-import * as N from './pages-news.js?v=202611251628';
+import { CONFIG } from './config.js?v=202611251629';
+import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611251629';
+import { t, setLang, getLang } from './i18n.js?v=202611251629';
+import { state, role, can, esc, $, opts, players, pname, loadData, act, toast, pageHead } from './core.js?v=202611251629';
+import * as T from './pages-team.js?v=202611251629';
+import * as A from './pages-analysis.js?v=202611251629';
+import * as P from './pages-public.js?v=202611251629';
+import * as TE from './pages-teams.js?v=202611251629';
+import * as N from './pages-news.js?v=202611251629';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
@@ -38,9 +38,9 @@ function header() {
     : `<a class="btn ${ROUTES[r]?.pub ? 'primary' : 'dark'} sm" href="#/portal">${esc(can('team') ? t('portal') : t('my_account'))}</a>`;
   $('#top').innerHTML = `<div class="top-in"><a class="brand" href="#/home" aria-label="Monolith 40k">${BRAND}</a>
     <nav class="pubnav" aria-label="Main">${PUBLIC.map(([k, l]) => `<a href="#/${k}"${r === k ? ' aria-current="page"' : ''}>${esc(t(l))}</a>`).join('')}</nav>
-    <div class="top-tools">${igLink('ig')}<div class="lang" role="group" aria-label="${esc(t('language'))}"><button type="button" data-lang="de" aria-pressed="${getLang() === 'de'}">DE</button><button type="button" data-lang="en" aria-pressed="${getLang() === 'en'}">EN</button></div>${acct}
+    <div class="top-tools">${igLink('ig')}<div class="lang" role="group" aria-label="${esc(t('language'))}"><button type="button" data-lang="de" aria-pressed="${getLang() === 'de'}">DE</button><button type="button" data-lang="en" aria-pressed="${getLang() === 'en'}">EN</button></div>${acct}${signed ? `<button type="button" class="btn ghost sm out-top" data-out>${esc(t('sign_out'))}</button>` : ''}
     <button class="icon menu" id="menuBtn" aria-label="${esc(t('menu'))}" aria-expanded="false">☰</button></div></div>
-    <nav class="mobnav" aria-label="Mobile">${PUBLIC.map(([k, l]) => `<a href="#/${k}">${esc(t(l))}</a>`).join('')}${CONFIG.INSTAGRAM ? `<a href="${esc(CONFIG.INSTAGRAM)}" target="_blank" rel="noopener">Instagram ↗</a>` : ''}<div class="lang mob" role="group" aria-label="${esc(t('language'))}"><button type="button" data-lang="de" aria-pressed="${getLang() === 'de'}">Deutsch</button><button type="button" data-lang="en" aria-pressed="${getLang() === 'en'}">English</button></div></nav>`;
+    <nav class="mobnav" aria-label="Mobile">${PUBLIC.map(([k, l]) => `<a href="#/${k}">${esc(t(l))}</a>`).join('')}${CONFIG.INSTAGRAM ? `<a href="${esc(CONFIG.INSTAGRAM)}" target="_blank" rel="noopener">Instagram ↗</a>` : ''}${signed ? `<button type="button" class="mob-out" data-out>${esc(t('sign_out'))}</button>` : ''}<div class="lang mob" role="group" aria-label="${esc(t('language'))}"><button type="button" data-lang="de" aria-pressed="${getLang() === 'de'}">Deutsch</button><button type="button" data-lang="en" aria-pressed="${getLang() === 'en'}">English</button></div></nav>`;
   let fab = $('#fab');
   if (!fab) { fab = document.createElement('button'); fab.id = 'fab'; fab.className = 'fab'; fab.type = 'button'; document.body.appendChild(fab); fab.onclick = () => T.quickResult(); }
   fab.innerHTML = `<span aria-hidden="true">+</span> ${esc(t('quick_btn'))}`; fab.hidden = !(signed && can('team')) || r === 'login' || r.startsWith('live/');
@@ -178,7 +178,8 @@ new MutationObserver(() => { for (const td of document.querySelectorAll('table.s
 document.addEventListener('click', e => {
   const b = e.target.closest('button'); if (!b) return;
   if (b.dataset.lang) { setLang(b.dataset.lang); try { localStorage.setItem('monolith.lang', b.dataset.lang); } catch (_) {} if (state.me) { state.me.lang = b.dataset.lang; db.update('profiles', { id: state.me.id }, { lang: b.dataset.lang }).catch(() => {}); } render(); }
-  if (b.dataset.out !== undefined) db.signOut().then(() => { state.session = null; state.me = null; state.data = {}; location.hash = '#/home'; render(); });
+  if (b.dataset.out !== undefined) { document.body.classList.remove('nav-open');
+    db.signOut().then(() => { state.session = null; state.me = null; state.data = {}; location.hash = '#/home'; render(); toast(t('signed_out')); }); }
   if (b.dataset.reset !== undefined) resetDemo();
   if (b.id === 'menuBtn') { const o = document.body.classList.toggle('nav-open'); b.setAttribute('aria-expanded', o); }
 });
