@@ -19,7 +19,12 @@ const S = {
   filter_player: ['Spieler filtern', 'Filter by player'],
   follow_title: ['Folgt uns auf Instagram', 'Follow us on Instagram'], follow_text: ['Turnierberichte, bemalte Armeen und was im Team so passiert.', 'Tournament reports, painted armies and what the team is up to.'],
   follow_btn: ['@monolith40k öffnen', 'Open @monolith40k'],
-  // navigation
+  bcp_profile: ['BCP-Profil', 'BCP profile'], bcp_hint: ['Link zu deinem Profil auf bestcoastpairings.com (in der BCP-App: Profil → Teilen → Link kopieren).', 'Link to your profile on bestcoastpairings.com (in the BCP app: Profile → Share → Copy link).'],
+  bcp_invalid: ['Bitte einen Link von bestcoastpairings.com einfügen.', 'Please paste a link from bestcoastpairings.com.'],
+  tour_import: ['Ganzes Turnier eintragen', 'Log a whole tournament'], tour_import_intro: ['Alle Runden eines Turniers auf einmal eintragen – z. B. direkt aus deinen Ergebnissen in der BCP-App abgeschrieben.', 'Enter every round of a tournament at once – e.g. straight from your results in the BCP app.'],
+  round: ['Runde', 'Round'], add_round: ['+ Runde', '+ Round'], remove_round: ['Runde entfernen', 'Remove round'], save_rounds: ['{n} Spiele speichern', 'Save {n} games'],
+  rounds_missing: ['Bitte bei jeder Runde Gegner-Fraktion und beide Punktzahlen eintragen (leere Runden löschen).', 'Please fill in opponent faction and both scores for every round (remove empty rounds).'],
+  rounds_saved: ['{n} Spiele gespeichert', '{n} games saved'],
   nav_home: ['Übersicht', 'Home'], nav_team: ['Team', 'Team'], nav_analysis: ['Analyse', 'Analysis'], nav_apps: ['Apps', 'Apps'], nav_admin: ['Verwaltung', 'Admin'],
   nav_roster: ['Anmeldung', 'Roster'], nav_matches: ['Match Log', 'Match log'], nav_archive: ['Spiele-Archiv', 'Game archive'], nav_events: ['Events', 'Events'],
   nav_calendar: ['Kalender', 'Calendar'], nav_lineup: ['Aufstellung', 'Line-up'], nav_cash: ['Kasse', 'Cash'], nav_matrix: ['Live Matrix', 'Live matrix'],

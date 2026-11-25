@@ -61,7 +61,7 @@ export function roster(el) {
   const missing = FACTIONS.filter(f => !cov.has(f));
   el.innerHTML = pageHead(t('nav_roster'), t('roster_intro'), can('captain') ? `<button class="btn primary" data-add>${esc(t('add_player'))}</button>` : '') +
     `<div class="roster">${ps.map(p => `<article class="card pl${p.active ? '' : ' inactive'}">
-      <header><h3>${esc(p.name)}${isMe(p.id) ? ' <span class="tag">★</span>' : ''}</h3>${(can('captain') || isMe(p.id)) ? `<button class="btn ghost sm" data-edit="${p.id}">${esc(t('edit'))}</button>` : ''}</header>
+      <header><h3>${esc(p.name)}${isMe(p.id) ? ' <span class="tag">★</span>' : ''}${p.bcp_url ? ` <a class="tag bcp" href="${esc(p.bcp_url)}" target="_blank" rel="noopener">BCP ↗</a>` : ''}</h3>${(can('captain') || isMe(p.id)) ? `<button class="btn ghost sm" data-edit="${p.id}">${esc(t('edit'))}</button>` : ''}</header>
       ${(p.armies || []).filter(a => a.army).length ? `<ol class="armies">${p.armies.filter(a => a.army).map(a => `<li><b>${esc(a.army)}</b><span class="mute">${[a.d1, a.d2].filter(Boolean).map(esc).join(' · ')}</span>${a.d1 && a.d1 === a.d2 ? ` <span class="warn" title="${esc(t('same_disp'))}">!</span>` : ''}</li>`).join('')}</ol>` : `<p class="mute">–</p>`}
     </article>`).join('')}</div>
     <section class="card"><h2>${esc(t('coverage'))}</h2><div class="chips">${[...cov.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([f, s]) => `<span class="chip on" title="${esc(t('covered_by'))}: ${esc([...s].join(', '))}">${esc(f)} <b>${s.size}</b></span>`).join('')}</div>
@@ -77,6 +77,7 @@ async function editPlayer(p) {
   const body = `${can('captain') ? `<div class="grid2"><label>${esc(t('player'))}<input name="name" required maxlength="40" value="${esc(p.name)}"></label>
       <label>${esc(t('position'))}<input name="sort" type="number" min="0" max="99" value="${esc(p.sort)}"></label></div>
       <label class="check"><input type="checkbox" name="active" ${p.active ? 'checked' : ''}> ${esc(t('active'))}</label>` : ''}
+    <label>${esc(t('bcp_profile'))}<input name="bcp_url" type="url" inputmode="url" placeholder="https://www.bestcoastpairings.com/…" value="${esc(p.bcp_url || '')}"><small class="mute">${esc(t('bcp_hint'))}</small></label>
     ${slots.map((a, i) => `<fieldset class="slot"><legend>${esc(t('army'))} ${i + 1}</legend><div class="grid3">
       <label>${esc(t('army'))}<select name="a${i}">${opts(FACTIONS, a.army, '–')}</select></label>
       <label>${esc(t('wish1'))}<select name="d1_${i}">${opts(DISPOSITIONS, a.d1, '–')}</select></label>
@@ -86,7 +87,9 @@ async function editPlayer(p) {
     f.addEventListener('change', chk); chk(); } });
   if (!r) return;
   const armies = slots.map((_, i) => ({ army: r['a' + i], d1: r['d1_' + i], d2: r['d2_' + i] })).filter(a => a.army);
-  const patch = { armies };
+  const bcp = (r.bcp_url || '').trim();
+  if (bcp && !/^https:\/\/([a-z0-9-]+\.)*bestcoastpairings\.com\//i.test(bcp)) return toast(t('bcp_invalid'), true);
+  const patch = { armies, bcp_url: bcp || null };
   if (can('captain')) Object.assign(patch, { name: r.name.trim(), sort: +r.sort || 0, active: !!r.active });
   await act(() => isNew ? db.insert('players', patch) : db.update('players', { id: p.id }, patch), ['players']);
 }
@@ -138,7 +141,7 @@ function matchRow(r) {
 export function matches(el) {
   const canLog = can('captain') || !!myPlayer();
   const latest = (D().matches || []).slice().sort((a, b) => b.id - a.id).slice(0, 8);
-  el.innerHTML = pageHead(t('nav_matches'), t('log_intro')) +
+  el.innerHTML = pageHead(t('nav_matches'), t('log_intro'), canLog ? `<button class="btn primary" data-tour>${esc(t('tour_import'))}</button>` : '') +
     (canLog ? `<form class="card form" id="mform" novalidate>${matchForm()}<div class="form-actions"><button class="btn primary">${esc(t('save_game'))}</button></div></form>` : `<div class="notice">${esc(t('not_linked'))}</div>`) +
     `<section class="card"><h2>${esc(t('latest'))}</h2>${gamesTable(latest)}</section>`;
   const f = $('#mform');
@@ -146,7 +149,7 @@ export function matches(el) {
     const o = {}; for (const x of f.elements) if (x.name) o[x.name] = x.value;
     let row; try { row = matchRow(o); } catch (err) { return toast(err.message, true); }
     await act(() => db.insert('matches', row), ['matches']); }); }
-  el.onclick = gamesClick;
+  el.onclick = e => { if (e.target.closest('[data-tour]')) return tournamentImport(); return gamesClick(e); };
 }
 function gamesTable(list) {
   if (!list.length) return empty();
@@ -328,4 +331,59 @@ async function editPayment(p) {
   if (p) return act(() => db.update('payments', { id: p.id }, Object.assign(base, { player_id: +r.player_id })), ['payments']);
   const targets = r.all ? players().map(q => q.id) : [+r.player_id];
   await act(async () => { for (const pid of targets) await db.insert('payments', Object.assign({}, base, { player_id: pid })); }, ['payments']);
+}
+
+// ---------------------------------------------------------------- Whole tournament at once
+async function tournamentImport() {
+  const pid = myPlayer() || players()[0]?.id;
+  const pl = playerById(pid); const mine = (pl?.armies || []).find(a => a.army) || {};
+  const plOpts = can('captain') ? players().map(p => [p.id, p.name]) : players().filter(p => isMe(p.id)).map(p => [p.id, p.name]);
+  const tours = [...new Set((D().matches || []).map(x => x.tournament).filter(Boolean))];
+  const roundRow = (i, date) => `<div class="rnd" data-r="${i}"><span class="rnd-n">${esc(t('round'))} <b>${i + 1}</b></span>
+    <select name="of" aria-label="${esc(t('opp_faction'))}" required>${opts(FACTIONS, '', t('opp_faction'))}</select>
+    <select name="od" aria-label="${esc(t('opp_disp'))}">${opts(DISPOSITIONS, '', t('opp_disp'))}</select>
+    <input name="on" maxlength="60" placeholder="${esc(t('opp_name'))}" aria-label="${esc(t('opp_name'))}">
+    <input name="us" type="number" inputmode="numeric" min="0" max="200" placeholder="${esc(t('our_score'))}" aria-label="${esc(t('our_score'))}" required>
+    <input name="them" type="number" inputmode="numeric" min="0" max="200" placeholder="${esc(t('opp_score'))}" aria-label="${esc(t('opp_score'))}" required>
+    <input name="d" type="date" value="${esc(date)}" aria-label="${esc(t('date'))}">
+    <span class="rnd-res"></span><button type="button" class="icon xs" data-rm aria-label="${esc(t('remove_round'))}">✕</button></div>`;
+  const body = `<p class="mute">${esc(t('tour_import_intro'))}</p>
+    <div class="grid3"><label>${esc(t('tour_name'))}<input name="tournament" required list="tours2" maxlength="80"><datalist id="tours2">${tours.map(x => `<option value="${esc(x)}">`).join('')}</datalist></label>
+    <label>${esc(t('date'))}<input name="start" type="date" required value="${esc(today())}"></label>
+    <label>${esc(t('our_player'))}<select name="player_id" required>${opts(plOpts, pid)}</select></label>
+    <label>${esc(t('our_army'))}<select name="army" required>${opts([...new Set([...(pl?.armies || []).map(a => a.army).filter(Boolean), ...FACTIONS])], mine.army || '', '–')}</select></label>
+    <label>${esc(t('our_disp'))}<select name="disposition">${opts(DISPOSITIONS, mine.d1 || '', '–')}</select></label></div>
+    <div class="rounds">${[0, 1, 2, 3, 4].map(i => roundRow(i, today())).join('')}</div>
+    <div class="form-actions"><button type="button" class="btn ghost sm" data-add-round>${esc(t('add_round'))}</button><span class="rnd-total mute"></span></div>`;
+  let rows = null;
+  const r = await modal(t('tour_import'), body, { wide: true, submit: t('save'), onOpen: f => {
+    const upd = () => {
+      const rs = $$('.rnd', f); let w = 0, d = 0, l = 0;
+      rs.forEach((el, i) => { $('.rnd-n b', el).textContent = i + 1; const g = gp(el.querySelector('[name=us]').value, el.querySelector('[name=them]').value);
+        $('.rnd-res', el).innerHTML = g ? `<b class="num">${scoreStr(g)}</b> ${resultBadge(resultOf(g))}` : '';
+        if (g) { if (g[0] > 10) w++; else if (g[0] < 10) l++; else d++; } });
+      $('.rnd-total', f).textContent = `${w}-${d}-${l}`;
+      $('footer .btn.primary', f.closest('.dialog') || f).textContent = t('save_rounds', { n: rs.length });
+    };
+    f.addEventListener('input', upd);
+    f.addEventListener('change', e => {
+      if (e.target.name === 'start') $$('.rnd [name=d]', f).forEach(x => { if (!x.dataset.touched) x.value = e.target.value; });
+      if (e.target.name === 'd') e.target.dataset.touched = '1';
+      if (e.target.name === 'player_id') { const p2 = playerById(e.target.value); const a = (p2?.armies || []).find(x => x.army); if (a) { f.army.value = a.army; if (a.d1) f.disposition.value = a.d1; } }
+      upd();
+    });
+    f.addEventListener('click', e => {
+      if (e.target.closest('[data-add-round]')) { const n = $$('.rnd', f).length; $('.rounds', f).insertAdjacentHTML('beforeend', roundRow(n, f.start.value)); upd(); }
+      const rm = e.target.closest('[data-rm]'); if (rm && $$('.rnd', f).length > 1) { rm.closest('.rnd').remove(); upd(); }
+    });
+    // collect rounds when the form is submitted (modal only returns named single fields)
+    f.addEventListener('submit', () => { rows = $$('.rnd', f).map(el => ({ of: el.querySelector('[name=of]').value, od: el.querySelector('[name=od]').value, on: el.querySelector('[name=on]').value.trim(),
+      us: el.querySelector('[name=us]').value, them: el.querySelector('[name=them]').value, d: el.querySelector('[name=d]').value })); }, true);
+    upd();
+  } });
+  if (!r || !rows) return;
+  const base = { type: 'Tournament', tournament: r.tournament.trim(), player_id: +r.player_id, army: r.army, disposition: r.disposition || null };
+  const list = rows.map(x => Object.assign({}, base, { played_on: x.d || r.start, opp_faction: x.of, opp_disposition: x.od || null, opp_player_id: null,
+    opp_name: x.on || null, our_score: +x.us, opp_score: +x.them, notes: null }));
+  await act(async () => { for (const m of list) await db.insert('matches', m); }, ['matches'], t('rounds_saved', { n: list.length }));
 }

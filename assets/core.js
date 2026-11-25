@@ -34,7 +34,7 @@ export async function loadData(tables = TABLES) {
 }
 // Run a write, reload the affected tables, re-render, and report errors.
 export async function act(fn, tables, okMsg) {
-  try { await fn(); if (tables) await loadData(tables); state.render(); if (okMsg !== false) toast(okMsg || t('saved')); return true; }
+  try { await fn(); if (tables) await loadData(tables); if (tables && state.reloadPublic && tables.some(x => ['matches', 'players', 'events'].includes(x))) await state.reloadPublic().catch(() => {}); state.render(); if (okMsg !== false) toast(okMsg || t('saved')); return true; }
   catch (e) { toast(t('error') + ': ' + (e.message || e), true); return false; }
 }
 

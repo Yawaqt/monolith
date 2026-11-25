@@ -97,7 +97,7 @@ const demo = {
   async rpc(name) {
     const T = load().tables; const P = T.players || []; const nm = id => (P.find(p => p.id === id) || {}).name;
     const today = new Date().toISOString().slice(0, 10);
-    if (name === 'public_players') return P.filter(p => p.active).sort((a, b) => a.sort - b.sort).map(p => ({ name: p.name, sort: p.sort, armies: (p.armies || []).map(a => a.army).filter(Boolean) }));
+    if (name === 'public_players') return P.filter(p => p.active).sort((a, b) => a.sort - b.sort).map(p => ({ name: p.name, sort: p.sort, armies: (p.armies || []).map(a => a.army).filter(Boolean), bcp_url: p.bcp_url || null }));
     if (name === 'public_results') return (T.matches || []).filter(m => m.type === 'Tournament' && m.our_score != null && m.opp_score != null)
       .sort((a, b) => b.played_on.localeCompare(a.played_on) || b.id - a.id)
       .map(m => ({ played_on: m.played_on, tournament: m.tournament, player: nm(m.player_id), army: m.army, opp_faction: m.opp_faction, our_score: m.our_score, opp_score: m.opp_score }));

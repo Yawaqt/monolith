@@ -135,6 +135,7 @@ async function loadPublic() {
   const [players, results, events] = await Promise.all(['public_players', 'public_results', 'public_events'].map(n => db.rpc(n).catch(() => [])));
   state.pub = { players, results, events };
 }
+state.reloadPublic = loadPublic;
 async function refreshMe() {
   if (!state.session) { state.me = null; return; }
   try { state.me = await db.me(state.session.user.id); } catch (e) { state.me = null; }

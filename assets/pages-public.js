@@ -24,7 +24,8 @@ function eventRow(e) {
 function playerCard(p, all) {
   const s = summarize(recs(all.filter(r => r.player === p.name)));
   return `<article class="pcard"><div class="pcard-top"><span class="avatar" aria-hidden="true">${esc(p.name.slice(0, 1))}</span><div><h3>${esc(p.name)}</h3>${s.n ? `<p class="mute small">${esc(t('t_games', { n: s.n }))} · <span class="num">${record(s)}</span></p>` : ''}</div></div>
-    ${p.armies.length ? `<div class="chips">${p.armies.map(a => `<span class="chip">${esc(a)}</span>`).join('')}</div>` : ''}</article>`;
+    ${p.armies.length ? `<div class="chips">${p.armies.map(a => `<span class="chip">${esc(a)}</span>`).join('')}</div>` : ''}
+    ${p.bcp_url && /^https:\/\/([a-z0-9-]+\.)*bestcoastpairings\.com\//i.test(p.bcp_url) ? `<a class="pcard-link" href="${esc(p.bcp_url)}" target="_blank" rel="noopener">${esc(t('bcp_profile'))} ↗</a>` : ''}</article>`;
 }
 function tourCard(tn, open) {
   const s = summarize(recs(tn.list));
