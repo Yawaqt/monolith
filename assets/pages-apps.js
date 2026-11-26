@@ -1,9 +1,9 @@
 // Community apps: paint recipes (everyone), score tracker + chess clock, MathHammer, pairing trainer (admins while in test).
-import { db, DEMO } from './db.js?v=202611261716';
-import { t, getLang } from './i18n.js?v=202611261716';
-import { state, can, esc, $, $$, opts, toast, modal, confirmBox, empty, resizeImage, safeImg, fmtDate } from './core.js?v=202611261716';
-import { FACTIONS } from './data.js?v=202611261716';
-import { lightbox } from './pages-news.js?v=202611261716';
+import { db, DEMO } from './db.js?v=202611261721';
+import { t, getLang } from './i18n.js?v=202611261721';
+import { state, can, esc, $, $$, opts, toast, modal, confirmBox, empty, resizeImage, safeImg, fmtDate } from './core.js?v=202611261721';
+import { FACTIONS } from './data.js?v=202611261721';
+import { lightbox } from './pages-news.js?v=202611261721';
 
 const L = (de, en) => getLang() === 'de' ? de : en;
 const head = (title, intro, actions = '') => `<div class="page-head"><div><p class="eyebrow"><a href="#/apps">${esc(t('p_apps'))}</a></p><h1>${esc(title)}</h1>${intro ? `<p class="intro">${esc(intro)}</p>` : ''}</div>${actions ? `<div class="head-actions">${actions}</div>` : ''}</div>`;
@@ -195,7 +195,7 @@ async function saveScore(el) {
 
 // ====================================================================== MathHammer
 const MK = 'monolith.mathhammer.v1';
-const MH0 = { attacks: '10', models: 1, skill: 3, s: 4, ap: 0, dmg: '1', t: 4, sv: 3, inv: 0, fnp: 0, w: 1, hitMod: 0, woundMod: 0, hitRr: 'none', woundRr: 'none', torrent: false, lethal: false, sustained: 0, dev: false };
+const MH0 = { attacks: '10', models: 1, skill: 3, s: 4, ap: 0, dmg: '1', t: 4, sv: 3, inv: 0, fnp: 0, w: 1, hitMod: 0, woundMod: 0, hitRr: 'none', woundRr: 'none', torrent: false, lethal: false, sustained: 0, dev: false, critHit: 6, anti: 0 };
 function parseDice(expr) { // "2D6+1", "D3", "4"
   const m = String(expr || '').toUpperCase().replace(/\s/g, '').match(/^(\d*)D(3|6)([+-]\d+)?$|^(\d+)$/);
   if (!m) return null;
@@ -212,25 +212,28 @@ function simulate(o, runs = 20000) {
   const save = +o.inv ? Math.min(saveBase, +o.inv) : saveBase;
   const hist = new Map(); let sumHits = 0, sumWounds = 0, sumUnsaved = 0, sumDmg = 0, sumKills = 0;
   const hitMod = Math.max(-1, Math.min(1, +o.hitMod)), woundMod = Math.max(-1, Math.min(1, +o.woundMod));
+  const ch = +o.critHit === 5 ? 5 : 6, cw = +o.anti >= 2 && +o.anti <= 6 ? +o.anti : 6;
   for (let r = 0; r < runs; r++) {
     let attacks = 0; for (let m = 0; m < Math.max(1, +o.models); m++) attacks += rollExpr(A);
     let hits = 0, autoW = 0;
     for (let i = 0; i < attacks; i++) {
       if (o.torrent) { hits++; continue; }
       let d = roll(6);
-      const fail = x => x === 1 || (x !== 6 && x + hitMod < +o.skill);
+      const crit = x => x >= ch; // critical hit: unmodified 6, or 5+ with the option
+      const fail = x => !crit(x) && (x === 1 || x + hitMod < +o.skill);
       if (fail(d) && (o.hitRr === 'all' || (o.hitRr === 'ones' && d === 1))) d = roll(6);
       if (fail(d)) continue;
-      if (d === 6 && o.lethal) autoW++; else hits++;
-      if (d === 6 && +o.sustained) hits += +o.sustained;
+      if (crit(d) && o.lethal) autoW++; else hits++;
+      if (crit(d) && +o.sustained) hits += +o.sustained;
     }
     let wounds = 0, mortalDmg = 0, normal = autoW;
     for (let i = 0; i < hits; i++) {
       let d = roll(6);
-      const fail = x => x === 1 || (x !== 6 && x + woundMod < wt);
+      const crit = x => x >= cw; // critical wound: unmodified 6, or Anti-X+
+      const fail = x => !crit(x) && (x === 1 || x + woundMod < wt);
       if (fail(d) && (o.woundRr === 'all' || (o.woundRr === 'ones' && d === 1))) d = roll(6);
       if (fail(d)) continue;
-      if (d === 6 && o.dev) { for (let k = 0; k < 1; k++) mortalDmg += rollExpr(D); wounds++; } else { normal++; wounds++; }
+      if (crit(d) && o.dev) { for (let k = 0; k < 1; k++) mortalDmg += rollExpr(D); wounds++; } else { normal++; wounds++; }
     }
     wounds += autoW;
     let unsaved = 0; const dmgs = [];
@@ -245,7 +248,7 @@ function simulate(o, runs = 20000) {
   }
   const max = Math.max(...hist.keys()); const atLeast = []; let acc = 0;
   for (let d = max; d >= 0; d--) { acc += hist.get(d) || 0; atLeast[d] = acc / runs; }
-  return { hits: sumHits / runs, wounds: sumWounds / runs, unsaved: sumUnsaved / runs, dmg: sumDmg / runs, kills: sumKills / runs, atLeast, wt, save };
+  return { hits: sumHits / runs, wounds: sumWounds / runs, unsaved: sumUnsaved / runs, dmg: sumDmg / runs, kills: sumKills / runs, atLeast, wt, save, ch, cw };
 }
 export function mathhammer(el) {
   const o = { ...MH0, ...(store(MK) || {}) };
@@ -260,7 +263,9 @@ export function mathhammer(el) {
       ${sel('ap', 'AP', [0, 1, 2, 3, 4, 5, 6].map(x => [String(x), x ? '−' + x : '0']))}<label>${esc(L('Schaden', 'Damage'))}<input name="dmg" value="${esc(o.dmg)}" placeholder="1, D3, D6+1"></label>
       ${sel('hitMod', L('Trefferwurf', 'Hit roll'), [['-1', '−1'], ['0', '±0'], ['1', '+1']])}${sel('hitRr', L('Treffer wiederholen', 'Re-roll hits'), rr)}
       ${sel('woundMod', L('Verwundungswurf', 'Wound roll'), [['-1', '−1'], ['0', '±0'], ['1', '+1']])}${sel('woundRr', L('Verwunden wiederholen', 'Re-roll wounds'), rr)}
-      ${sel('sustained', 'Sustained Hits', [0, 1, 2, 3].map(x => [String(x), x ? String(x) : L('nein', 'no')]))}</div>
+      ${sel('sustained', 'Sustained Hits', [0, 1, 2, 3].map(x => [String(x), x ? String(x) : L('nein', 'no')]))}
+      ${sel('critHit', L('Kritischer Treffer', 'Critical hit'), [['6', '6+'], ['5', '5+']])}
+      ${sel('anti', L('Anti-X+ (krit. Verwundung)', 'Anti-X+ (crit. wound)'), [['0', L('nein', 'no')], ['2', '2+'], ['3', '3+'], ['4', '4+'], ['5', '5+']])}</div>
       <div class="chips mh-checks">${chk('torrent', 'Torrent')}${chk('lethal', 'Lethal Hits')}${chk('dev', 'Devastating Wounds')}</div>
       <h2>${esc(L('Ziel', 'Target'))}</h2><div class="mh-grid">${num('t', L('Widerstand', 'Toughness'), 1, 20)}${sel('sv', L('Rüstung', 'Save'), [2, 3, 4, 5, 6, 7].map(x => [String(x), x === 7 ? L('keine', 'none') : x + '+']))}
       ${sel('inv', L('Rettungswurf', 'Invuln'), [0, 2, 3, 4, 5, 6].map(x => [String(x), x ? x + '++' : L('keiner', 'none')]))}${sel('fnp', 'Feel No Pain', [0, 4, 5, 6].map(x => [String(x), x ? x + '+++' : L('keiner', 'none')]))}
@@ -274,7 +279,7 @@ export function mathhammer(el) {
     const f1 = x => (Math.round(x * 10) / 10).toLocaleString(getLang() === 'de' ? 'de-AT' : 'en-GB');
     const rows = r.atLeast.map((p, d) => [d, p]).filter(([d, p]) => d > 0 && p >= 0.01).slice(0, 40);
     out.innerHTML = `<div class="stats mh-stats"><div><b class="num">${f1(r.dmg)}</b><span>${esc(L('Ø Schaden', 'Avg damage'))}</span></div><div><b class="num">${f1(r.kills)}</b><span>${esc(L('Ø Modelle tot', 'Avg models killed'))}</span></div><div><b class="num">${f1(r.hits)}</b><span>${esc(L('Ø Treffer', 'Avg hits'))}</span></div><div><b class="num">${f1(r.unsaved)}</b><span>${esc(L('Ø nicht gerettet', 'Avg unsaved'))}</span></div></div>
-      <p class="mute">${esc(L(`Verwunden auf ${r.wt}+ · Rettung auf ${r.save >= 7 ? '–' : r.save + '+'}`, `Wound on ${r.wt}+ · save on ${r.save >= 7 ? '–' : r.save + '+'}`))}</p>
+      <p class="mute">${esc(L(`Verwunden auf ${r.wt}+ · Rettung auf ${r.save >= 7 ? '–' : r.save + '+'} · krit. Treffer ${r.ch}+ · krit. Verwundung ${r.cw}+`, `Wound on ${r.wt}+ · save on ${r.save >= 7 ? '–' : r.save + '+'} · crit hit ${r.ch}+ · crit wound ${r.cw}+`))}</p>
       <h3>${esc(L('Wahrscheinlichkeit für mindestens … Schaden', 'Chance of at least … damage'))}</h3>
       <div class="mh-bars">${rows.map(([d, p]) => `<div><span class="num">${d}</span><i style="--p:${Math.round(p * 100)}%"></i><b class="num">${Math.round(p * 100)}%</b></div>`).join('')}</div>`;
   };
