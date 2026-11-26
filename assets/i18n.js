@@ -176,10 +176,10 @@ const S = {
   live_title: ['Live-Ansicht', 'Live view'], live_pw: ['Dieses Teamturnier ist mit einem Passwort geschützt.', 'This team event is password protected.'], live_nf: ['Link nicht gefunden oder deaktiviert.', 'Link not found or disabled.'], live_refresh: ['Aktualisiert sich automatisch alle 30 Sekunden.', 'Refreshes automatically every 30 seconds.'],
   unpaired: ['– offen –', '– open –'], te_none: ['Noch keine Teamturniere.', 'No team events yet.'],
   // navigation
-  nav_home: ['Übersicht', 'Home'], nav_team: ['Team', 'Team'], nav_analysis: ['Analyse', 'Analysis'], nav_apps: ['Apps', 'Apps'], nav_admin: ['Verwaltung', 'Admin'],
+  nav_home: ['Übersicht', 'Home'], nav_mine: ['Für mich', 'Personal'], nav_analysis_team: ['Team-Analyse', 'Team analysis'], nav_team: ['Team', 'Team'], nav_analysis: ['Team-Analyse', 'Team analysis'], nav_apps: ['Apps', 'Apps'], nav_admin: ['Verwaltung', 'Admin'],
   nav_roster: ['Anmeldung', 'Roster'], nav_matches: ['Match Log', 'Match log'], nav_archive: ['Alle Spiele', 'All games'], nav_events: ['Events', 'Events'],
   nav_calendar: ['Kalender', 'Calendar'], nav_lineup: ['Aufstellung', 'Line-up'], nav_cash: ['Kasse', 'Cash'], nav_matrix: ['Live Matrix', 'Live matrix'],
-  nav_stats: ['Statistik', 'Statistics'], nav_master: ['Master Matrix', 'Master matrix'], nav_masterteam: ['Master Team', 'Master team'], nav_pairing: ['Pairing', 'Pairing'],
+  nav_stats: ['Team-Statistik', 'Team statistics'], nav_master: ['Master Matrix', 'Master matrix'], nav_masterteam: ['Master Team', 'Master team'], nav_pairing: ['Pairing', 'Pairing'],
   nav_members: ['Verwaltung', 'Admin'], nav_profile: ['Profil', 'Profile'], nav_collection: ['Collection Tracker', 'Collection tracker'],
   menu: ['Menü', 'Menu'], close: ['Schließen', 'Close'],
   // auth
