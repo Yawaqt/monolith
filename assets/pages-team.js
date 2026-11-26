@@ -1,9 +1,10 @@
 // Team pages: home, roster, match log, archive, events, calendar, line-up, cash.
-import { CONFIG } from './config.js?v=202611261758';
-import { db } from './db.js?v=202611261758';
-import { t } from './i18n.js?v=202611261758';
-import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611261758';
-import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611261758';
+import { CONFIG } from './config.js?v=202611261811';
+import { db } from './db.js?v=202611261811';
+import { t } from './i18n.js?v=202611261811';
+import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611261811';
+import { resetHistory } from './pages-history.js?v=202611261811';
+import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611261811';
 
 const D = () => state.data;
 const rsvpOf = (eid, pid) => (D().rsvps || []).find(r => r.event_id === eid && r.player_id === pid)?.status;
@@ -170,11 +171,12 @@ function matchForm(m = {}) {
 }
 function bindMatchForm(f) {
   const upd = () => {
-    const ty = f.type.value, g = gp(f.our_score.value, f.opp_score.value), res = outcome(ty, f.our_score.value, f.opp_score.value);
-    $('.preview', f).innerHTML = !g ? `<small class="mute">${esc(t(teamScored(ty) ? 'score_rule' : 'score_rule_singles'))}</small>`
+    const ty0 = f.type.value, ty = ty0 === 'Casual' ? 'Tournament' : ty0, g = gp(f.our_score.value, f.opp_score.value), res = outcome(ty, f.our_score.value, f.opp_score.value);
+    $('.preview', f).innerHTML = !g ? `<small class="mute">${esc(t(ty0 === 'Casual' ? 'casual_hint' : teamScored(ty) ? 'score_rule' : 'score_rule_singles'))}</small>`
       : teamScored(ty) ? `${esc(t('diff'))} <b class="num">${f.our_score.value - f.opp_score.value}</b> · ${esc(t('team_score'))} <b class="num">${scoreStr(g)}</b> ${resultBadge(res)}`
-      : `${esc(t('diff'))} <b class="num">${f.our_score.value - f.opp_score.value}</b> · ${resultBadge(res)} <small class="mute">${esc(t('score_rule_singles'))}</small>`;
-    $('.opp-name', f).style.display = f.opp_player_id.value ? 'none' : '';
+      : `${esc(t('diff'))} <b class="num">${f.our_score.value - f.opp_score.value}</b> · ${resultBadge(res)} <small class="mute">${esc(t(ty0 === 'Casual' ? 'casual_hint' : 'score_rule_singles'))}</small>`;
+    $('.opp-name', f).style.display = f.opp_player_id && f.opp_player_id.value && ty0 !== 'Casual' ? 'none' : '';
+    $$('.team-only', f).forEach(x => { x.hidden = ty0 === 'Casual'; });
   };
   f.addEventListener('input', upd); f.addEventListener('change', e => {
     if (e.target.name === 'player_id') { const pl = playerById(e.target.value); const a = (pl?.armies || []).find(x => x.army); if (a) { f.army.value = a.army; if (a.d1) f.disposition.value = a.d1; } }
@@ -207,7 +209,7 @@ export async function quickResult() {
   const plOpts = players(true).map(p => [p.id, p.name]);
   const armyList = [...new Set([...(pl?.armies || []).map(a => a.army).filter(Boolean), ...FACTIONS])];
   const body = `<div class="quick">
-    <div class="seg type-seg" role="group" aria-label="${esc(t('type'))}">${GAME_TYPES.map(x => `<button type="button" data-type="${x}" aria-pressed="${m.type === x}">${esc(t({ Practice: 'type_practice', Tournament: 'type_singles_s', 'Team Tournament': 'type_team' }[x]))}</button>`).join('')}</div>
+    <div class="seg type-seg" role="group" aria-label="${esc(t('type'))}">${[...GAME_TYPES, 'Casual'].map(x => `<button type="button" data-type="${x}" aria-pressed="${m.type === x}">${esc(t({ Practice: 'type_practice', Tournament: 'type_singles_s', 'Team Tournament': 'type_team', Casual: 'type_casual' }[x]))}</button>`).join('')}</div>
     <input type="hidden" name="type" value="${esc(m.type)}">
     <label class="tour-name"${m.type === 'Practice' ? ' hidden' : ''}>${esc(t('tour_name'))}<input name="tournament" value="${esc(m.tournament || '')}" list="qtours" maxlength="80"><datalist id="qtours">${[...new Set((D().matches || []).map(x => x.tournament).filter(Boolean))].map(x => `<option value="${esc(x)}">`).join('')}</datalist></label>
     <div class="grid2">
@@ -218,21 +220,27 @@ export async function quickResult() {
     </div>
     <div class="preview" aria-live="polite"></div>
     <div class="more-open"><h3>${esc(t('details'))}</h3><div class="grid2">
-      <label>${esc(t('our_player'))}<select name="player_id" required>${opts(plOpts, pid, '–')}</select></label>
+      <label class="team-only">${esc(t('our_player'))}<select name="player_id" required>${opts(plOpts, pid, '–')}</select></label>
       <label>${esc(t('date'))}<input name="played_on" type="date" required value="${esc(m.played_on)}"></label>
-      <label>${esc(t('our_disp'))}<select name="disposition">${opts(DISPOSITIONS, m.disposition || '', '–')}</select></label>
-      <label>${esc(t('opp_disp'))}<select name="opp_disposition">${opts(DISPOSITIONS, '', '–')}</select></label>
-      <label>${esc(t('opp_player'))}<select name="opp_player_id">${opts(players().map(p => [p.id, p.name]), '', t('external'))}</select></label>
+      <label class="team-only">${esc(t('our_disp'))}<select name="disposition">${opts(DISPOSITIONS, m.disposition || '', '–')}</select></label>
+      <label class="team-only">${esc(t('opp_disp'))}<select name="opp_disposition">${opts(DISPOSITIONS, '', '–')}</select></label>
+      <label class="team-only">${esc(t('opp_player'))}<select name="opp_player_id">${opts(players().map(p => [p.id, p.name]), '', t('external'))}</select></label>
       <label class="opp-name">${esc(t('opp_name'))}<input name="opp_name" maxlength="60"></label></div>
       <label>${esc(t('notes'))}<input name="notes" maxlength="200"></label></div></div>`;
   const r = await modal(t('quick_title'), body, { submit: t('save_game'), onOpen: f => {
     f.addEventListener('click', e => { const b = e.target.closest('[data-type]'); if (!b) return;
       f.type.value = b.dataset.type; $$('[data-type]', f).forEach(x => x.setAttribute('aria-pressed', x === b));
-      $('.tour-name', f).hidden = b.dataset.type === 'Practice'; f.dispatchEvent(new Event('change')); });
+      $('.tour-name', f).hidden = b.dataset.type === 'Practice' || b.dataset.type === 'Casual'; f.dispatchEvent(new Event('change')); });
     bindMatchForm(f);
     setTimeout(() => f.opp_faction.focus(), 30);
   } });
   if (!r) return;
+  if (r.type === 'Casual') { // only into the player's own match history (and the anonymous data page), never into team stats or the matrix
+    const g = { played_on: r.played_on, army: r.army, opp_army: r.opp_faction, my_score: +r.our_score, opp_score: +r.opp_score, kind: 'Casual', event: null,
+      opp_name: (r.opp_name || '').trim() || null, notes: (r.notes || '').trim() || null };
+    try { await db.insert('personal_games', g); resetHistory(); toast(t('casual_saved')); } catch (err) { toast(t('error') + ': ' + err.message, true); }
+    return;
+  }
   if (r.type === 'Practice') r.tournament = '';
   let row; try { row = matchRow(r); } catch (err) { return toast(err.message, true); }
   if (await handleMirror(row)) return;

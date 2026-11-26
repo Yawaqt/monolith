@@ -165,6 +165,8 @@ const S = {
   admin_test: ['Test · nur Admins', 'Test · admins only'],
   h_opp_name_ph: ['optional – für die Gegner-Statistik', 'optional – for the opponent stats'],
   details: ['Details', 'Details'],
+  type_casual: ['Casual', 'Casual'], casual_hint: ['Casual zählt nur in deiner persönlichen Match History, nicht in Team-Statistik oder Matrix. Mehr Punkte = Sieg.', 'Casual only counts in your personal match history, not in team stats or the matrix. More points = win.'],
+  casual_saved: ['In deiner Match History gespeichert', 'Saved to your match history'],
   nav_mystats: ['Meine Statistik', 'My statistics'],
   mystats_intro: ['Nur deine eigenen Spiele aus dem Match Log – nur du siehst diese Auswertung. Siegquote: Unentschieden = ½ Sieg.', 'Only your own games from the match log – only you see this. Win rate: draw = ½ win.'],
   mystats_noplayer: ['Dein Konto ist noch keinem Spieler zugeordnet. Ein Admin kann das unter Verwaltung erledigen.', 'Your account is not linked to a player yet. An admin can do this under Administration.'],
