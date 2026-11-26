@@ -152,6 +152,12 @@ const S = {
   reset_wait: ['Bitte eine Minute warten – die Mail ist schon unterwegs. Jede neue Anfrage macht den vorherigen Link ungültig.', 'Please wait a minute – the e-mail is on its way. Each new request invalidates the previous link.'],
   link_expired: ['Der Link ist abgelaufen oder wurde schon benutzt. Bitte fordere einen neuen an und nimm den Link aus der neuesten Mail.', 'The link has expired or was already used. Please request a new one and use the link from the newest e-mail.'],
   new_pw_title: ['Neues Passwort festlegen', 'Set a new password'], new_pw_intro: ['Gib dein neues Passwort ein (mindestens 8 Zeichen).', 'Enter your new password (at least 8 characters).'],
+  nav_mystats: ['Meine Statistik', 'My statistics'],
+  mystats_intro: ['Nur deine eigenen Spiele aus dem Match Log – nur du siehst diese Auswertung. Siegquote: Unentschieden = ½ Sieg.', 'Only your own games from the match log – only you see this. Win rate: draw = ½ win.'],
+  mystats_noplayer: ['Dein Konto ist noch keinem Spieler zugeordnet. Ein Admin kann das unter Verwaltung erledigen.', 'Your account is not linked to a player yet. An admin can do this under Administration.'],
+  winrate: ['Siegquote', 'Win rate'], my_factions: ['Meine Fraktionen', 'My factions'], their_factions: ['Seine/ihre Fraktionen', 'Their factions'], vs_factions: ['Gegen Fraktionen', 'Against factions'],
+  my_opponents: ['Gegner', 'Opponents'], my_opponents_hint: ['Nur Gegner, gegen die du mehr als 5 Spiele hast. Tippen zum Aufklappen.', 'Only opponents you played more than 5 times. Tap to expand.'],
+  my_opponents_none: ['Noch kein Gegner mit mehr als 5 Spielen. Trag den Gegnernamen bei deinen Spielen ein, damit sie hier zusammengezählt werden.', 'No opponent with more than 5 games yet. Enter the opponent name in your games so they add up here.'],
   // team events
   nav_teams: ['Teamturniere', 'Team events'], teams_intro: ['Team-Events für 5er und 8er Teams: Aufstellung mit Regelprüfung, Vorhersagen pro Paarung, Pairings und Ergebnisse live mit dem ganzen Team.', 'Team events for 5s and 8s: line-up with rule checks, a prediction per matchup, pairings and results live with the whole team.'],
   new_tevent: ['Neues Teamturnier', 'New team event'], te_size: ['Teamgröße', 'Team size'], te_rules: ['Regeln', 'Rules'], te_link_event: ['Mit Event verknüpfen', 'Link to event'],
