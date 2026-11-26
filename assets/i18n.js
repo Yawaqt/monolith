@@ -27,7 +27,7 @@ const S = {
   rounds_saved: ['{n} Spiele gespeichert', '{n} games saved'],
   type_practice: ['Training', 'Practice'], type_singles: ['Turnier (Singles)', 'Tournament (singles)'], type_team: ['Teamturnier', 'Team tournament'],
   score_rule_singles: ['Singles: mehr Punkte = Sieg, gleich viele = Unentschieden (89–90 ist eine Niederlage).', 'Singles: more points wins, equal points is a draw (89–90 is a loss).'],
-  archive_intro: ['Alle Spiele. Mitglieder können hier jedes Spiel bearbeiten oder löschen.', 'All games. Members can edit or delete any game here.'],
+  archive_intro: ['Alle Spiele. Deine eigenen Spiele kannst du hier bearbeiten oder löschen – fremde Einträge nur Admins.', 'All games. You can edit or delete your own games here – other entries only admins.'],
   // news, photos, record
   p_news: ['News', 'News'], nav_newsedit: ['News schreiben', 'Write news'], news_intro: ['Berichte, Turniere und Neuigkeiten aus dem Team.', 'Reports, tournaments and news from the team.'],
   news_write: ['Artikel schreiben', 'Write an article'], news_none: ['Noch keine Artikel.', 'No articles yet.'], news_back: ['← Alle News', '← All news'], news_nf: ['Artikel nicht gefunden.', 'Article not found.'],
@@ -134,6 +134,13 @@ const S = {
   st_all_games: ['Alle Spiele (gesamt)', 'All games (total)'], st_all_tours: ['Alle Turniere (Singles + Team)', 'All tournaments (singles + team)'],
   remember_me: ['Angemeldet bleiben', 'Stay signed in'],
   ev_bcp: ['BCP-Link zum Event (optional)', 'BCP event link (optional)'], ev_bcp_hint: ['In der BCP-App beim Event auf Teilen → Link kopieren.', 'In the BCP app open the event → Share → copy link.'], ev_bcp_open: ['Event auf BCP', 'Event on BCP'],
+  ev_tab_tour: ['Turniere', 'Tournaments'], ev_tab_training: ['Training', 'Training'], ev_training: ['Training', 'Training'], ev_tmatch: ['Trainingsmatch', 'Training match'],
+  ev_training_note: ['Trainingstage und Trainingsmatches sind nur hier im Teambereich sichtbar – nicht auf der öffentlichen Seite.', 'Training days and training matches are only visible here in the team area – not on the public site.'],
+  ev_private: ['Nur im Teambereich sichtbar, nicht öffentlich.', 'Only visible in the team area, not public.'], ev_opp_team: ['Gegnerteam', 'Opponent team'], time: ['Uhrzeit', 'Time'],
+  ev_weekly: ['Wöchentlich wiederholen', 'Repeat weekly'], ev_until: ['Bis (letzter Termin)', 'Until (last date)'],
+  ev_series_saved: ['{n} Termine angelegt', '{n} dates created'], ev_del_series: ['Auch die {n} folgenden Termine dieser Serie löschen', 'Also delete the {n} following dates of this series'],
+  dup_no_right: ['Dieses Spiel kann nur ein Admin verknüpfen.', 'Only an admin can link this game.'],
+  archive_own: ['Eigene Spiele kannst du bearbeiten und löschen, fremde nur Admins.', 'You can edit and delete your own games; others only admins.'],
   // team events
   nav_teams: ['Teamturniere', 'Team events'], teams_intro: ['Team-Events für 5er und 8er Teams: Aufstellung mit Regelprüfung, Vorhersagen pro Paarung, Pairings und Ergebnisse live mit dem ganzen Team.', 'Team events for 5s and 8s: line-up with rule checks, a prediction per matchup, pairings and results live with the whole team.'],
   new_tevent: ['Neues Teamturnier', 'New team event'], te_size: ['Teamgröße', 'Team size'], te_rules: ['Regeln', 'Rules'], te_link_event: ['Mit Event verknüpfen', 'Link to event'],

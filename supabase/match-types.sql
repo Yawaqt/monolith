@@ -36,3 +36,21 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function public.public_results() from public;
 grant execute on function public.public_results() to anon, authenticated;
+
+-- 26 Nov 2026: members edit/delete only their own games; admins all
+drop policy if exists matches_update on public.matches;
+create policy matches_update on public.matches for update to authenticated
+  using (public.has_role('admin') or (public.has_role('team') and (created_by = auth.uid() or player_id = public.my_player() or opp_player_id = public.my_player())))
+  with check (public.has_role('admin') or (public.has_role('team') and (created_by = auth.uid() or player_id = public.my_player() or opp_player_id = public.my_player())));
+drop policy if exists matches_delete on public.matches;
+create policy matches_delete on public.matches for delete to authenticated
+  using (public.has_role('admin') or (public.has_role('team') and (created_by = auth.uid() or player_id = public.my_player() or opp_player_id = public.my_player())));
+create or replace function public.link_internal_game(p_id bigint) returns void
+language plpgsql security definer set search_path = public as $$
+declare me bigint := public.my_player();
+begin
+  if not public.has_role('team') or me is null then raise exception 'Not allowed'; end if;
+  update public.matches set opp_player_id = me where id = p_id and opp_player_id is null and player_id <> me;
+end $$;
+revoke all on function public.link_internal_game(bigint) from public;
+grant execute on function public.link_internal_game(bigint) to authenticated;

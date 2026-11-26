@@ -1,5 +1,5 @@
 // Data access: Supabase when configured, otherwise a demo backend in localStorage.
-import { CONFIG } from './config.js?v=202611261215';
+import { CONFIG } from './config.js?v=202611261220';
 
 export const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY;
 export const TABLES = ['players', 'matches', 'events', 'rsvps', 'payments', 'ratings', 'opponent_teams', 'pairings', 'settings', 'tevents', 'tevent_rounds', 'news'];
@@ -132,8 +132,9 @@ const demo = {
       }
       return [...by.values()].sort((a, b) => b.date_to.localeCompare(a.date_to));
     }
-    if (name === 'public_events') return (T.events || []).filter(e => (e.ends_on || e.starts_on) >= today).sort((a, b) => a.starts_on.localeCompare(b.starts_on)).map(e => ({ starts_on: e.starts_on, ends_on: e.ends_on || e.starts_on, title: e.title, location: e.location, kind: e.kind, team_size: e.team_size, bcp_url: e.bcp_url || null }));
+    if (name === 'public_events') return (T.events || []).filter(e => (e.ends_on || e.starts_on) >= today && (e.kind === 'Singles' || e.kind === 'Team Tournament')).sort((a, b) => a.starts_on.localeCompare(b.starts_on)).map(e => ({ starts_on: e.starts_on, ends_on: e.ends_on || e.starts_on, title: e.title, location: e.location, kind: e.kind, team_size: e.team_size, bcp_url: e.bcp_url || null }));
     if (name === 'owner_players') return [2, 4];
+    if (name === 'link_internal_game') { const m = tbl('matches').find(x => x.id === args.p_id); if (m && !m.opp_player_id) { m.opp_player_id = load().profiles.find(p => p.id === 'demo-user')?.player_id || null; persist(); } return null; }
     if (name === 'admin_account_emails') return load().profiles.map(p => ({ id: p.id, email: (p.display_name || 'user').toLowerCase().replace(/\s+/g, '.') + '@example.com' }));
     if (name === 'delete_my_account') return null;
     if (name === 'game_stats') { const by = new Map(); const G = tbl('personal_games');

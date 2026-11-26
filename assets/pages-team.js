@@ -1,15 +1,19 @@
 // Team pages: home, roster, match log, archive, events, calendar, line-up, cash.
-import { db } from './db.js?v=202611261215';
-import { t } from './i18n.js?v=202611261215';
-import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611261215';
-import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611261215';
+import { db } from './db.js?v=202611261220';
+import { t } from './i18n.js?v=202611261220';
+import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611261220';
+import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611261220';
 
 const D = () => state.data;
 const rsvpOf = (eid, pid) => (D().rsvps || []).find(r => r.event_id === eid && r.player_id === pid)?.status;
 export const BCP_RE = /^https:\/\/([a-z0-9-]+\.)*bestcoastpairings\.com\//i;
 const upcomingEvents = () => (D().events || []).filter(e => (e.ends_on || e.starts_on) >= today()).sort((a, b) => a.starts_on.localeCompare(b.starts_on));
-// Members (Team role) and above may add, edit and delete every game.
-const canEditMatch = () => can('team');
+// Members edit and delete their own games (entered by them or played by them); admins all games.
+const uidNow = () => state.session && state.session.user.id;
+const canEditMatch = m => can('admin') || (can('team') && !!m && (m.created_by === uidNow() || (myPlayer() && (m.player_id === myPlayer() || m.opp_player_id === myPlayer()))));
+// Link a team mate's existing game to a second player (own games directly, others via a safe server function)
+const linkGame = (m, pid, disp) => canEditMatch(m) ? db.update('matches', { id: m.id }, { opp_player_id: pid, opp_disposition: m.opp_disposition || disp || null })
+  : pid === myPlayer() ? db.rpc('link_internal_game', { p_id: m.id }) : Promise.reject(new Error(t('dup_no_right')));
 const typeOpts = cur => opts([...new Set([...GAME_TYPES, ...(cur ? [cur] : [])])].map(x => [x, typeLabel(x, t)]), cur);
 // Result cell: team-scored games show the 20-0 score, singles only the points.
 export function resultHtml(m) {
@@ -248,7 +252,7 @@ async function handleMirror(row) {
   if (!r) return true;                 // cancelled: save nothing
   if (r.force) return false;           // really a different game
   if (m.player_id === row.player_id) toast(t('dup_exists'));
-  else if (!m.opp_player_id || m.opp_player_id !== row.player_id) await act(() => db.update('matches', { id: m.id }, { opp_player_id: row.player_id, opp_disposition: m.opp_disposition || row.disposition || null }), ['matches'], t('dup_linked', { a: pname(m.player_id), b: pname(row.player_id) }));
+  else if (!m.opp_player_id || m.opp_player_id !== row.player_id) await act(() => linkGame(m, row.player_id, row.disposition), ['matches'], t('dup_linked', { a: pname(m.player_id), b: pname(row.player_id) }));
   else toast(t('dup_exists'));
   return true;
 }
@@ -323,18 +327,22 @@ export function archive(el) {
 
 // ---------------------------------------------------------------- Events
 let showPast = false;
+let evTab = 'tour';
+const isTraining = e => e.kind === 'Training' || e.kind === 'Training Match';
 export function events(el) {
-  const all = (D().events || []).slice();
-  const list = showPast ? all.filter(e => (e.ends_on || e.starts_on) < today()).sort((a, b) => b.starts_on.localeCompare(a.starts_on)) : upcomingEvents();
+  const all = (D().events || []).filter(e => evTab === 'training' ? isTraining(e) : !isTraining(e));
+  const list = showPast ? all.filter(e => (e.ends_on || e.starts_on) < today()).sort((a, b) => b.starts_on.localeCompare(a.starts_on)) : all.filter(e => (e.ends_on || e.starts_on) >= today()).sort((a, b) => a.starts_on.localeCompare(b.starts_on) || String(a.start_time || '').localeCompare(String(b.start_time || '')));
   const ps = players();
   el.innerHTML = pageHead(t('nav_events'), t('events_intro'), can('captain') ? `<button class="btn primary" data-new>${esc(t('new_event'))}</button>` : '') +
-    `<div class="seg" role="group"><button type="button" data-past="0" aria-pressed="${!showPast}">${esc(t('upcoming'))}</button><button type="button" data-past="1" aria-pressed="${showPast}">${esc(t('past'))}</button></div>
+    `<div class="seg ev-tabs" role="tablist"><button type="button" role="tab" data-evtab="tour" aria-selected="${evTab === 'tour'}">🏆 ${esc(t('ev_tab_tour'))}</button><button type="button" role="tab" data-evtab="training" aria-selected="${evTab === 'training'}">⚔ ${esc(t('ev_tab_training'))}</button></div>
+    ${evTab === 'training' ? `<p class="mute small">${esc(t('ev_training_note'))}</p>` : ''}
+    <div class="seg" role="group"><button type="button" data-past="0" aria-pressed="${!showPast}">${esc(t('upcoming'))}</button><button type="button" data-past="1" aria-pressed="${showPast}">${esc(t('past'))}</button></div>
     ${can('captain') ? `<p class="mute small">${esc(t('tap_to_set'))}</p>` : ''}
     <div class="events">${list.length ? list.map(e => {
       const st = s => ps.filter(p => rsvpOf(e.id, p.id) === s);
       const yes = st('yes'), maybe = st('maybe'), no = st('no');
       return `<article class="card ev" id="ev-${e.id}"><header><div class="ev-date"><b>${esc(fmtDate(e.starts_on, { day: '2-digit' }))}</b><span>${esc(fmtDate(e.starts_on, { month: 'short' }))}</span></div>
-        <div class="ev-main"><h3>${esc(e.title)}</h3><p class="mute">${esc(evRange(e, true))}${e.location ? ' · ' + esc(e.location) : ''} · ${esc(evKind(e))}${BCP_RE.test(e.bcp_url || '') ? ` · <a href="${esc(e.bcp_url)}" target="_blank" rel="noopener">BCP ↗</a>` : ''}</p>${e.note ? `<p>${esc(e.note)}</p>` : ''}</div>
+        <div class="ev-main"><h3>${esc(e.title)}</h3><p class="mute">${esc(evRange(e, true))}${isTraining(e) && e.start_time ? ' · ' + esc(String(e.start_time).slice(0, 5)) : ''}${e.location ? ' · ' + esc(e.location) : ''} · ${esc(evKind(e))}${e.series_id ? ' · 🔁' : ''}${BCP_RE.test(e.bcp_url || '') ? ` · <a href="${esc(e.bcp_url)}" target="_blank" rel="noopener">BCP ↗</a>` : ''}</p>${e.note ? `<p>${esc(e.note)}</p>` : ''}</div>
         ${can('captain') ? `<div class="ev-tools"><button class="icon" data-eedit="${e.id}" aria-label="${esc(t('edit'))}">✎</button><button class="icon" data-edel="${e.id}" aria-label="${esc(t('delete'))}">🗑</button></div>` : ''}</header>
         <p class="counts"><span class="yes">${esc(t('going'))} <b>${yes.length}</b></span><span class="maybe">${esc(t('maybe'))} <b>${maybe.length}</b></span><span class="no">${esc(t('no'))} <b>${no.length}</b></span></p>
         ${myPlayer() ? `<div class="mine"><span>${esc(t('your_answer'))}:</span><div class="seg sm">${['yes', 'maybe', 'no'].map(s => `<button type="button" data-e="${e.id}" data-rsvp="${s}" class="${s}" aria-pressed="${rsvpOf(e.id, myPlayer()) === s}">${esc(t(s))}</button>`).join('')}</div></div>` : ''}
@@ -343,37 +351,67 @@ export function events(el) {
   el.onclick = async e => {
     const b = e.target.closest('button'); if (!b) return;
     if (b.dataset.past) { showPast = b.dataset.past === '1'; return events(el); }
+    if (b.dataset.evtab) { evTab = b.dataset.evtab; return events(el); }
     if (b.dataset.rsvp) return setRsvp(+b.dataset.e, myPlayer(), b.dataset.rsvp);
     if (b.dataset.cycle) { const [eid, pid] = b.dataset.cycle.split(':').map(Number); const order = ['yes', 'maybe', 'no', null]; const cur = rsvpOf(eid, pid) || null; const nx = order[(order.indexOf(cur) + 1) % 4];
       return act(() => nx ? db.upsert('rsvps', { event_id: eid, player_id: pid, status: nx }) : db.remove('rsvps', { event_id: eid, player_id: pid }), ['rsvps'], false); }
-    if (b.dataset.new !== undefined) return editEvent(null);
+    if (b.dataset.new !== undefined) return editEvent(null, evTab === 'training' ? 'Training' : 'Singles');
     if (b.dataset.eedit) return editEvent(D().events.find(x => x.id === +b.dataset.eedit));
-    if (b.dataset.edel) { const ev = D().events.find(x => x.id === +b.dataset.edel); if (await confirmBox(ev.title)) act(() => db.remove('events', { id: ev.id }), ['events', 'rsvps']); }
+    if (b.dataset.edel) { const ev = D().events.find(x => x.id === +b.dataset.edel);
+      const later = ev.series_id ? D().events.filter(x => x.series_id === ev.series_id && x.id !== ev.id && x.starts_on >= ev.starts_on) : [];
+      if (!later.length) { if (await confirmBox(ev.title)) act(() => db.remove('events', { id: ev.id }), ['events', 'rsvps']); return; }
+      const r = await modal(t('delete'), `<p>${esc(ev.title)} · ${esc(fmtDate(ev.starts_on))}</p><label class="check"><input type="checkbox" name="all"> ${esc(t('ev_del_series', { n: later.length }))}</label>`, { submit: t('delete'), danger: true });
+      if (r) act(async () => { for (const x of r.all ? [ev, ...later] : [ev]) await db.remove('events', { id: x.id }); }, ['events', 'rsvps']); }
   };
 }
-async function editEvent(ev) {
-  const e = ev || { starts_on: today(), ends_on: today(), title: '', location: '', kind: 'Singles', note: '', team_size: 5 };
-  const r = await modal(ev ? ev.title : t('new_event'), `<label>${esc(t('event'))}<input name="title" required maxlength="80" value="${esc(e.title)}"></label>
+async function editEvent(ev, defKind = 'Singles') {
+  const e = ev || { starts_on: today(), ends_on: today(), title: '', location: '', kind: defKind, note: '', team_size: 5, start_time: '' };
+  const KINDS = [['Singles', t('type_singles_s')], ['Team Tournament', t('type_team')], ['Training', t('ev_training')], ['Training Match', t('ev_tmatch')]];
+  // which fields belong to which kind
+  const show = { size: ['Team Tournament', 'Training Match'], opp: ['Training Match'], time: ['Training', 'Training Match'], bcp: ['Singles', 'Team Tournament'], until: ['Training', 'Training Match'], end: ['Singles', 'Team Tournament'] };
+  const vis = (k, kind) => show[k].includes(kind) ? '' : ' hidden';
+  const r = await modal(ev ? ev.title : t('new_event'), `
+    <div class="seg ev-kind" role="group" aria-label="${esc(t('kind'))}">${KINDS.map(([k, l]) => `<button type="button" data-kind="${k}" aria-pressed="${e.kind === k}">${esc(l)}</button>`).join('')}</div>
+    <input type="hidden" name="kind" value="${esc(e.kind)}">
+    <p class="mute small" data-f="privnote"${isTraining(e) ? '' : ' hidden'}>🔒 ${esc(t('ev_private'))}</p>
+    <label data-f="opp"${vis('opp', e.kind)}>${esc(t('ev_opp_team'))}<input name="opp_team" maxlength="80" value="${esc(e.opp_team || '')}"></label>
+    <label>${esc(t('event'))}<input name="title" required maxlength="80" value="${esc(e.title)}"></label>
     <div class="grid2"><label>${esc(t('date_from'))}<input type="date" name="starts_on" required value="${esc(e.starts_on)}"></label>
-    <label>${esc(t('date_to'))}<input type="date" name="ends_on" required value="${esc(e.ends_on || e.starts_on)}"></label></div>
-    <div class="seg ev-kind" role="group" aria-label="${esc(t('kind'))}">${[['Singles', t('type_singles_s')], ['Team Tournament', t('type_team')]].map(([k, l]) => `<button type="button" data-kind="${k}" aria-pressed="${e.kind === k}">${esc(l)}</button>`).join('')}</div>
-    <input type="hidden" name="kind" value="${esc(e.kind === 'Team Tournament' ? 'Team Tournament' : 'Singles')}">
+    <label data-f="end"${vis('end', e.kind)}>${esc(t('date_to'))}<input type="date" name="ends_on" value="${esc(e.ends_on || e.starts_on)}"></label>
+    <label data-f="time"${vis('time', e.kind)}>${esc(t('time'))}<input type="time" name="start_time" value="${esc(String(e.start_time || '').slice(0, 5))}"></label></div>
+    ${ev ? '' : `<div data-f="until"${vis('until', e.kind)}><label class="check"><input type="checkbox" name="repeat"> ${esc(t('ev_weekly'))}</label>
+      <label class="rep-until" hidden>${esc(t('ev_until'))}<input type="date" name="until"></label></div>`}
     <div class="grid2"><label>${esc(t('location'))}<input name="location" maxlength="60" value="${esc(e.location || '')}"></label>
-    <label class="tsize"${e.kind === 'Team Tournament' ? '' : ' hidden'}>${esc(t('team_size'))}<select name="team_size">${opts([3, 4, 5, 6, 8].map(n => [n, String(n)]), e.team_size || 5)}</select></label></div>
+    <label data-f="size"${vis('size', e.kind)}>${esc(t('team_size'))}<select name="team_size">${opts([3, 4, 5, 6, 8].map(n => [n, String(n)]), e.team_size || 5)}</select></label></div>
     <label>${esc(t('note'))}<input name="note" maxlength="200" value="${esc(e.note || '')}"></label>
-    <label>${esc(t('ev_bcp'))}<input name="bcp_url" type="url" inputmode="url" maxlength="300" placeholder="https://www.bestcoastpairings.com/event/…" value="${esc(e.bcp_url || '')}"><small class="mute">${esc(t('ev_bcp_hint'))}</small></label>`, { onOpen: f => {
-      f.addEventListener('click', x => { const b = x.target.closest('[data-kind]'); if (!b) return; f.kind.value = b.dataset.kind;
-        $$('[data-kind]', f).forEach(y => y.setAttribute('aria-pressed', y === b)); $('.tsize', f).hidden = b.dataset.kind !== 'Team Tournament'; });
+    <label data-f="bcp"${vis('bcp', e.kind)}>${esc(t('ev_bcp'))}<input name="bcp_url" type="url" inputmode="url" maxlength="300" placeholder="https://www.bestcoastpairings.com/event/…" value="${esc(e.bcp_url || '')}"><small class="mute">${esc(t('ev_bcp_hint'))}</small></label>`, { onOpen: f => {
+      const apply = kind => { f.kind.value = kind; $$('[data-kind]', f).forEach(y => y.setAttribute('aria-pressed', y.dataset.kind === kind));
+        for (const k of Object.keys(show)) { const n = $(`[data-f="${k}"]`, f); if (n) n.hidden = !show[k].includes(kind); }
+        $('[data-f="privnote"]', f).hidden = !(kind === 'Training' || kind === 'Training Match');
+        if (!ev && (!f.title.value || f.title.dataset.auto)) { const tt = kind === 'Training' ? t('ev_training') : kind === 'Training Match' ? `${t('ev_tmatch')}${f.opp_team.value ? ' vs ' + f.opp_team.value : ''}` : ''; if (tt || f.title.dataset.auto) { f.title.value = tt; f.title.dataset.auto = tt ? '1' : ''; } } };
+      f.addEventListener('click', x => { const b = x.target.closest('[data-kind]'); if (b) apply(b.dataset.kind); });
+      f.title.addEventListener('input', () => { f.title.dataset.auto = ''; });
+      f.opp_team.addEventListener('input', () => { if (f.title.dataset.auto) apply(f.kind.value); });
       f.starts_on.addEventListener('change', () => { if (!f.ends_on.value || f.ends_on.value < f.starts_on.value) f.ends_on.value = f.starts_on.value; f.ends_on.min = f.starts_on.value; });
-      f.ends_on.min = f.starts_on.value;
+      if (f.repeat) f.repeat.addEventListener('change', () => { $('.rep-until', f).hidden = !f.repeat.checked; if (f.repeat.checked && !f.until.value) { const d = new Date(f.starts_on.value); d.setDate(d.getDate() + 7 * 11); f.until.value = d.toISOString().slice(0, 10); } });
+      f.ends_on.min = f.starts_on.value; if (!ev) apply(e.kind);
     } });
   if (!r) return;
-  if (r.ends_on < r.starts_on) return toast(t('date_order'), true);
-  const bcp = (r.bcp_url || '').trim();
+  const kind = ['Singles', 'Team Tournament', 'Training', 'Training Match'].includes(r.kind) ? r.kind : 'Singles';
+  const training = kind === 'Training' || kind === 'Training Match';
+  const ends = training ? r.starts_on : (r.ends_on || r.starts_on);
+  if (ends < r.starts_on) return toast(t('date_order'), true);
+  const bcp = training ? '' : (r.bcp_url || '').trim();
   if (bcp && !BCP_RE.test(bcp)) return toast(t('bcp_invalid'), true);
-  const team = r.kind === 'Team Tournament';
-  const row = { starts_on: r.starts_on, ends_on: r.ends_on || r.starts_on, title: r.title.trim(), location: r.location.trim() || null, kind: team ? 'Team Tournament' : 'Singles', note: r.note.trim() || null, team_size: team ? +r.team_size || 5 : null, bcp_url: bcp || null };
-  await act(() => ev ? db.update('events', { id: ev.id }, row) : db.insert('events', row), ['events']);
+  const row = { starts_on: r.starts_on, ends_on: ends, title: r.title.trim(), location: r.location.trim() || null, kind, note: r.note.trim() || null,
+    team_size: kind === 'Team Tournament' || kind === 'Training Match' ? +r.team_size || 5 : null, bcp_url: bcp || null,
+    start_time: training && r.start_time ? r.start_time : (training ? null : e.start_time || null), opp_team: kind === 'Training Match' ? (r.opp_team || '').trim() || null : null };
+  if (ev) return act(() => db.update('events', { id: ev.id }, row), ['events']);
+  // weekly series: one event per week up to the chosen date (max. 52)
+  const dates = [r.starts_on];
+  if (training && r.repeat && r.until && r.until > r.starts_on) { const d = new Date(r.starts_on + 'T12:00:00'); for (let n = 0; n < 51; n++) { d.setDate(d.getDate() + 7); const iso = d.toISOString().slice(0, 10); if (iso > r.until) break; dates.push(iso); } }
+  const series = dates.length > 1 ? Math.random().toString(36).slice(2, 12) : null;
+  await act(async () => { for (const d of dates) await db.insert('events', Object.assign({}, row, { starts_on: d, ends_on: d, series_id: series })); }, ['events'], dates.length > 1 ? t('ev_series_saved', { n: dates.length }) : undefined);
 }
 
 // ---------------------------------------------------------------- Calendar
@@ -520,6 +558,6 @@ async function tournamentImport() {
   for (const m of list) { const mm = findMirror(m); if (mm) linked.push([mm, m]); else fresh.push(m); }
   await act(async () => {
     for (const m of fresh) await db.insert('matches', m);
-    for (const [mm, m] of linked) if (mm.opp_player_id !== m.player_id) await db.update('matches', { id: mm.id }, { opp_player_id: m.player_id, opp_disposition: mm.opp_disposition || m.disposition || null });
+    for (const [mm, m] of linked) if (mm.opp_player_id !== m.player_id) await linkGame(mm, m.player_id, m.disposition);
   }, ['matches'], linked.length ? t('rounds_saved_dup', { n: fresh.length, d: linked.length }) : t('rounds_saved', { n: fresh.length }));
 }

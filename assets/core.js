@@ -1,6 +1,6 @@
 // Shared state and UI helpers.
-import { db, TABLES } from './db.js?v=202611261215';
-import { t } from './i18n.js?v=202611261215';
+import { db, TABLES } from './db.js?v=202611261220';
+import { t } from './i18n.js?v=202611261220';
 
 export const state = { session: null, me: null, data: {}, loadedAt: 0, render: () => {} };
 const RANK = { anon: 0, guest: 1, team: 2, captain: 3, admin: 4 };
@@ -98,4 +98,5 @@ export function evRange(e, long = false) {
   if (!b || a === b) return fmtDate(a, o);
   return `${fmtDate(a, long ? { weekday: 'short', day: 'numeric', month: 'long' } : { day: '2-digit', month: '2-digit' })} – ${fmtDate(b, o)}`;
 }
-export const evKind = e => e.kind === 'Team Tournament' ? `${t('type_team')}${e.team_size ? ' · ' + t('te_size_n', { n: e.team_size }) : ''}` : t('type_singles_s');
+export const evKind = e => e.kind === 'Team Tournament' ? `${t('type_team')}${e.team_size ? ' · ' + t('te_size_n', { n: e.team_size }) : ''}`
+  : e.kind === 'Training' ? t('ev_training') : e.kind === 'Training Match' ? `${t('ev_tmatch')}${e.opp_team ? ' vs ' + e.opp_team : ''}${e.team_size ? ' · ' + t('te_size_n', { n: e.team_size }) : ''}` : t('type_singles_s');

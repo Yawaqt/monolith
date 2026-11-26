@@ -37,3 +37,21 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function public.public_events() from public;
 grant execute on function public.public_events() to anon, authenticated;
+
+-- 26 Nov 2026: training days and training matches (team-internal, never public)
+alter table public.events drop constraint if exists events_kind_check;
+alter table public.events add constraint events_kind_check check (kind in ('Singles', 'Team Tournament', 'Training', 'Training Match'));
+alter table public.events add column if not exists opp_team text check (opp_team is null or length(opp_team) <= 80);
+alter table public.events add column if not exists series_id text check (series_id is null or length(series_id) <= 40);
+create index if not exists events_series_idx on public.events (series_id);
+drop function if exists public.public_events();
+create function public.public_events()
+returns table (starts_on date, ends_on date, title text, location text, kind text, team_size int, bcp_url text)
+language sql stable security definer set search_path = public as $$
+  select e.starts_on, coalesce(e.ends_on, e.starts_on), e.title, e.location, e.kind, e.team_size, e.bcp_url
+  from public.events e
+  where coalesce(e.ends_on, e.starts_on) >= current_date and e.kind in ('Singles', 'Team Tournament')
+  order by e.starts_on
+$$;
+revoke all on function public.public_events() from public;
+grant execute on function public.public_events() to anon, authenticated;
