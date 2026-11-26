@@ -9,7 +9,7 @@ const S = {
   s_players: ['Spieler', 'Players'], s_games: ['Turnierspiele', 'Tournament games'], s_record: ['Bilanz (S-U-N)', 'Record (W-D-L)'], s_tournaments: ['Turniere', 'Tournaments'],
   latest_tournament: ['Letztes Turnier', 'Latest tournament'], all_results: ['Alle Ergebnisse', 'All results'], whole_team: ['Ganzes Team', 'Whole team'],
   meet_team: ['Das Team', 'The team'], next_up: ['Als Nächstes', 'Coming up'], all_events: ['Alle Termine', 'All events'],
-  results_intro: ['Unsere Turniere als Team-Bilanz (Siege-Unentschieden-Niederlagen). Bei Teamturnieren zählt die 20-0-Wertung, bei Singles mehr Punkte = Sieg.', 'Our tournaments as team record (wins-draws-losses). Team tournaments use 20-0 scoring, singles: more points wins.'],
+  results_intro: ['Unsere Turniere und die Bilanz des Teams (Siege-Unentschieden-Niederlagen).', 'Our tournaments and the team record (wins-draws-losses).'],
   team_intro: ['Unsere Spieler und die Armeen, mit denen sie auf Turnieren gespielt haben.', 'Our players and the armies they have played at tournaments.'],
   events_pub_intro: ['Hier spielen wir als Nächstes. Komm vorbei und sag Hallo.', 'Where we play next. Come by and say hi.'],
   no_events: ['Gerade keine Termine geplant.', 'No events planned right now.'], t_games: ['{n} Turnierspiele', '{n} tournament games'],
