@@ -1,7 +1,7 @@
 // News: public blog pages and the editor for members (Team role and above).
-import { db } from './db.js?v=202611261816';
-import { t } from './i18n.js?v=202611261816';
-import { state, can, isContent, esc, $, $$, fmtDate, act, confirmBox, empty, pageHead, toast, resizeImage, safeImg, myPlayer, playerById } from './core.js?v=202611261816';
+import { db } from './db.js?v=202611261856';
+import { t } from './i18n.js?v=202611261856';
+import { state, can, isContent, esc, $, $$, fmtDate, act, confirmBox, empty, pageHead, toast, resizeImage, safeImg, myPlayer, playerById } from './core.js?v=202611261856';
 
 const D = () => state.data;
 const PUBN = () => (state.pub && state.pub.news) || [];

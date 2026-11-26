@@ -1,9 +1,9 @@
 // Analysis pages: live matrix, statistics, master matrix, master team, pairing.
-import { db } from './db.js?v=202611261816';
-import { t } from './i18n.js?v=202611261816';
-import { state, can, myPlayer, isMe, esc, $, $$, opts, players, playerById, pname, setting, act, modal, confirmBox, gpClass, empty, pageHead, toast } from './core.js?v=202611261816';
-import { ownGames } from './pages-history.js?v=202611261816';
-import { FACTIONS, MATRIX_COLS, DISPOSITIONS, RATING_LEGEND, records, summarize, groupBy, avg, fmt1, pct, matrixCell, typeLabel } from './data.js?v=202611261816';
+import { db } from './db.js?v=202611261856';
+import { t } from './i18n.js?v=202611261856';
+import { state, can, myPlayer, isMe, esc, $, $$, opts, players, playerById, pname, setting, act, modal, confirmBox, gpClass, empty, pageHead, toast } from './core.js?v=202611261856';
+import { ownGames } from './pages-history.js?v=202611261856';
+import { FACTIONS, MATRIX_COLS, DISPOSITIONS, RATING_LEGEND, records, summarize, groupBy, avg, fmt1, pct, matrixCell, typeLabel } from './data.js?v=202611261856';
 
 const D = () => state.data;
 const short = f => f.replace('Adeptus ', 'A. ').replace('Adepta ', 'A. ').replace('Chaos Space Marines', 'CSM').replace('Space Marines', 'SM').replace('Leagues of Votann', 'Votann').replace('Genestealer Cults', 'GSC').replace("Emperor's Children", 'EC').replace('Imperial Knights', 'Imp. Knights');
@@ -113,25 +113,29 @@ export function personalBlocks(recs) {
     <section class="card"><h2>${esc(t('vs_factions'))}</h2>${statRows(groupBy(recs, r => r.opp), t('faction'))}</section>`;
 }
 export { fmtD as fmtDiff, dCls as diffCls };
+let msTab = 'team'; // team games and casual games are kept completely apart
 export function mystats(el) {
   const me = myPlayer();
   if (me == null) { el.innerHTML = pageHead(t('nav_mystats'), t('mystats_intro')) + `<p class="notice">${esc(t('mystats_noplayer'))}</p>`; return; }
-  const team = MF.type === '__casual' ? [] : records(D().matches || [], { type: MF.type === '__team' ? '' : MF.type, since: MF.since }).filter(r => r.player_id === me);
-  const pg = ownGames();
-  const casualAll = (pg || []).filter(g => g.kind === 'Casual' && (!MF.since || g.played_on >= MF.since)).map(g => { const d = g.my_score - g.opp_score;
-    return { m: g, casual: true, army: g.army, opp: g.opp_army, our: g.my_score, theirs: g.opp_score, g: 0, res: d > 0 ? 'win' : d < 0 ? 'loss' : 'draw', oppKey: (g.opp_name || '').trim().toLowerCase(), oppName: (g.opp_name || '').trim() }; });
-  const casual = !MF.type || MF.type === '__casual' ? casualAll : [];
-  const recs = [...team, ...casual];
+  const CAS = msTab === 'casual';
+  let recs, pg = null;
+  if (CAS) {
+    pg = ownGames();
+    recs = (pg || []).filter(g => g.kind === 'Casual' && (!MF.since || g.played_on >= MF.since)).map(g => { const d = g.my_score - g.opp_score;
+      return { m: g, army: g.army, opp: g.opp_army, our: g.my_score, theirs: g.opp_score, g: 0, res: d > 0 ? 'win' : d < 0 ? 'loss' : 'draw', oppKey: (g.opp_name || '').trim().toLowerCase(), oppName: (g.opp_name || '').trim() }; });
+  } else {
+    if (MF.type === '__casual' || MF.type === '__team') MF.type = '';
+    recs = records(D().matches || [], MF).filter(r => r.player_id === me);
+  }
   const s = summarize(recs);
-  const sT = summarize(team), sC = summarize(casual);
   const types = [...new Set((D().matches || []).map(m => m.type))];
-  el.innerHTML = pageHead(t('nav_mystats'), t('mystats_intro')) +
-    `<form class="filters card" id="mf"><label>${esc(t('type'))}<select name="type">${opts([['', t('ms_all')], ['__team', t('ms_team')], ['__tour', t('st_all_tours')], ...types.map(x => [x, typeLabel(x, t)]), ['__casual', t('type_casual')]], MF.type)}</select></label><label>${esc(t('since'))}<input type="date" name="since" value="${esc(MF.since)}"></label></form>
+  el.innerHTML = pageHead(t('nav_mystats'), t(CAS ? 'mystats_intro_casual' : 'mystats_intro')) +
+    `<div class="seg ev-tabs" role="tablist"><button role="tab" data-mstab="team" aria-selected="${!CAS}">${esc(t('ms_team'))}</button><button role="tab" data-mstab="casual" aria-selected="${CAS}">${esc(t('type_casual'))}</button></div>
+    <form class="filters card" id="mf">${CAS ? '' : `<label>${esc(t('type'))}<select name="type">${opts([['', t('st_all_games')], ['__tour', t('st_all_tours')], ...types.map(x => [x, typeLabel(x, t)])], MF.type)}</select></label>`}<label>${esc(t('since'))}<input type="date" name="since" value="${esc(MF.since)}"></label></form>
     <section class="stats"><div><b class="num">${s.n}</b><span>${esc(t('games'))}</span></div><div><b class="num">${wdl(s)}</b><span>${esc(t('result'))}</span></div><div><b class="num">${pct(s.rate) || '–'}</b><span>${esc(t('winrate'))}</span></div><div><b class="num ${dCls(s.avgDiff)}">${s.n ? fmtD(s.avgDiff) : '–'}</b><span>${esc(t('avg_diff'))}</span></div></section>
-    ${!MF.type && (sT.n || sC.n) ? `<div class="ms-split"><div class="card"><span class="mute">${esc(t('ms_team'))}</span><b class="num">${sT.n} · ${wdl(sT)} · ${pct(sT.rate) || '–'}</b></div><div class="card"><span class="mute">${esc(t('type_casual'))}</span><b class="num">${sC.n} · ${wdl(sC)} · ${pct(sC.rate) || '–'}</b></div></div>` : ''}
-    ${pg == null ? `<p class="mute">${esc(t('loading'))}</p>` : ''}
-    ${s.n ? personalBlocks(recs) : empty()}`;
-  const f = $('#mf'); f.addEventListener('change', () => { MF.type = f.type.value; MF.since = f.since.value; mystats(el); });
+    ${CAS && pg == null ? `<p class="mute">${esc(t('loading'))}</p>` : s.n ? personalBlocks(recs) : empty(CAS ? t('ms_casual_none') : '')}`;
+  const f = $('#mf'); f.addEventListener('change', () => { if (f.type) MF.type = f.type.value; MF.since = f.since.value; mystats(el); });
+  el.onclick = e => { const b = e.target.closest('[data-mstab]'); if (b) { msTab = b.dataset.mstab; mystats(el); } };
 }
 
 // ---------------------------------------------------------------- Master matrix (manual ratings)
