@@ -152,6 +152,7 @@ const S = {
   reset_wait: ['Bitte eine Minute warten – die Mail ist schon unterwegs. Jede neue Anfrage macht den vorherigen Link ungültig.', 'Please wait a minute – the e-mail is on its way. Each new request invalidates the previous link.'],
   link_expired: ['Der Link ist abgelaufen oder wurde schon benutzt. Bitte fordere einen neuen an und nimm den Link aus der neuesten Mail.', 'The link has expired or was already used. Please request a new one and use the link from the newest e-mail.'],
   new_pw_title: ['Neues Passwort festlegen', 'Set a new password'], new_pw_intro: ['Gib dein neues Passwort ein (mindestens 8 Zeichen).', 'Enter your new password (at least 8 characters).'],
+  games_s: ['Sp.', 'G'], wdl_s: ['S-U-N', 'W-D-L'],
   nav_mystats: ['Meine Statistik', 'My statistics'],
   mystats_intro: ['Nur deine eigenen Spiele aus dem Match Log – nur du siehst diese Auswertung. Siegquote: Unentschieden = ½ Sieg.', 'Only your own games from the match log – only you see this. Win rate: draw = ½ win.'],
   mystats_noplayer: ['Dein Konto ist noch keinem Spieler zugeordnet. Ein Admin kann das unter Verwaltung erledigen.', 'Your account is not linked to a player yet. An admin can do this under Administration.'],

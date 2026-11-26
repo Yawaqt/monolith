@@ -1,8 +1,8 @@
 // Analysis pages: live matrix, statistics, master matrix, master team, pairing.
-import { db } from './db.js?v=202611261504';
-import { t } from './i18n.js?v=202611261504';
-import { state, can, myPlayer, isMe, esc, $, $$, opts, players, playerById, pname, setting, act, modal, confirmBox, gpClass, empty, pageHead, toast } from './core.js?v=202611261504';
-import { FACTIONS, MATRIX_COLS, DISPOSITIONS, RATING_LEGEND, records, summarize, groupBy, avg, fmt1, pct, matrixCell, typeLabel } from './data.js?v=202611261504';
+import { db } from './db.js?v=202611261521';
+import { t } from './i18n.js?v=202611261521';
+import { state, can, myPlayer, isMe, esc, $, $$, opts, players, playerById, pname, setting, act, modal, confirmBox, gpClass, empty, pageHead, toast } from './core.js?v=202611261521';
+import { FACTIONS, MATRIX_COLS, DISPOSITIONS, RATING_LEGEND, records, summarize, groupBy, avg, fmt1, pct, matrixCell, typeLabel } from './data.js?v=202611261521';
 
 const D = () => state.data;
 const short = f => f.replace('Adeptus ', 'A. ').replace('Adepta ', 'A. ').replace('Chaos Space Marines', 'CSM').replace('Space Marines', 'SM').replace('Leagues of Votann', 'Votann').replace('Genestealer Cults', 'GSC').replace("Emperor's Children", 'EC').replace('Imperial Knights', 'Imp. Knights');
@@ -29,6 +29,8 @@ export function matrix(el) {
 }
 const saveRows = list => act(() => db.upsert('settings', { key: 'matrix_armies', value: list }), ['settings']);
 
+const fmtD = x => x == null ? '' : (x > 0 ? '+' : '') + fmt1(x);
+const dCls = x => x == null ? '' : x > 0 ? 'up' : x < 0 ? 'down' : '';
 // ---------------------------------------------------------------- Statistics
 const SF = { type: '', since: '' };
 export function stats(el) {
@@ -44,14 +46,14 @@ export function stats(el) {
   el.innerHTML = pageHead(t('nav_stats'), t('stats_intro')) +
     `<form class="filters card" id="sf"><label>${esc(t('type'))}<select name="type">${opts([['', t('st_all_games')], ['__tour', t('st_all_tours')], ...types.map(x => [x, typeLabel(x, t)])], SF.type)}</select></label><label>${esc(t('since'))}<input type="date" name="since" value="${esc(SF.since)}"></label></form>
     <section class="card"><h2>${esc(t('players'))}</h2><div class="scroll"><table class="stack"><thead><tr><th>${esc(t('player'))}</th><th class="r">${esc(t('games'))}</th><th class="r">${esc(t('wins'))}</th><th class="r">${esc(t('draws'))}</th><th class="r">${esc(t('losses'))}</th><th class="r">${esc(t('winrate'))}</th><th class="r">${esc(t('avg_gp'))}</th><th class="r">${esc(t('avg_diff'))}</th><th>${esc(t('most_played'))}</th><th class="r">${esc(t('games_with'))}</th></tr></thead><tbody>
-      ${prow.map(({ p, s, top }) => `<tr${isMe(p.id) ? ' class="me"' : ''}><td><b>${esc(p.name)}</b></td><td class="r num">${s.n}</td><td class="r num">${s.w}</td><td class="r num">${s.d}</td><td class="r num">${s.l}</td><td class="r num">${pct(s.rate)}</td><td class="r num ${gpClass(s.avgGp)}">${fmt1(s.avgGp)}</td><td class="r num">${fmt1(s.avgDiff)}</td><td>${esc(top ? top[0] : '')}</td><td class="r num">${top ? top[1].length : ''}</td></tr>`).join('')}
+      ${prow.map(({ p, s, top }) => `<tr${isMe(p.id) ? ' class="me"' : ''}><td><b>${esc(p.name)}</b></td><td class="r num">${s.n}</td><td class="r num">${s.w}</td><td class="r num">${s.d}</td><td class="r num">${s.l}</td><td class="r num">${pct(s.rate)}</td><td class="r num ${gpClass(s.avgGp)}">${fmt1(s.avgGp)}</td><td class="r num ${dCls(s.avgDiff)}">${fmtD(s.avgDiff)}</td><td>${esc(top ? top[0] : '')}</td><td class="r num">${top ? top[1].length : ''}</td></tr>`).join('')}
     </tbody></table></div></section>
-    <section class="card"><h2>${esc(t('armies'))}</h2><div class="scroll"><table class="stack"><thead><tr><th>${esc(t('army'))}</th><th class="r">${esc(t('as_ours'))}</th><th class="r">${esc(t('wins'))}</th><th class="r">${esc(t('draws'))}</th><th class="r">${esc(t('losses'))}</th><th class="r">${esc(t('winrate'))}</th><th class="r">${esc(t('avg_gp'))}</th><th class="r">${esc(t('vs_faction'))}</th><th class="r">${esc(t('our_gp_vs'))}</th></tr></thead><tbody>
-      ${armies.map(a => { const s = summarize(byA.get(a) || []), v = summarize(vsF.get(a) || []); return `<tr><td><b>${esc(a)}</b></td><td class="r num">${s.n}</td><td class="r num">${s.w}</td><td class="r num">${s.d}</td><td class="r num">${s.l}</td><td class="r num">${pct(s.rate)}</td><td class="r num ${gpClass(s.avgGp)}">${fmt1(s.avgGp)}</td><td class="r num">${v.n}</td><td class="r num ${gpClass(v.avgGp)}">${fmt1(v.avgGp)}</td></tr>`; }).join('')}
+    <section class="card"><h2>${esc(t('armies'))}</h2><div class="scroll"><table class="stack"><thead><tr><th>${esc(t('army'))}</th><th class="r">${esc(t('as_ours'))}</th><th class="r">${esc(t('wins'))}</th><th class="r">${esc(t('draws'))}</th><th class="r">${esc(t('losses'))}</th><th class="r">${esc(t('winrate'))}</th><th class="r">${esc(t('avg_gp'))}</th><th class="r">${esc(t('avg_diff'))}</th><th class="r">${esc(t('vs_faction'))}</th><th class="r">${esc(t('our_gp_vs'))}</th><th class="r">${esc(t('avg_diff'))}</th></tr></thead><tbody>
+      ${armies.map(a => { const s = summarize(byA.get(a) || []), v = summarize(vsF.get(a) || []); return `<tr><td><b>${esc(a)}</b></td><td class="r num">${s.n}</td><td class="r num">${s.w}</td><td class="r num">${s.d}</td><td class="r num">${s.l}</td><td class="r num">${pct(s.rate)}</td><td class="r num ${gpClass(s.avgGp)}">${fmt1(s.avgGp)}</td><td class="r num ${dCls(s.avgDiff)}">${fmtD(s.avgDiff)}</td><td class="r num">${v.n}</td><td class="r num ${gpClass(v.avgGp)}">${fmt1(v.avgGp)}</td><td class="r num ${dCls(v.avgDiff)}">${fmtD(v.avgDiff)}</td></tr>`; }).join('')}
     </tbody></table></div></section>
-    <section class="card"><h2>${esc(t('pvp'))}</h2>${pairs.size ? `<table class="stack"><thead><tr><th>${esc(t('player'))}</th><th class="r">${esc(t('games'))}</th><th>${esc(t('result'))}</th><th class="r">${esc(t('avg_gp'))}</th></tr></thead><tbody>
+    <section class="card"><h2>${esc(t('pvp'))}</h2>${pairs.size ? `<table class="stack"><thead><tr><th>${esc(t('player'))}</th><th class="r">${esc(t('games'))}</th><th>${esc(t('result'))}</th><th class="r">${esc(t('avg_gp'))}</th><th class="r">${esc(t('avg_diff'))}</th></tr></thead><tbody>
       ${[...pairs.entries()].map(([k, list]) => { const [a, b] = k.split('-').map(Number); const mine = records(list.map(r => r.m)).filter(r => r.player_id === a); const s = summarize(mine);
-        return `<tr><td><b>${esc(pname(a))}</b> ${esc(t('vs'))} <b>${esc(pname(b))}</b></td><td class="r num">${s.n}</td><td class="num">${s.w}-${s.d}-${s.l}</td><td class="r num">${fmt1(s.avgGp)} : ${fmt1(20 - s.avgGp)}</td></tr>`; }).join('')}</tbody></table>` : empty()}</section>`;
+        return `<tr><td><b>${esc(pname(a))}</b> ${esc(t('vs'))} <b>${esc(pname(b))}</b></td><td class="r num">${s.n}</td><td class="num">${s.w}-${s.d}-${s.l}</td><td class="r num">${fmt1(s.avgGp)} : ${fmt1(20 - s.avgGp)}</td><td class="r num">${fmtD(s.avgDiff)}</td></tr>`; }).join('')}</tbody></table>` : empty()}</section>`;
   const f = $('#sf'); f.addEventListener('change', () => { SF.type = f.type.value; SF.since = f.since.value; stats(el); });
 }
 
@@ -62,8 +64,8 @@ const oppKey = r => r.vsPlayer != null ? 'p' + r.vsPlayer : (r.m.opp_name || '')
 const oppLabel = (r) => r.vsPlayer != null ? pname(r.vsPlayer) : (r.m.opp_name || '').trim();
 const wdl = s => `${s.w}-${s.d}-${s.l}`;
 const rateCell = s => `<td class="r num ${s.rate == null ? '' : s.rate >= 0.55 ? 'up' : s.rate <= 0.45 ? 'down' : 'even'}">${pct(s.rate)}</td>`;
-const statRows = (map, head) => `<div class="scroll"><table class="compact-stat"><thead><tr><th>${esc(head)}</th><th class="r">${esc(t('games'))}</th><th>${esc(t('result'))}</th><th class="r">%</th></tr></thead><tbody>
-  ${[...map].map(([k, list]) => [k, summarize(list)]).sort((a, b) => b[1].n - a[1].n || String(a[0]).localeCompare(String(b[0]))).map(([k, s]) => `<tr><td><b>${esc(k || '—')}</b></td><td class="r num">${s.n}</td><td class="num">${wdl(s)}</td>${rateCell(s)}</tr>`).join('')}</tbody></table></div>`;
+const statRows = (map, head) => `<div class="scroll"><table class="compact-stat"><thead><tr><th>${esc(head)}</th><th class="r" title="${esc(t('games'))}">${esc(t('games_s'))}</th><th title="${esc(t('result'))}">${esc(t('wdl_s'))}</th><th class="r">%</th><th class="r" title="${esc(t('avg_diff'))}">Ø ±</th></tr></thead><tbody>
+  ${[...map].map(([k, list]) => [k, summarize(list)]).sort((a, b) => b[1].n - a[1].n || String(a[0]).localeCompare(String(b[0]))).map(([k, s]) => `<tr><td><b>${esc(k || '—')}</b></td><td class="r num">${s.n}</td><td class="num">${wdl(s)}</td>${rateCell(s)}<td class="r num ${dCls(s.avgDiff)}">${fmtD(s.avgDiff)}</td></tr>`).join('')}</tbody></table></div>`;
 export function mystats(el) {
   const me = myPlayer();
   if (me == null) { el.innerHTML = pageHead(t('nav_mystats'), t('mystats_intro')) + `<p class="notice">${esc(t('mystats_noplayer'))}</p>`; return; }
@@ -73,12 +75,12 @@ export function mystats(el) {
   const named = recs.filter(r => oppKey(r));
   const byOpp = [...groupBy(named, oppKey)].filter(([, l]) => l.length >= MIN_VS).sort((a, b) => b[1].length - a[1].length);
   const oppCard = ([, list]) => { const os = summarize(list);
-    return `<details class="card opp-stat"><summary><b>${esc(oppLabel(list[0]))}</b>${list[0].vsPlayer != null ? ` <span class="tag">${esc(t('internal'))}</span>` : ''} <span class="mute">· ${esc(t('n_games', { n: os.n }))} · ${wdl(os)} · ${pct(os.rate)}</span></summary>
+    return `<details class="card opp-stat"><summary><b>${esc(oppLabel(list[0]))}</b>${list[0].vsPlayer != null ? ` <span class="tag">${esc(t('internal'))}</span>` : ''} <span class="mute">· ${esc(t('n_games', { n: os.n }))} · ${wdl(os)} · ${pct(os.rate)} · Ø ${fmtD(os.avgDiff)}</span></summary>
       <h3>${esc(t('my_factions'))}</h3>${statRows(groupBy(list, r => r.army), t('army'))}
       <h3>${esc(t('their_factions'))}</h3>${statRows(groupBy(list, r => r.opp), t('faction'))}</details>`; };
   el.innerHTML = pageHead(t('nav_mystats'), t('mystats_intro')) +
     `<form class="filters card" id="mf"><label>${esc(t('type'))}<select name="type">${opts([['', t('st_all_games')], ['__tour', t('st_all_tours')], ...types.map(x => [x, typeLabel(x, t)])], MF.type)}</select></label><label>${esc(t('since'))}<input type="date" name="since" value="${esc(MF.since)}"></label></form>
-    <section class="stats"><div><b class="num">${s.n}</b><span>${esc(t('games'))}</span></div><div><b class="num">${wdl(s)}</b><span>${esc(t('result'))}</span></div><div><b class="num">${pct(s.rate) || '–'}</b><span>${esc(t('winrate'))}</span></div></section>
+    <section class="stats"><div><b class="num">${s.n}</b><span>${esc(t('games'))}</span></div><div><b class="num">${wdl(s)}</b><span>${esc(t('result'))}</span></div><div><b class="num">${pct(s.rate) || '–'}</b><span>${esc(t('winrate'))}</span></div><div><b class="num ${dCls(s.avgDiff)}">${s.n ? fmtD(s.avgDiff) : '–'}</b><span>${esc(t('avg_diff'))}</span></div></section>
     ${s.n ? `<section><h2>${esc(t('my_opponents'))}</h2><p class="mute">${esc(t('my_opponents_hint'))}</p>${byOpp.length ? byOpp.map(oppCard).join('') : `<p class="notice">${esc(t('my_opponents_none'))}</p>`}</section>
     <section class="card"><h2>${esc(t('my_factions'))}</h2>${statRows(groupBy(recs, r => r.army), t('army'))}</section>
     <section class="card"><h2>${esc(t('vs_factions'))}</h2>${statRows(groupBy(recs, r => r.opp), t('faction'))}</section>

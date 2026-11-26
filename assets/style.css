@@ -435,3 +435,4 @@ ul.pop{list-style:none;margin:0;padding:0}ul.pop li{display:grid;grid-template-c
 .compact-stat{width:100%;font-size:14px}.compact-stat td,.compact-stat th{padding:6px 6px}
 .compact-stat td:first-child{white-space:normal}.compact-stat td.num{white-space:nowrap}
 .cols+.cols{margin-top:20px}
+@media(max-width:600px){.compact-stat{font-size:13px}.compact-stat td,.compact-stat th{padding:6px 4px}.compact-stat th{letter-spacing:0}}
