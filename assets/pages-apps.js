@@ -1,9 +1,9 @@
 // Community apps: paint recipes (everyone), score tracker + chess clock, MathHammer, pairing trainer (admins while in test).
-import { db, DEMO } from './db.js?v=202611261721';
-import { t, getLang } from './i18n.js?v=202611261721';
-import { state, can, esc, $, $$, opts, toast, modal, confirmBox, empty, resizeImage, safeImg, fmtDate } from './core.js?v=202611261721';
-import { FACTIONS } from './data.js?v=202611261721';
-import { lightbox } from './pages-news.js?v=202611261721';
+import { db, DEMO } from './db.js?v=202611261722';
+import { t, getLang } from './i18n.js?v=202611261722';
+import { state, can, esc, $, $$, opts, toast, modal, confirmBox, empty, resizeImage, safeImg, fmtDate } from './core.js?v=202611261722';
+import { FACTIONS } from './data.js?v=202611261722';
+import { lightbox } from './pages-news.js?v=202611261722';
 
 const L = (de, en) => getLang() === 'de' ? de : en;
 const head = (title, intro, actions = '') => `<div class="page-head"><div><p class="eyebrow"><a href="#/apps">${esc(t('p_apps'))}</a></p><h1>${esc(title)}</h1>${intro ? `<p class="intro">${esc(intro)}</p>` : ''}</div>${actions ? `<div class="head-actions">${actions}</div>` : ''}</div>`;
@@ -116,7 +116,7 @@ async function editRecipe(el, r) {
 
 // ====================================================================== Score tracker + chess clock
 const SK = 'monolith.score.v1';
-const blankSide = name => ({ name, army: '', cp: 0, prim: [0, 0, 0, 0, 0], sec: [0, 0, 0, 0, 0], painted: false, used: 0 });
+const blankSide = name => ({ name, army: '', cp: 0, prim: [0, 0, 0, 0, 0, 0], sec: [0, 0, 0, 0, 0, 0], painted: false, used: 0 });
 const newGame = (min = 90) => ({ round: 1, minutes: min, a: blankSide(L('Ich', 'Me')), b: blankSide(L('Gegner', 'Opponent')), active: null, since: null });
 let G = null, tick = null, wake = null;
 const P_MAX = 45, S_MAX = 45;
@@ -134,7 +134,9 @@ function setActive(k) {
 
 export function score(el) {
   G = store(SK) || newGame();
+  for (const k of ['a', 'b']) for (const f of ['prim', 'sec']) while (G[k][f].length < 6) G[k][f].push(0);
   clearInterval(tick);
+  const END = G.round === 6; const rl = n => n === 6 ? L('Ende', 'End') : 'R' + n;
   const sumP = s => Math.min(P_MAX, s.prim.reduce((a, b) => a + b, 0)), sumS = s => Math.min(S_MAX, s.sec.reduce((a, b) => a + b, 0));
   // Both clocks side by side, always visible (sticky); tap your half to pass the turn.
   const clock = k => { const s = G[k];
@@ -144,19 +146,19 @@ export function score(el) {
     return `<section class="sc-col" data-side="${k}">
       <input class="sc-name" data-f="name" maxlength="30" value="${esc(s.name)}" aria-label="${esc(L('Name', 'Name'))}">
       <input class="sc-army" data-f="army" list="factions" maxlength="60" placeholder="${esc(t('army'))}" value="${esc(s.army)}">
-      <div class="sc-f"><span>${esc(L('Primär', 'Primary'))} R${G.round}</span>${stepper(k, 'prim', s.prim[r])}<small class="mute num">${sumP(s)}/${P_MAX}</small></div>
-      <div class="sc-f"><span>${esc(L('Sekundär', 'Secondary'))} R${G.round}</span>${stepper(k, 'sec', s.sec[r])}<small class="mute num">${sumS(s)}/${S_MAX}</small></div>
+      <div class="sc-f"><span>${esc(END ? L('Primär Spielende', 'End of game primary') : L('Primär', 'Primary') + ' R' + G.round)}</span>${stepper(k, 'prim', s.prim[r])}<small class="mute num">${sumP(s)}/${P_MAX}</small></div>
+      ${END ? '' : `<div class="sc-f"><span>${esc(L('Sekundär', 'Secondary'))} R${G.round}</span>${stepper(k, 'sec', s.sec[r])}<small class="mute num">${sumS(s)}/${S_MAX}</small></div>`}
       <div class="sc-f"><span>CP</span>${stepper(k, 'cp', s.cp)}</div>
       <label class="check sc-paint"><input type="checkbox" data-f="painted"${s.painted ? ' checked' : ''}> ${esc(L('Bemalt +10', 'Painted +10'))}</label>
     </section>`; };
   const rounds = ['a', 'b'].map(k => G[k]);
   el.innerHTML = factionList() + `<p class="eyebrow"><a href="#/apps">← ${esc(t('p_apps'))}</a> · ${esc(t('app_score'))}</p><div class="sc-app">
     <div class="sc-clocks">${clock('a')}<button type="button" class="sc-pause" data-pause aria-label="${esc(L('Pause', 'Pause'))}">${G.active ? '❚❚' : '▶'}</button>${clock('b')}</div>
-    <div class="sc-rounds seg" role="group" aria-label="${esc(L('Runde', 'Round'))}">${[1, 2, 3, 4, 5].map(n => `<button type="button" data-round="${n}" aria-pressed="${G.round === n}">R${n}</button>`).join('')}</div>
+    <div class="sc-rounds seg" role="group" aria-label="${esc(L('Runde', 'Round'))}">${[1, 2, 3, 4, 5, 6].map(n => `<button type="button" data-round="${n}" aria-pressed="${G.round === n}"${n === 6 ? ` title="${esc(L('Primärpunkte am Spielende, nach Runde 5', 'End of game primary, after round 5'))}"` : ''}>${esc(rl(n))}</button>`).join('')}</div>
     <div class="sc-grid">${col('a')}${col('b')}</div>
-    <div class="card sc-table"><div class="scroll"><table class="compact-stat"><thead><tr><th></th>${[1, 2, 3, 4, 5].map(n => `<th class="r${G.round === n ? ' cur' : ''}">R${n}</th>`).join('')}<th class="r">Σ</th></tr></thead><tbody>
-      ${rounds.map(s => `<tr><td><b>${esc(s.name || '–')}</b></td>${s.prim.map((p, i) => `<td class="r num${G.round === i + 1 ? ' cur' : ''}">${p}+${s.sec[i]}</td>`).join('')}<td class="r num"><b>${total(s)}</b></td></tr>`).join('')}</tbody></table></div>
-      <p class="mute small">${esc(L(`Primär + Sekundär pro Runde. Max. ${P_MAX} Primär, ${S_MAX} Sekundär, +10 bemalt.`, `Primary + secondary per round. Max ${P_MAX} primary, ${S_MAX} secondary, +10 painted.`))}</p></div>
+    <div class="card sc-table"><div class="scroll"><table class="compact-stat"><thead><tr><th></th>${[1, 2, 3, 4, 5, 6].map(n => `<th class="r${G.round === n ? ' cur' : ''}">${esc(rl(n))}</th>`).join('')}<th class="r">Σ</th></tr></thead><tbody>
+      ${rounds.map(s => `<tr><td><b>${esc(s.name || '–')}</b></td>${s.prim.map((p, i) => `<td class="r num${G.round === i + 1 ? ' cur' : ''}">${i === 5 ? p : p + '+' + s.sec[i]}</td>`).join('')}<td class="r num"><b>${total(s)}</b></td></tr>`).join('')}</tbody></table></div>
+      <p class="mute small">${esc(L(`Primär + Sekundär pro Runde, „Ende“ = Primär am Spielende. Max. ${P_MAX} Primär (inkl. Spielende), ${S_MAX} Sekundär, +10 bemalt.`, `Primary + secondary per round, “End” = end of game primary. Max ${P_MAX} primary (incl. end of game), ${S_MAX} secondary, +10 painted.`))}</p></div>
     <div class="sc-end"><label class="sc-min">${esc(L('Minuten pro Spieler', 'Minutes per player'))}<input type="number" min="5" max="300" step="5" value="${G.minutes}" data-min></label>
       <div class="row-actions"><button type="button" class="btn primary" data-save>${esc(L('In Match History speichern', 'Save to match history'))}</button><button type="button" class="btn ghost" data-reset>${esc(L('Neues Spiel', 'New game'))}</button></div></div>
   </div>`;

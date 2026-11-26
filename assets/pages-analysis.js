@@ -1,8 +1,8 @@
 // Analysis pages: live matrix, statistics, master matrix, master team, pairing.
-import { db } from './db.js?v=202611261721';
-import { t } from './i18n.js?v=202611261721';
-import { state, can, myPlayer, isMe, esc, $, $$, opts, players, playerById, pname, setting, act, modal, confirmBox, gpClass, empty, pageHead, toast } from './core.js?v=202611261721';
-import { FACTIONS, MATRIX_COLS, DISPOSITIONS, RATING_LEGEND, records, summarize, groupBy, avg, fmt1, pct, matrixCell, typeLabel } from './data.js?v=202611261721';
+import { db } from './db.js?v=202611261722';
+import { t } from './i18n.js?v=202611261722';
+import { state, can, myPlayer, isMe, esc, $, $$, opts, players, playerById, pname, setting, act, modal, confirmBox, gpClass, empty, pageHead, toast } from './core.js?v=202611261722';
+import { FACTIONS, MATRIX_COLS, DISPOSITIONS, RATING_LEGEND, records, summarize, groupBy, avg, fmt1, pct, matrixCell, typeLabel } from './data.js?v=202611261722';
 
 const D = () => state.data;
 const short = f => f.replace('Adeptus ', 'A. ').replace('Adepta ', 'A. ').replace('Chaos Space Marines', 'CSM').replace('Space Marines', 'SM').replace('Leagues of Votann', 'Votann').replace('Genestealer Cults', 'GSC').replace("Emperor's Children", 'EC').replace('Imperial Knights', 'Imp. Knights');
