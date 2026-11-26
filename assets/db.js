@@ -1,5 +1,5 @@
 // Data access: Supabase when configured, otherwise a demo backend in localStorage.
-import { CONFIG } from './config.js?v=202611261346';
+import { CONFIG } from './config.js?v=202611261348';
 
 export const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY;
 export const TABLES = ['players', 'matches', 'events', 'rsvps', 'payments', 'ratings', 'opponent_teams', 'pairings', 'settings', 'tevents', 'tevent_rounds', 'news'];
@@ -123,12 +123,13 @@ const demo = {
     if (name === 'public_players') return P.filter(p => p.active).sort((a, b) => a.sort - b.sort).map(p => ({ name: p.name, sort: p.sort, armies: tourArmies(T.matches || [], p.id), photo_url: p.photo_url || null, fav_army: p.fav_army || null, bio: p.bio || null }));
     if (name === 'public_results') {
       const by = new Map();
-      for (const m of T.matches || []) {
+      const rows = []; for (const m of T.matches || []) { rows.push({ ...m, pid: m.player_id }); if (m.opp_player_id) rows.push({ ...m, pid: m.opp_player_id, our_score: m.opp_score, opp_score: m.our_score }); }
+      for (const m of rows) {
         if (!['Tournament', 'Team Tournament'].includes(m.type) || m.our_score == null || m.opp_score == null) continue;
         const k = (m.tournament || '—') + '|' + m.type; const d = m.our_score - m.opp_score;
         const r = m.type === 'Team Tournament' ? (Math.abs(d) <= 5 ? 'd' : d > 0 ? 'w' : 'l') : (d === 0 ? 'd' : d > 0 ? 'w' : 'l');
-        const x = by.get(k) || { tournament: m.tournament || '—', type: m.type, date_from: m.played_on, date_to: m.played_on, games: 0, wins: 0, draws: 0, losses: 0 };
-        x.games++; x[{ w: 'wins', d: 'draws', l: 'losses' }[r]]++; if (m.played_on < x.date_from) x.date_from = m.played_on; if (m.played_on > x.date_to) x.date_to = m.played_on; by.set(k, x);
+        const x = by.get(k) || { tournament: m.tournament || '—', type: m.type, date_from: m.played_on, date_to: m.played_on, games: 0, wins: 0, draws: 0, losses: 0, pids: new Set() };
+        x.pids.add(m.pid); x.players = x.pids.size; x.games++; x[{ w: 'wins', d: 'draws', l: 'losses' }[r]]++; if (m.played_on < x.date_from) x.date_from = m.played_on; if (m.played_on > x.date_to) x.date_to = m.played_on; by.set(k, x);
       }
       return [...by.values()].sort((a, b) => b.date_to.localeCompare(a.date_to));
     }

@@ -54,3 +54,32 @@ begin
 end $$;
 revoke all on function public.link_internal_game(bigint) from public;
 grant execute on function public.link_internal_game(bigint) to authenticated;
+
+-- public_results: internal games count for both players; number of distinct players per tournament (no names)
+drop function if exists public.public_results();
+create function public.public_results()
+ returns table(tournament text, type text, date_from date, date_to date, games integer, wins integer, draws integer, losses integer, players integer)
+ language sql stable security definer set search_path to 'public'
+as $$
+  with base as (
+    select m.tournament, m.type, m.played_on, m.player_id as pid, m.our_score as a, m.opp_score as b
+    from public.matches m
+    where m.type in ('Tournament','Team Tournament') and m.our_score is not null and m.opp_score is not null
+    union all
+    select m.tournament, m.type, m.played_on, m.opp_player_id, m.opp_score, m.our_score
+    from public.matches m
+    where m.opp_player_id is not null and m.type in ('Tournament','Team Tournament') and m.our_score is not null and m.opp_score is not null
+  ), g as (
+    select tournament, type, played_on, pid,
+      case when type = 'Team Tournament' then
+             case when abs(a - b) <= 5 then 'd' when a > b then 'w' else 'l' end
+           else case when a = b then 'd' when a > b then 'w' else 'l' end end as r
+    from base
+  )
+  select coalesce(tournament, '—'), type, min(played_on), max(played_on), count(*)::int,
+         count(*) filter (where r = 'w')::int, count(*) filter (where r = 'd')::int, count(*) filter (where r = 'l')::int,
+         count(distinct pid)::int
+  from g group by 1, 2 order by max(played_on) desc, 1
+$$;
+revoke all on function public.public_results() from public;
+grant execute on function public.public_results() to anon, authenticated;

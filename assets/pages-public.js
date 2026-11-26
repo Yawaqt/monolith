@@ -1,10 +1,10 @@
 // Public pages: visible to everyone, built only from the safe public data.
-import { t } from './i18n.js?v=202611261346';
-import { state, can, esc, fmtDate, empty, safeImg, evRange, evKind } from './core.js?v=202611261346';
-import { newsCard, md } from './pages-news.js?v=202611261346';
-import { typeLabel, pct } from './data.js?v=202611261346';
-import { appsCards } from './pages-team.js?v=202611261346';
-import { CONFIG } from './config.js?v=202611261346';
+import { t } from './i18n.js?v=202611261348';
+import { state, can, esc, fmtDate, empty, safeImg, evRange, evKind } from './core.js?v=202611261348';
+import { newsCard, md } from './pages-news.js?v=202611261348';
+import { typeLabel, pct } from './data.js?v=202611261348';
+import { appsCards } from './pages-team.js?v=202611261348';
+import { CONFIG } from './config.js?v=202611261348';
 const IG_ICON = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>';
 
 const PUB = () => state.pub || { players: [], results: [], events: [] };
@@ -54,7 +54,7 @@ export function bindSlides(root) {
 
 function tourCard(r) {
   const s = sum([r]);
-  return `<article class="tour"><header><div><h3>${esc(r.tournament)}</h3><p class="mute">${esc(dateRange(r.date_from, r.date_to))} · <span class="tag">${esc(typeLabel(r.type, t))}</span> · ${esc(t('n_games', { n: r.games }))}</p></div>
+  return `<article class="tour"><header><div><h3>${esc(r.tournament)}</h3><p class="mute">${esc(dateRange(r.date_from, r.date_to))} · <span class="tag">${esc(typeLabel(r.type, t))}</span> · ${esc(t('n_games', { n: r.games }))}${r.players ? ' · ' + esc(t(r.players === 1 ? 'n_player1' : 'n_players', { n: r.players })) : ''}</p></div>
     <div class="tour-rec num">${record(s)}<small>${pct(s.rate)}</small></div></header>
     <div class="wdl" aria-hidden="true"><i class="w" style="flex:${r.wins}"></i><i class="d" style="flex:${r.draws}"></i><i class="l" style="flex:${r.losses}"></i></div></article>`;
 }

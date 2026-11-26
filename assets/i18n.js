@@ -217,7 +217,7 @@ const S = {
   internal: ['Intern', 'Internal'], save_game: ['Spiel speichern', 'Save game'], latest: ['Zuletzt eingetragen', 'Latest entries'], vs: ['vs', 'vs'],
   score_rule: ['Teamscore: 0–5 Differenz = 10-10 · 6–10 = 11-9 · je 5 Punkte eine Stufe · über 50 = 20-0', 'Team score: 0–5 difference = 10-10 · 6–10 = 11-9 · one step per 5 points · over 50 = 20-0'],
   newest: ['Neueste zuerst', 'Newest first'], oldest: ['Älteste zuerst', 'Oldest first'], best: ['Bestes Ergebnis', 'Best result'], worst: ['Schlechtestes Ergebnis', 'Worst result'],
-  n_games: ['{n} Spiele', '{n} games'], edit_game: ['Spiel bearbeiten', 'Edit game'],
+  n_games: ['{n} Spiele', '{n} games'], n_players: ['{n} Spieler', '{n} players'], n_player1: ['1 Spieler', '1 player'], edit_game: ['Spiel bearbeiten', 'Edit game'],
   // events
   events_intro: ['Termine und Zusagen. Jeder antwortet für sich mit Ja, Vielleicht oder Nein.', 'Dates and replies. Everyone answers for themselves: yes, maybe or no.'],
   new_event: ['Neues Event', 'New event'], event: ['Event', 'Event'], location: ['Ort', 'Location'], kind: ['Art', 'Kind'], team_size: ['Teamgröße', 'Team size'],
