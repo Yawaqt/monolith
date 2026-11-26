@@ -1,18 +1,18 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611261856';
-import { db, DEMO, resetDemo, demoRole, setDemoRole, cameFromRecovery } from './db.js?v=202611261856';
-import { t, setLang, getLang } from './i18n.js?v=202611261856';
-import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox, fmtDate, empty } from './core.js?v=202611261856';
-import * as T from './pages-team.js?v=202611261856';
-import * as A from './pages-analysis.js?v=202611261856';
-import * as P from './pages-public.js?v=202611261856';
-import * as TE from './pages-teams.js?v=202611261856';
-import { FACTIONS } from './data.js?v=202611261856';
-import * as SITE from './pages-site.js?v=202611261856';
-import * as H from './pages-history.js?v=202611261856';
-import * as LG from './pages-legal.js?v=202611261856';
-import * as AP from './pages-apps.js?v=202611261856';
-import * as N from './pages-news.js?v=202611261856';
+import { CONFIG } from './config.js?v=202611261935';
+import { db, DEMO, resetDemo, demoRole, setDemoRole, cameFromRecovery } from './db.js?v=202611261935';
+import { t, setLang, getLang } from './i18n.js?v=202611261935';
+import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox, fmtDate, empty } from './core.js?v=202611261935';
+import * as T from './pages-team.js?v=202611261935';
+import * as A from './pages-analysis.js?v=202611261935';
+import * as P from './pages-public.js?v=202611261935';
+import * as TE from './pages-teams.js?v=202611261935';
+import { FACTIONS } from './data.js?v=202611261935';
+import * as SITE from './pages-site.js?v=202611261935';
+import * as H from './pages-history.js?v=202611261935';
+import * as LG from './pages-legal.js?v=202611261935';
+import * as AP from './pages-apps.js?v=202611261935';
+import * as N from './pages-news.js?v=202611261935';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['gallery', 'p_gallery', N.gallery], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
@@ -20,16 +20,18 @@ const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['galler
 const PORTAL = [
   { group: null, items: [['portal', 'nav_home', 'guest', T.home]] },
   // personal things first …
-  { group: 'nav_mine', items: [['mystats', 'nav_mystats', 'team', A.mystats], ['history', 'nav_history', 'guest', H.history], ['data', 'nav_data', 'guest', H.data], ['profile', 'nav_profile', 'guest', profile]] },
+  { group: 'nav_mine', items: [['mystats', 'nav_mystats', 'team', A.mystats], ['history', 'nav_history', 'guest', H.history, 'guestOnly'], ['data', 'nav_data', 'guest', H.data, 'guestOnly'], ['profile', 'nav_profile', 'guest', profile]] },
   // … team things after
   { group: 'nav_team', items: [['matches', 'nav_matches', 'team', T.matches], ['archive', 'nav_archive', 'team', T.archive], ['events', 'nav_events', 'team', T.events], ['calendar', 'nav_calendar', 'team', T.calendar],
     ['teams', 'nav_teams', 'team', TE.teams], ['newsedit', 'nav_newsedit', 'news', N.editor], ['roster', 'nav_roster', 'team', T.roster]] },
   { group: 'nav_analysis', items: [['matrix', 'nav_matrix', 'team', A.matrix], ['stats', 'nav_stats', 'team', A.stats]] },
   { group: 'nav_admin', items: [['site', 'nav_site', 'captain', SITE.editor], ['members', 'nav_members', 'admin', members], ['log', 'nav_log', 'admin', activityLog]] },
+  // members and up: the general tools (match history, data) sit at the very end
+  { group: 'nav_tools', items: [['history', 'nav_history', 'team', H.history], ['data', 'nav_data', 'team', H.data]] },
 ];
 const ROUTES = Object.fromEntries([
   ...PUBLIC.map(([k, label, fn]) => [k, { label, min: 'anon', fn, pub: true }]),
-  ...PORTAL.flatMap(g => g.items).map(([k, label, min, fn]) => [k, { label, min, fn }]),
+  ...PORTAL.flatMap(g => g.items).filter(it => it[4] !== undefined || !['history', 'data'].includes(it[0])).map(([k, label, min, fn]) => [k, { label, min: ['history', 'data'].includes(k) ? 'guest' : min, fn }]),
   ['privacy', { label: 'p_privacy', min: 'anon', fn: LG.privacy, pub: true }],
   ['recipes', { label: 'app_recipes', min: 'anon', fn: AP.recipes, pub: true }],
   ['score', { label: 'app_score', min: 'admin', fn: AP.score, pub: true }],
@@ -64,7 +66,7 @@ function subnav() {
   const r = route(); const el = $('#sub');
   if (ROUTES[r]?.pub || r === 'login' || r.startsWith('live/') || r.startsWith('news/') || !state.session) { el.innerHTML = ''; el.hidden = true; return; }
   el.hidden = false;
-  const items = PORTAL.flatMap(g => g.items.filter(([, , min]) => can(min)).map((it, i) => ({ it, first: i === 0 && g.group })));
+  const items = PORTAL.flatMap(g => g.items.filter(([, , min, , only]) => can(min) && !(only === 'guestOnly' && can('team'))).map((it, i) => ({ it, first: i === 0 && g.group })));
   el.innerHTML = `<div class="sub-in"><nav class="subnav scroll" aria-label="${esc(t('portal'))}">${items.map(({ it: [k, l], first }) => `${first ? '<span class="sep" aria-hidden="true"></span>' : ''}<a href="#/${k}"${r === k ? ' aria-current="page"' : ''}>${esc(label(k, l))}${k === 'members' && pendingList().length ? ` <span class="badge">${pendingList().length}</span>` : ''}</a>`).join('')}</nav>
     <div class="who"><span>${esc(state.me?.display_name || '')}</span><span class="tag role-${esc(role())}">${esc(t('r_' + role()))}</span>${state.me?.content ? '<span class="tag">Content</span>' : ''}${DEMO ? '' : `<button class="link" data-out>${esc(t('sign_out'))}</button>`}</div></div>
     ${DEMO ? `<div class="demo"><b>${esc(t('demo'))}</b> · ${esc(t('demo_as'))} <select id="demoRole" aria-label="${esc(t('demo_as'))}">${opts(['guest', 'team', 'captain', 'admin'].map(x => [x, t('r_' + x)]), demoRole())}</select><button class="link" data-reset>${esc(t('demo_reset'))}</button></div>` : ''}`;
