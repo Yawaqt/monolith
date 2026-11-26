@@ -23,3 +23,17 @@ drop policy if exists news_delete on public.news;
 create policy news_delete on public.news for delete to authenticated
   using (public.has_role('captain') or public.is_content() or (public.has_role('team') and author_id = auth.uid()));
 -- protect_profile(): see owners.sql – additionally "new.content is distinct from old.content" is admin-only.
+
+-- 26 Nov 2026 (change): Content no longer raises the role. It only adds news rights.
+create or replace function public.my_role() returns text
+language sql stable security definer set search_path = public as $$
+  select coalesce((select role from public.profiles where id = auth.uid()), 'anon')
+$$;
+drop policy if exists news_read on public.news;
+create policy news_read on public.news for select to authenticated using (published or public.has_role('team') or public.is_content());
+drop policy if exists news_insert on public.news;
+create policy news_insert on public.news for insert to authenticated with check ((public.has_role('team') or public.is_content()) and author_id = auth.uid());
+drop policy if exists media_insert on storage.objects;
+create policy media_insert on storage.objects for insert to authenticated with check (bucket_id = 'media' and (public.has_role('team') or public.is_content()));
+drop policy if exists media_update on storage.objects;
+create policy media_update on storage.objects for update to authenticated using (bucket_id = 'media' and (public.has_role('team') or public.is_content())) with check (bucket_id = 'media' and (public.has_role('team') or public.is_content()));

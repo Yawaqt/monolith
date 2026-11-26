@@ -1,26 +1,26 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611261024';
-import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611261024';
-import { t, setLang, getLang } from './i18n.js?v=202611261024';
-import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox } from './core.js?v=202611261024';
-import * as T from './pages-team.js?v=202611261024';
-import * as A from './pages-analysis.js?v=202611261024';
-import * as P from './pages-public.js?v=202611261024';
-import * as TE from './pages-teams.js?v=202611261024';
-import { FACTIONS } from './data.js?v=202611261024';
-import * as SITE from './pages-site.js?v=202611261024';
-import * as H from './pages-history.js?v=202611261024';
-import * as LG from './pages-legal.js?v=202611261024';
-import * as N from './pages-news.js?v=202611261024';
+import { CONFIG } from './config.js?v=202611261028';
+import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611261028';
+import { t, setLang, getLang } from './i18n.js?v=202611261028';
+import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox } from './core.js?v=202611261028';
+import * as T from './pages-team.js?v=202611261028';
+import * as A from './pages-analysis.js?v=202611261028';
+import * as P from './pages-public.js?v=202611261028';
+import * as TE from './pages-teams.js?v=202611261028';
+import { FACTIONS } from './data.js?v=202611261028';
+import * as SITE from './pages-site.js?v=202611261028';
+import * as H from './pages-history.js?v=202611261028';
+import * as LG from './pages-legal.js?v=202611261028';
+import * as N from './pages-news.js?v=202611261028';
 
 // Public pages (top navigation)
-const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
+const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['gallery', 'p_gallery', N.gallery], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
 // Team area (needs an account); grouped for the sub-navigation
 const PORTAL = [
   { group: null, items: [['portal', 'nav_home', 'guest', T.home]] },
   { group: 'nav_tools', items: [['history', 'nav_history', 'guest', H.history], ['data', 'nav_data', 'guest', H.data]] },
   { group: 'nav_team', items: [['matches', 'nav_matches', 'team', T.matches], ['archive', 'nav_archive', 'team', T.archive], ['events', 'nav_events', 'team', T.events],
-    ['teams', 'nav_teams', 'team', TE.teams], ['newsedit', 'nav_newsedit', 'team', N.editor], ['roster', 'nav_roster', 'team', T.roster]] },
+    ['teams', 'nav_teams', 'team', TE.teams], ['newsedit', 'nav_newsedit', 'news', N.editor], ['roster', 'nav_roster', 'team', T.roster]] },
   { group: 'nav_analysis', items: [['matrix', 'nav_matrix', 'team', A.matrix], ['stats', 'nav_stats', 'team', A.stats]] },
   { group: 'nav_admin', items: [['site', 'nav_site', 'captain', SITE.editor], ['members', 'nav_members', 'admin', members], ['profile', 'nav_profile', 'guest', profile]] },
 ];
