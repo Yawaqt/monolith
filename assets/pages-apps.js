@@ -1,9 +1,9 @@
 // Community apps: paint recipes (everyone), score tracker + chess clock, MathHammer, pairing trainer (admins while in test).
-import { db, DEMO } from './db.js?v=202611261657';
-import { t, getLang } from './i18n.js?v=202611261657';
-import { state, can, esc, $, $$, opts, toast, modal, confirmBox, empty, resizeImage, safeImg, fmtDate } from './core.js?v=202611261657';
-import { FACTIONS } from './data.js?v=202611261657';
-import { lightbox } from './pages-news.js?v=202611261657';
+import { db, DEMO } from './db.js?v=202611261716';
+import { t, getLang } from './i18n.js?v=202611261716';
+import { state, can, esc, $, $$, opts, toast, modal, confirmBox, empty, resizeImage, safeImg, fmtDate } from './core.js?v=202611261716';
+import { FACTIONS } from './data.js?v=202611261716';
+import { lightbox } from './pages-news.js?v=202611261716';
 
 const L = (de, en) => getLang() === 'de' ? de : en;
 const head = (title, intro, actions = '') => `<div class="page-head"><div><p class="eyebrow"><a href="#/apps">${esc(t('p_apps'))}</a></p><h1>${esc(title)}</h1>${intro ? `<p class="intro">${esc(intro)}</p>` : ''}</div>${actions ? `<div class="head-actions">${actions}</div>` : ''}</div>`;
@@ -119,7 +119,7 @@ const SK = 'monolith.score.v1';
 const blankSide = name => ({ name, army: '', cp: 0, prim: [0, 0, 0, 0, 0], sec: [0, 0, 0, 0, 0], painted: false, used: 0 });
 const newGame = (min = 90) => ({ round: 1, minutes: min, a: blankSide(L('Ich', 'Me')), b: blankSide(L('Gegner', 'Opponent')), active: null, since: null });
 let G = null, tick = null, wake = null;
-const P_MAX = 50, S_MAX = 40;
+const P_MAX = 45, S_MAX = 45;
 const total = s => Math.min(P_MAX, s.prim.reduce((a, b) => a + b, 0)) + Math.min(S_MAX, s.sec.reduce((a, b) => a + b, 0)) + (s.painted ? 10 : 0);
 const usedMs = k => G[k].used + (G.active === k && G.since ? Date.now() - G.since : 0);
 const clockTxt = k => { const left = G.minutes * 60000 - usedMs(k); const neg = left < 0; const s = Math.floor(Math.abs(left) / 1000); return (neg ? '−' : '') + Math.floor(s / 3600) + ':' + String(Math.floor(s / 60) % 60).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); };
@@ -128,40 +128,49 @@ async function keepAwake(on) { try { if (on && 'wakeLock' in navigator && !wake)
 function setActive(k) {
   const now = Date.now();
   if (G.active && G.since) G[G.active].used += now - G.since;
+  if (G.active) G.last = G.active;
   G.active = k; G.since = k ? now : null; saveG(); keepAwake(!!k);
 }
 
 export function score(el) {
   G = store(SK) || newGame();
   clearInterval(tick);
-  const side = k => { const s = G[k]; const r = G.round - 1;
-    return `<section class="card sc-side" data-side="${k}">
-      <div class="sc-top"><input class="sc-name" data-f="name" maxlength="30" value="${esc(s.name)}" aria-label="${esc(L('Name', 'Name'))}"><input class="sc-army" data-f="army" list="factions" maxlength="60" placeholder="${esc(t('army'))}" value="${esc(s.army)}"></div>
-      <button type="button" class="sc-clock${G.active === k ? ' on' : ''}" data-clock="${k}"><span class="num" data-time="${k}">${clockTxt(k)}</span><small>${esc(G.active === k ? L('läuft – tippen zum Übergeben', 'running – tap to pass') : L('tippen zum Starten', 'tap to start'))}</small></button>
-      <div class="sc-total"><b class="num" data-total="${k}">${total(s)}</b><span>${esc(L('Punkte', 'points'))}</span></div>
-      <div class="sc-row"><span>${esc(L('Primär', 'Primary'))} R${G.round}</span>${stepper(k, 'prim', s.prim[r])}</div>
-      <div class="sc-row"><span>${esc(L('Sekundär', 'Secondary'))} R${G.round}</span>${stepper(k, 'sec', s.sec[r])}</div>
-      <div class="sc-row"><span>CP</span>${stepper(k, 'cp', s.cp)}</div>
-      <label class="check"><input type="checkbox" data-f="painted"${s.painted ? ' checked' : ''}> ${esc(L('Bemalt (+10)', 'Painted (+10)'))}</label>
-      <p class="mute sc-sum">${esc(L('Primär', 'Primary'))} ${Math.min(P_MAX, s.prim.reduce((a, b) => a + b, 0))}/${P_MAX} · ${esc(L('Sekundär', 'Secondary'))} ${Math.min(S_MAX, s.sec.reduce((a, b) => a + b, 0))}/${S_MAX}<br>${s.prim.map((p, i) => `R${i + 1}: ${p}+${s.sec[i]}`).join(' · ')}</p>
+  const sumP = s => Math.min(P_MAX, s.prim.reduce((a, b) => a + b, 0)), sumS = s => Math.min(S_MAX, s.sec.reduce((a, b) => a + b, 0));
+  // Both clocks side by side, always visible (sticky); tap your half to pass the turn.
+  const clock = k => { const s = G[k];
+    return `<button type="button" class="sc-clock${G.active === k ? ' on' : ''}" data-clock="${k}"><span class="sc-who">${esc(s.name || '–')}</span>
+      <span class="num sc-time" data-time="${k}">${clockTxt(k)}</span><span class="sc-pts"><b class="num">${total(s)}</b> ${esc(L('Pkt', 'pts'))}</span></button>`; };
+  const col = k => { const s = G[k]; const r = G.round - 1;
+    return `<section class="sc-col" data-side="${k}">
+      <input class="sc-name" data-f="name" maxlength="30" value="${esc(s.name)}" aria-label="${esc(L('Name', 'Name'))}">
+      <input class="sc-army" data-f="army" list="factions" maxlength="60" placeholder="${esc(t('army'))}" value="${esc(s.army)}">
+      <div class="sc-f"><span>${esc(L('Primär', 'Primary'))} R${G.round}</span>${stepper(k, 'prim', s.prim[r])}<small class="mute num">${sumP(s)}/${P_MAX}</small></div>
+      <div class="sc-f"><span>${esc(L('Sekundär', 'Secondary'))} R${G.round}</span>${stepper(k, 'sec', s.sec[r])}<small class="mute num">${sumS(s)}/${S_MAX}</small></div>
+      <div class="sc-f"><span>CP</span>${stepper(k, 'cp', s.cp)}</div>
+      <label class="check sc-paint"><input type="checkbox" data-f="painted"${s.painted ? ' checked' : ''}> ${esc(L('Bemalt +10', 'Painted +10'))}</label>
     </section>`; };
-  el.innerHTML = head(L('Score-Tracker & Schachuhr', 'Score tracker & chess clock'), L('Punkte pro Runde, CP und Spielzeit für beide Spieler. Bleibt auf dem Gerät gespeichert, auch nach dem Neuladen.', 'Points per round, CP and game time for both players. Stays saved on this device.')) + factionList() +
-    `<div class="sc-bar card"><div class="seg" role="group" aria-label="${esc(L('Runde', 'Round'))}">${[1, 2, 3, 4, 5].map(n => `<button type="button" data-round="${n}" aria-pressed="${G.round === n}">R${n}</button>`).join('')}</div>
-      <button type="button" class="btn ghost sm" data-pause>${esc(G.active ? L('Pause', 'Pause') : L('Uhr steht', 'Clock stopped'))}</button>
-      <label class="sc-min">${esc(L('Min. pro Spieler', 'Min per player'))}<input type="number" min="5" max="300" step="5" value="${G.minutes}" data-min></label></div>
-    <div class="sc-grid">${side('a')}${side('b')}</div>
-    <div class="row-actions sc-end"><button type="button" class="btn primary" data-save>${esc(L('In Match History speichern', 'Save to match history'))}</button><button type="button" class="btn ghost" data-reset>${esc(L('Neues Spiel', 'New game'))}</button></div>`;
+  const rounds = ['a', 'b'].map(k => G[k]);
+  el.innerHTML = factionList() + `<p class="eyebrow"><a href="#/apps">← ${esc(t('p_apps'))}</a> · ${esc(t('app_score'))}</p><div class="sc-app">
+    <div class="sc-clocks">${clock('a')}<button type="button" class="sc-pause" data-pause aria-label="${esc(L('Pause', 'Pause'))}">${G.active ? '❚❚' : '▶'}</button>${clock('b')}</div>
+    <div class="sc-rounds seg" role="group" aria-label="${esc(L('Runde', 'Round'))}">${[1, 2, 3, 4, 5].map(n => `<button type="button" data-round="${n}" aria-pressed="${G.round === n}">R${n}</button>`).join('')}</div>
+    <div class="sc-grid">${col('a')}${col('b')}</div>
+    <div class="card sc-table"><div class="scroll"><table class="compact-stat"><thead><tr><th></th>${[1, 2, 3, 4, 5].map(n => `<th class="r${G.round === n ? ' cur' : ''}">R${n}</th>`).join('')}<th class="r">Σ</th></tr></thead><tbody>
+      ${rounds.map(s => `<tr><td><b>${esc(s.name || '–')}</b></td>${s.prim.map((p, i) => `<td class="r num${G.round === i + 1 ? ' cur' : ''}">${p}+${s.sec[i]}</td>`).join('')}<td class="r num"><b>${total(s)}</b></td></tr>`).join('')}</tbody></table></div>
+      <p class="mute small">${esc(L(`Primär + Sekundär pro Runde. Max. ${P_MAX} Primär, ${S_MAX} Sekundär, +10 bemalt.`, `Primary + secondary per round. Max ${P_MAX} primary, ${S_MAX} secondary, +10 painted.`))}</p></div>
+    <div class="sc-end"><label class="sc-min">${esc(L('Minuten pro Spieler', 'Minutes per player'))}<input type="number" min="5" max="300" step="5" value="${G.minutes}" data-min></label>
+      <div class="row-actions"><button type="button" class="btn primary" data-save>${esc(L('In Match History speichern', 'Save to match history'))}</button><button type="button" class="btn ghost" data-reset>${esc(L('Neues Spiel', 'New game'))}</button></div></div>
+  </div>`;
   const refreshClock = () => { if (!document.body.contains(el) || location.hash !== '#/score') return clearInterval(tick); for (const k of ['a', 'b']) { const n = $(`[data-time="${k}"]`, el); if (n) { n.textContent = clockTxt(k); n.classList.toggle('over', G.minutes * 60000 - usedMs(k) < 0); } } };
   tick = setInterval(refreshClock, 500); refreshClock();
   if (G.active) keepAwake(true);
   el.onclick = async e => {
-    const c = e.target.closest('[data-clock]'); if (c) { const k = c.dataset.clock; setActive(G.active === k ? (k === 'a' ? 'b' : 'a') : k); return score(el); }
-    if (e.target.closest('[data-pause]')) { setActive(null); return score(el); }
+    const c = e.target.closest('[data-clock]'); if (c) { const k = c.dataset.clock; setActive(G.active === k ? (k === 'a' ? 'b' : 'a') : k); if (navigator.vibrate) navigator.vibrate(30); return score(el); }
+    if (e.target.closest('[data-pause]')) { setActive(G.active ? null : (G.last || 'a')); return score(el); }
     const rd = e.target.closest('[data-round]'); if (rd) { G.round = +rd.dataset.round; saveG(); return score(el); }
     const st = e.target.closest('[data-step]'); if (st) { const [k, f, d] = st.dataset.step.split('|'); const s = G[k];
-      if (f === 'cp') s.cp = Math.max(0, s.cp + +d); else { const r = G.round - 1; s[f][r] = Math.max(0, Math.min(f === 'prim' ? 15 : 20, s[f][r] + +d)); }
+      if (f === 'cp') s.cp = Math.max(0, s.cp + +d); else { const r = G.round - 1; s[f][r] = Math.max(0, Math.min(f === 'prim' ? P_MAX : S_MAX, s[f][r] + +d)); }
       saveG(); return score(el); }
-    if (e.target.closest('[data-reset]')) { if (!(await modal(L('Neues Spiel', 'New game'), `<p>${esc(L('Punkte und Uhr zurücksetzen?', 'Reset points and clock?'))}</p>`, { submit: L('Zurücksetzen', 'Reset'), danger: true }))) return; setActive(null); G = newGame(G.minutes); G.a.name = store(SK)?.a?.name || G.a.name; saveG(); return score(el); }
+    if (e.target.closest('[data-reset]')) { if (!(await modal(L('Neues Spiel', 'New game'), `<p>${esc(L('Punkte und Uhr zurücksetzen?', 'Reset points and clock?'))}</p>`, { submit: L('Zurücksetzen', 'Reset'), danger: true }))) return; setActive(null); const keep = G.a.name; G = newGame(G.minutes); G.a.name = keep; saveG(); return score(el); }
     if (e.target.closest('[data-save]')) return saveScore(el);
   };
   el.onchange = e => {
@@ -169,7 +178,7 @@ export function score(el) {
     if (e.target.matches('[data-min]')) { G.minutes = Math.max(5, Math.min(300, +e.target.value || 90)); saveG(); return refreshClock(); }
     if (!sideEl) return; const s = G[sideEl.dataset.side]; const f = e.target.dataset.f;
     if (f === 'painted') { s.painted = e.target.checked; saveG(); return score(el); }
-    if (f) { s[f] = e.target.value.trim(); saveG(); }
+    if (f) { s[f] = e.target.value.trim(); saveG(); if (f === 'name') score(el); }
   };
 }
 const stepper = (k, f, v) => `<span class="stepper"><button type="button" class="icon" data-step="${k}|${f}|-1" aria-label="−1">−</button><b class="num">${v}</b><button type="button" class="icon" data-step="${k}|${f}|1" aria-label="+1">+</button></span>`;
