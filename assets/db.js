@@ -1,5 +1,5 @@
 // Data access: Supabase when configured, otherwise a demo backend in localStorage.
-import { CONFIG } from './config.js?v=202611261220';
+import { CONFIG } from './config.js?v=202611261227';
 
 export const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY;
 export const TABLES = ['players', 'matches', 'events', 'rsvps', 'payments', 'ratings', 'opponent_teams', 'pairings', 'settings', 'tevents', 'tevent_rounds', 'news'];
@@ -137,7 +137,7 @@ const demo = {
     if (name === 'link_internal_game') { const m = tbl('matches').find(x => x.id === args.p_id); if (m && !m.opp_player_id) { m.opp_player_id = load().profiles.find(p => p.id === 'demo-user')?.player_id || null; persist(); } return null; }
     if (name === 'admin_account_emails') return load().profiles.map(p => ({ id: p.id, email: (p.display_name || 'user').toLowerCase().replace(/\s+/g, '.') + '@example.com' }));
     if (name === 'delete_my_account') return null;
-    if (name === 'game_stats') { const by = new Map(); const G = tbl('personal_games');
+    if (name === 'game_stats') { const by = new Map(); const G = [...tbl('personal_games'), ...tbl('matches').filter(m => m.army && m.opp_faction && m.our_score != null).map(m => ({ army: m.army, opp_army: m.opp_faction, my_score: m.our_score, opp_score: m.opp_score, user_id: 'p' + m.player_id }))];
       for (const g of G) { const k = g.army + '|' + g.opp_army; const x = by.get(k) || { army: g.army, opp_army: g.opp_army, games: 0, wins: 0, draws: 0, losses: 0, pts_for: 0, pts_against: 0 };
         x.games++; if (g.my_score > g.opp_score) x.wins++; else if (g.my_score < g.opp_score) x.losses++; else x.draws++; x.pts_for += g.my_score; x.pts_against += g.opp_score; by.set(k, x); }
       return { games: G.length, players: new Set(G.map(g => g.user_id)).size, rows: [...by.values()] }; }

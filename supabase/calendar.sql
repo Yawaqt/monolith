@@ -1,0 +1,3 @@
+-- Personal calendar feed (applied 26 Nov 2026). See the migration "calendar_feed" in Supabase for the full function.
+-- profiles.cal_token: secret token per account; reset_cal_token(); calendar_feed(p_token) returns iCal text for members only.
+-- Served by the Edge Function "calendar" (supabase/functions/calendar/index.ts): GET /functions/v1/calendar?t=<token>

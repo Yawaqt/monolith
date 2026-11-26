@@ -1,8 +1,9 @@
 // Team pages: home, roster, match log, archive, events, calendar, line-up, cash.
-import { db } from './db.js?v=202611261220';
-import { t } from './i18n.js?v=202611261220';
-import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611261220';
-import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611261220';
+import { CONFIG } from './config.js?v=202611261227';
+import { db } from './db.js?v=202611261227';
+import { t } from './i18n.js?v=202611261227';
+import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611261227';
+import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611261227';
 
 const D = () => state.data;
 const rsvpOf = (eid, pid) => (D().rsvps || []).find(r => r.event_id === eid && r.player_id === pid)?.status;
@@ -416,6 +417,17 @@ async function editEvent(ev, defKind = 'Singles') {
 
 // ---------------------------------------------------------------- Calendar
 let calMonth = null;
+// Personal calendar subscription (Google, Apple, Outlook) via the secret feed address
+const calUrl = () => state.me?.cal_token && CONFIG.SUPABASE_URL ? `${CONFIG.SUPABASE_URL}/functions/v1/calendar?t=${state.me.cal_token}` : '';
+function calSubscribe() {
+  const u = calUrl();
+  if (!u) return `<div class="notice">${esc(t('cal_demo'))}</div>`;
+  const webcal = u.replace(/^https:/, 'webcal:');
+  return `<section class="card cal-sub"><h2>📅 ${esc(t('cal_sub_title'))}</h2><p class="mute">${esc(t('cal_sub_intro'))}</p>
+    <div class="form-actions"><a class="btn primary" href="https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcal)}" target="_blank" rel="noopener">${esc(t('cal_google'))}</a>
+      <a class="btn ghost" href="${esc(webcal)}">${esc(t('cal_apple'))}</a><button type="button" class="btn ghost" data-calcopy>${esc(t('copy_link'))}</button></div>
+    <p class="mute small">${esc(t('cal_sub_hint'))} <button type="button" class="link" data-calreset>${esc(t('cal_reset'))}</button></p></section>`;
+}
 export function calendar(el) {
   if (!calMonth) { const d = new Date(); calMonth = [d.getFullYear(), d.getMonth()]; }
   const [y, mo] = calMonth; const first = new Date(y, mo, 1); const startDow = (first.getDay() + 6) % 7; const days = new Date(y, mo + 1, 0).getDate();
@@ -426,10 +438,13 @@ export function calendar(el) {
   let cells = ''; for (let i = 0; i < startDow; i++) cells += '<div class="cal-c blank"></div>';
   for (let d = 1; d <= days; d++) { const list = evs.filter(e => e.starts_on === iso(d)); cells += `<div class="cal-c${iso(d) === today() ? ' today' : ''}${list.length ? ' has' : ''}"><span class="cal-d">${d}</span>${list.map(e => `<a href="#/events" class="cal-ev" title="${esc(e.title)}">${esc(e.title)}</a>`).join('')}</div>`; }
   const monthEvents = evs.filter(e => e.starts_on.startsWith(`${y}-${String(mo + 1).padStart(2, '0')}`)).sort((a, b) => a.starts_on.localeCompare(b.starts_on));
-  el.innerHTML = pageHead(t('nav_calendar'), '') + `<div class="cal-head"><button class="btn ghost" data-m="-1" aria-label="${esc(t('prev'))}">‹</button><h2>${esc(first.toLocaleDateString(lang, { month: 'long', year: 'numeric' }))}</h2><button class="btn ghost" data-m="1" aria-label="${esc(t('next'))}">›</button><button class="btn ghost sm" data-m="0">${esc(t('today'))}</button></div>
+  el.innerHTML = pageHead(t('nav_calendar'), t('cal_intro')) + calSubscribe() + `<div class="cal-head"><button class="btn ghost" data-m="-1" aria-label="${esc(t('prev'))}">‹</button><h2>${esc(first.toLocaleDateString(lang, { month: 'long', year: 'numeric' }))}</h2><button class="btn ghost" data-m="1" aria-label="${esc(t('next'))}">›</button><button class="btn ghost sm" data-m="0">${esc(t('today'))}</button></div>
     <div class="cal">${wd.map(w => `<div class="cal-w">${esc(w)}</div>`).join('')}${cells}</div>
-    <ul class="list cal-list">${monthEvents.map(e => `<li><span><b>${esc(fmtDate(e.starts_on))}</b> ${esc(e.title)}</span><span class="mute">${esc(e.location || '')}</span></li>`).join('')}</ul>`;
-  el.onclick = e => { const b = e.target.closest('[data-m]'); if (!b) return; const n = +b.dataset.m; if (!n) { const d = new Date(); calMonth = [d.getFullYear(), d.getMonth()]; } else { const d = new Date(calMonth[0], calMonth[1] + n, 1); calMonth = [d.getFullYear(), d.getMonth()]; } calendar(el); };
+    <ul class="list cal-list">${monthEvents.map(e => `<li><span><b>${esc(fmtDate(e.starts_on))}</b>${e.start_time && (e.kind === 'Training' || e.kind === 'Training Match') ? ' ' + esc(String(e.start_time).slice(0, 5)) : ''} ${esc(e.title)}<br><small class="mute">${esc(evKind(e))}</small></span><span class="mute">${esc(e.location || '')}</span></li>`).join('')}</ul>`;
+  el.onclick = async e => {
+    if (e.target.closest('[data-calcopy]')) { try { await navigator.clipboard.writeText(calUrl()); toast(t('copied')); } catch (_) { prompt(t('copy_link'), calUrl()); } return; }
+    if (e.target.closest('[data-calreset]')) { if (!await confirmBox(t('cal_reset_q'))) return; try { const tok = await db.rpc('reset_cal_token'); if (state.me) state.me.cal_token = tok; toast(t('cal_reset_done')); calendar(el); } catch (err) { toast(t('error') + ': ' + err.message, true); } return; }
+    const b = e.target.closest('[data-m]'); if (!b) return; const n = +b.dataset.m; if (!n) { const d = new Date(); calMonth = [d.getFullYear(), d.getMonth()]; } else { const d = new Date(calMonth[0], calMonth[1] + n, 1); calMonth = [d.getFullYear(), d.getMonth()]; } calendar(el); };
 }
 
 // ---------------------------------------------------------------- Line-up (Aufstellung)

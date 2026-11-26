@@ -1,6 +1,6 @@
 // Imprint (Offenlegung § 25 MedienG) and privacy policy (DSGVO). German is the binding version.
-import { t, getLang } from './i18n.js?v=202611261220';
-import { state, esc } from './core.js?v=202611261220';
+import { t, getLang } from './i18n.js?v=202611261227';
+import { state, esc } from './core.js?v=202611261227';
 
 const legal = () => (state.pub && state.pub.site && state.pub.site.legal) || {};
 const fill = (v, what) => v ? esc(v) : `<span class="todo">[${esc(what)}]</span>`;
@@ -44,8 +44,10 @@ export function privacy(el) {
   <p>Profilfoto, Lieblingsarmee und „Über mich“ sind freiwillig und werden auf Grundlage deiner Einwilligung veröffentlicht (Art. 6 Abs. 1 lit. a DSGVO). Du kannst sie jederzeit im Profil ändern oder löschen; damit widerrufst du die Einwilligung für die Zukunft. Gruppenfotos veröffentlichen wir nur mit Einverständnis der abgebildeten Personen – wenn du auf einem Foto nicht zu sehen sein möchtest, melde dich bei uns, wir entfernen es.</p>
 
   <h3>6. Match History und Daten-Statistik</h3>
-  <p>In der Match History kann jedes Konto eigene Spiele eintragen. Diese Einträge sieht nur die eintragende Person. Für den Bereich „Daten“ werden alle Einträge <b>anonym zusammengefasst</b> (z. B. Siegquoten pro Fraktion); dort erscheinen weder Namen noch einzelne Spiele, und der Bereich ist nur mit Konto sichtbar. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Bereitstellung der Funktion) und lit. f (anonyme Auswertung).</p>
+  <p>In der Match History kann jedes Konto eigene Spiele eintragen. Diese Einträge sieht nur die eintragende Person. Für den Bereich „Daten“ werden diese Einträge zusammen mit den Spielen aus dem Team-Match-Log <b>anonym zusammengefasst</b> (z. B. Siegquoten pro Fraktion); dort erscheinen weder Namen noch einzelne Spiele, und der Bereich ist nur mit Konto sichtbar. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Bereitstellung der Funktion) und lit. f (anonyme Auswertung).</p>
 
+  <h3>6a. Kalender-Abo</h3>
+  <p>Mitglieder können die Team-Termine in ihren eigenen Kalender (z. B. Google, Apple, Outlook) übernehmen. Dafür erhält jedes Konto einen persönlichen, geheimen Link. Ruft der Kalenderdienst diesen Link ab, erhält er Termine und die eigene Zusage; der Anbieter des Kalenders verarbeitet diese Daten dann nach seinen eigenen Datenschutzbestimmungen. Der Link kann im Teambereich jederzeit erneuert werden, der alte funktioniert dann nicht mehr. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.</p>
   <h3>7. Collection Tracker</h3>
   <p>Deine Modellsammlung wird in deinem Konto gespeichert und ist nur für dich sichtbar. Um aktuelle Punktewerte zu laden, ruft der Tracker eine öffentliche Datendatei über das Open-Source-Netzwerk <b>jsDelivr</b> ab; dabei wird deine IP-Adresse technisch an jsDelivr übermittelt (Art. 6 Abs. 1 lit. f DSGVO).</p>
 
