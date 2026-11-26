@@ -1,8 +1,8 @@
 // Team pages: home, roster, match log, archive, events, calendar, line-up, cash.
-import { db } from './db.js?v=202611261028';
-import { t } from './i18n.js?v=202611261028';
-import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611261028';
-import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611261028';
+import { db } from './db.js?v=202611261150';
+import { t } from './i18n.js?v=202611261150';
+import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611261150';
+import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611261150';
 
 const D = () => state.data;
 const rsvpOf = (eid, pid) => (D().rsvps || []).find(r => r.event_id === eid && r.player_id === pid)?.status;
@@ -222,7 +222,34 @@ export async function quickResult() {
   if (!r) return;
   if (r.type === 'Practice') r.tournament = '';
   let row; try { row = matchRow(r); } catch (err) { return toast(err.message, true); }
+  if (await handleMirror(row)) return;
   await act(() => db.insert('matches', row), ['matches'], t('quick_saved'));
+}
+
+// ---------------------------------------------------------------- Games between two team mates are stored once
+// An internal game is one row (player + opp_player_id) and counts for both players. When the same game is entered
+// again for the other player, it is recognised: same day / tournament, the two players (or their armies) swapped and
+// the points mirrored. Then it is not saved twice; the existing row is linked to the second player instead.
+export function findMirror(row, pool = D().matches || []) {
+  const sameEvent = m => m.played_on === row.played_on && (m.tournament || '') === (row.tournament || '');
+  const mirrored = m => +m.our_score === +row.opp_score && +m.opp_score === +row.our_score;
+  const same = m => m.id !== row.id && m.player_id === row.player_id && sameEvent(m) && m.opp_faction === row.opp_faction && m.army === row.army && +m.our_score === +row.our_score && +m.opp_score === +row.opp_score;
+  const twin = pool.find(same); if (twin) return twin;
+  return pool.find(m => m.id !== row.id && m.player_id !== row.player_id && sameEvent(m) && mirrored(m) && (
+    (row.opp_player_id && m.player_id === row.opp_player_id) || m.opp_player_id === row.player_id ||
+    (m.army === row.opp_faction && m.opp_faction === row.army)));
+}
+// Returns true when the row was handled as a duplicate (nothing more to save)
+async function handleMirror(row) {
+  const m = findMirror(row); if (!m) return false;
+  const r = await modal(t('dup_title'), m.player_id === row.player_id ? `<p>${esc(t('dup_same', { a: pname(m.player_id), aa: m.army, f: m.opp_faction, s: `${m.our_score}:${m.opp_score}`, d: fmtDate(m.played_on) }))}</p><label class="check"><input type="checkbox" name="force"> ${esc(t('dup_force'))}</label>` : `<p>${esc(t('dup_text', { a: pname(m.player_id), aa: m.army, b: pname(row.player_id), ba: row.army, s: `${m.our_score}:${m.opp_score}`, d: fmtDate(m.played_on) }))}</p>
+    <label class="check"><input type="checkbox" name="force"> ${esc(t('dup_force'))}</label>`, { submit: t('dup_ok') });
+  if (!r) return true;                 // cancelled: save nothing
+  if (r.force) return false;           // really a different game
+  if (m.player_id === row.player_id) toast(t('dup_exists'));
+  else if (!m.opp_player_id || m.opp_player_id !== row.player_id) await act(() => db.update('matches', { id: m.id }, { opp_player_id: row.player_id, opp_disposition: m.opp_disposition || row.disposition || null }), ['matches'], t('dup_linked', { a: pname(m.player_id), b: pname(row.player_id) }));
+  else toast(t('dup_exists'));
+  return true;
 }
 
 export function matches(el) {
@@ -235,6 +262,7 @@ export function matches(el) {
   if (f) { bindMatchForm(f); f.addEventListener('submit', async e => { e.preventDefault(); if (!f.reportValidity()) return;
     const o = {}; for (const x of f.elements) if (x.name) o[x.name] = x.value;
     let row; try { row = matchRow(o); } catch (err) { return toast(err.message, true); }
+    if (await handleMirror(row)) return;
     await act(() => db.insert('matches', row), ['matches']); }); }
   el.onclick = e => { if (e.target.closest('[data-tour]')) return tournamentImport(); return gamesClick(e); };
 }
@@ -255,6 +283,7 @@ async function gamesClick(e) {
     if (ed) { const m = D().matches.find(x => x.id === +ed.dataset.medit);
       const r = await modal(t('edit_game'), matchForm(m), { wide: true, onOpen: bindMatchForm }); if (!r) return;
       let row; try { row = matchRow(r); } catch (err) { return toast(err.message, true); }
+      if (await handleMirror(Object.assign({ id: m.id }, row))) return;
       await act(() => db.update('matches', { id: m.id }, row), ['matches']); }
     if (del) { const m = D().matches.find(x => x.id === +del.dataset.mdel);
       if (await confirmBox(`${pname(m.player_id)} · ${m.army} vs ${m.opp_faction} · ${fmtDate(m.played_on)}`)) await act(() => db.remove('matches', { id: m.id }), ['matches']); }
@@ -436,6 +465,7 @@ async function tournamentImport() {
   const roundRow = (i, date) => `<div class="rnd" data-r="${i}"><span class="rnd-n">${esc(t('round'))} <b>${i + 1}</b></span>
     <select name="of" aria-label="${esc(t('opp_faction'))}" required>${opts(FACTIONS, '', t('opp_faction'))}</select>
     <select name="od" aria-label="${esc(t('opp_disp'))}">${opts(DISPOSITIONS, '', t('opp_disp'))}</select>
+    <select name="op" aria-label="${esc(t('opp_player'))}">${opts(players().map(p => [p.id, p.name]), '', t('external'))}</select>
     <input name="on" maxlength="60" placeholder="${esc(t('opp_name'))}" aria-label="${esc(t('opp_name'))}">
     <input name="us" type="number" inputmode="numeric" min="0" max="200" placeholder="${esc(t('our_score'))}" aria-label="${esc(t('our_score'))}" required>
     <input name="them" type="number" inputmode="numeric" min="0" max="200" placeholder="${esc(t('opp_score'))}" aria-label="${esc(t('opp_score'))}" required>
@@ -473,13 +503,19 @@ async function tournamentImport() {
       const rm = e.target.closest('[data-rm]'); if (rm && $$('.rnd', f).length > 1) { rm.closest('.rnd').remove(); upd(); }
     });
     // collect rounds when the form is submitted (modal only returns named single fields)
-    f.addEventListener('submit', () => { rows = $$('.rnd', f).map(el => ({ of: el.querySelector('[name=of]').value, od: el.querySelector('[name=od]').value, on: el.querySelector('[name=on]').value.trim(),
+    f.addEventListener('submit', () => { rows = $$('.rnd', f).map(el => ({ of: el.querySelector('[name=of]').value, od: el.querySelector('[name=od]').value, on: el.querySelector('[name=on]').value.trim(), op: el.querySelector('[name=op]').value,
       us: el.querySelector('[name=us]').value, them: el.querySelector('[name=them]').value, d: el.querySelector('[name=d]').value })); }, true);
     upd();
   } });
   if (!r || !rows) return;
   const base = { type: r.type || 'Tournament', tournament: r.tournament.trim(), player_id: +r.player_id, army: r.army, disposition: r.disposition || null };
-  const list = rows.map(x => Object.assign({}, base, { played_on: x.d || r.start, opp_faction: x.of, opp_disposition: x.od || null, opp_player_id: null,
-    opp_name: x.on || null, our_score: +x.us, opp_score: +x.them, notes: null }));
-  await act(async () => { for (const m of list) await db.insert('matches', m); }, ['matches'], t('rounds_saved', { n: list.length }));
+  const list = rows.map(x => Object.assign({}, base, { played_on: x.d || r.start, opp_faction: x.of, opp_disposition: x.od || null, opp_player_id: x.op ? +x.op : null,
+    opp_name: x.op ? null : x.on || null, our_score: +x.us, opp_score: +x.them, notes: null }));
+  // Rounds against team mates that are already in the log are linked instead of saved twice
+  const fresh = [], linked = [];
+  for (const m of list) { const mm = findMirror(m); if (mm) linked.push([mm, m]); else fresh.push(m); }
+  await act(async () => {
+    for (const m of fresh) await db.insert('matches', m);
+    for (const [mm, m] of linked) if (mm.opp_player_id !== m.player_id) await db.update('matches', { id: mm.id }, { opp_player_id: m.player_id, opp_disposition: mm.opp_disposition || m.disposition || null });
+  }, ['matches'], linked.length ? t('rounds_saved_dup', { n: fresh.length, d: linked.length }) : t('rounds_saved', { n: fresh.length }));
 }

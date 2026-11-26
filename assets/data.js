@@ -34,7 +34,7 @@ export const scoreStr = g => g ? `${g[0]}-${g[1]}` : '–';
 export function records(matches, { type = '', since = '' } = {}) {
   const out = [];
   for (const m of matches) {
-    if (type && m.type !== type) continue;
+    if (type === '__tour' ? m.type === 'Practice' : type && m.type !== type) continue;
     if (since && m.played_on < since) continue;
     const g = gp(m.our_score, m.opp_score);
     if (!g) continue;

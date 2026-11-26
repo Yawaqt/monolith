@@ -9,3 +9,13 @@ begin
 end $$;
 revoke all on function public.admin_delete_user(uuid) from public;
 grant execute on function public.admin_delete_user(uuid) to authenticated;
+
+-- Admins see the e-mail address of every account (26 Nov 2026)
+create or replace function public.admin_account_emails() returns table (id uuid, email text, last_sign_in timestamptz)
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not public.has_role('admin') then raise exception 'Only admins'; end if;
+  return query select u.id, u.email::text, u.last_sign_in_at from auth.users u;
+end $$;
+revoke all on function public.admin_account_emails() from public;
+grant execute on function public.admin_account_emails() to authenticated;

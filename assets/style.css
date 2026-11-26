@@ -422,3 +422,6 @@ ul.pop{list-style:none;margin:0;padding:0}ul.pop li{display:grid;grid-template-c
 .lb-n{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;border:0;background:rgba(255,255,255,.15);color:#fff;font-size:30px;cursor:pointer}.lb-n.prev{left:14px}.lb-n.next{right:14px}
 .lb-c{position:absolute;bottom:16px;left:0;right:0;text-align:center;color:#ddd;font-size:14px}
 @media(max-width:600px){.pgal{grid-template-columns:repeat(3,1fr);gap:4px}.lb-n{display:none}}
+.rnd [name=of]{grid-column:3/6}.rnd [name=od]{grid-column:6/8}.rnd [name=op]{grid-column:8/10}.rnd [name=on]{grid-column:10/12}
+@media(max-width:640px){.rnd [name=op]{grid-column:1/4}.rnd [name=on]{grid-column:4/7}}
+.mail{font-size:12.5px;color:var(--mute);text-decoration:none}.mail:hover{text-decoration:underline}

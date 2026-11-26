@@ -1,8 +1,8 @@
 // Analysis pages: live matrix, statistics, master matrix, master team, pairing.
-import { db } from './db.js?v=202611261028';
-import { t } from './i18n.js?v=202611261028';
-import { state, can, myPlayer, isMe, esc, $, $$, opts, players, playerById, pname, setting, act, modal, confirmBox, gpClass, empty, pageHead, toast } from './core.js?v=202611261028';
-import { FACTIONS, MATRIX_COLS, DISPOSITIONS, RATING_LEGEND, records, summarize, groupBy, avg, fmt1, pct, matrixCell, typeLabel } from './data.js?v=202611261028';
+import { db } from './db.js?v=202611261150';
+import { t } from './i18n.js?v=202611261150';
+import { state, can, myPlayer, isMe, esc, $, $$, opts, players, playerById, pname, setting, act, modal, confirmBox, gpClass, empty, pageHead, toast } from './core.js?v=202611261150';
+import { FACTIONS, MATRIX_COLS, DISPOSITIONS, RATING_LEGEND, records, summarize, groupBy, avg, fmt1, pct, matrixCell, typeLabel } from './data.js?v=202611261150';
 
 const D = () => state.data;
 const short = f => f.replace('Adeptus ', 'A. ').replace('Adepta ', 'A. ').replace('Chaos Space Marines', 'CSM').replace('Space Marines', 'SM').replace('Leagues of Votann', 'Votann').replace('Genestealer Cults', 'GSC').replace("Emperor's Children", 'EC').replace('Imperial Knights', 'Imp. Knights');
@@ -42,7 +42,7 @@ export function stats(el) {
   const pairs = groupBy(internal, r => [r.player_id, r.vsPlayer].sort((a, b) => a - b).join('-'));
   const types = [...new Set((D().matches || []).map(m => m.type))];
   el.innerHTML = pageHead(t('nav_stats'), t('stats_intro')) +
-    `<form class="filters card" id="sf"><label>${esc(t('type'))}<select name="type">${opts(types.map(x => [x, typeLabel(x, t)]), SF.type, t('all'))}</select></label><label>${esc(t('since'))}<input type="date" name="since" value="${esc(SF.since)}"></label></form>
+    `<form class="filters card" id="sf"><label>${esc(t('type'))}<select name="type">${opts([['', t('st_all_games')], ['__tour', t('st_all_tours')], ...types.map(x => [x, typeLabel(x, t)])], SF.type)}</select></label><label>${esc(t('since'))}<input type="date" name="since" value="${esc(SF.since)}"></label></form>
     <section class="card"><h2>${esc(t('players'))}</h2><div class="scroll"><table class="stack"><thead><tr><th>${esc(t('player'))}</th><th class="r">${esc(t('games'))}</th><th class="r">${esc(t('wins'))}</th><th class="r">${esc(t('draws'))}</th><th class="r">${esc(t('losses'))}</th><th class="r">${esc(t('winrate'))}</th><th class="r">${esc(t('avg_gp'))}</th><th class="r">${esc(t('avg_diff'))}</th><th>${esc(t('most_played'))}</th><th class="r">${esc(t('games_with'))}</th></tr></thead><tbody>
       ${prow.map(({ p, s, top }) => `<tr${isMe(p.id) ? ' class="me"' : ''}><td><b>${esc(p.name)}</b></td><td class="r num">${s.n}</td><td class="r num">${s.w}</td><td class="r num">${s.d}</td><td class="r num">${s.l}</td><td class="r num">${pct(s.rate)}</td><td class="r num ${gpClass(s.avgGp)}">${fmt1(s.avgGp)}</td><td class="r num">${fmt1(s.avgDiff)}</td><td>${esc(top ? top[0] : '')}</td><td class="r num">${top ? top[1].length : ''}</td></tr>`).join('')}
     </tbody></table></div></section>

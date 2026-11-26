@@ -1,17 +1,17 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611261028';
-import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611261028';
-import { t, setLang, getLang } from './i18n.js?v=202611261028';
-import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox } from './core.js?v=202611261028';
-import * as T from './pages-team.js?v=202611261028';
-import * as A from './pages-analysis.js?v=202611261028';
-import * as P from './pages-public.js?v=202611261028';
-import * as TE from './pages-teams.js?v=202611261028';
-import { FACTIONS } from './data.js?v=202611261028';
-import * as SITE from './pages-site.js?v=202611261028';
-import * as H from './pages-history.js?v=202611261028';
-import * as LG from './pages-legal.js?v=202611261028';
-import * as N from './pages-news.js?v=202611261028';
+import { CONFIG } from './config.js?v=202611261150';
+import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611261150';
+import { t, setLang, getLang } from './i18n.js?v=202611261150';
+import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox } from './core.js?v=202611261150';
+import * as T from './pages-team.js?v=202611261150';
+import * as A from './pages-analysis.js?v=202611261150';
+import * as P from './pages-public.js?v=202611261150';
+import * as TE from './pages-teams.js?v=202611261150';
+import { FACTIONS } from './data.js?v=202611261150';
+import * as SITE from './pages-site.js?v=202611261150';
+import * as H from './pages-history.js?v=202611261150';
+import * as LG from './pages-legal.js?v=202611261150';
+import * as N from './pages-news.js?v=202611261150';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['gallery', 'p_gallery', N.gallery], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
@@ -97,6 +97,7 @@ function login(el) {
       ${up ? `<label>${esc(t('display_name'))}<input name="name" required maxlength="40" autocomplete="nickname"></label>` : ''}
       <label>${esc(t('email'))}<input name="email" type="email" required autocomplete="email"></label>
       ${authMode !== 'reset' ? `<label>${esc(t('password'))}<input name="password" type="password" required minlength="8" autocomplete="${up ? 'new-password' : 'current-password'}"></label>` : ''}
+      ${authMode !== 'reset' ? `<label class="check small"><input type="checkbox" name="remember"${localStorage.getItem('monolith.remember') === '0' ? '' : ' checked'}> ${esc(t('remember_me'))}</label>` : ''}
       ${up ? `<p class="mute small">${esc(t('signup_privacy'))} <a href="#/privacy" target="_blank">${esc(t('p_privacy'))}</a></p>` : ''}
       <button class="btn primary block">${esc(authMode === 'reset' ? t('forgot') : up ? t('sign_up') : t('sign_in'))}</button>
       ${CONFIG.GOOGLE_LOGIN && authMode !== 'reset' ? `<button type="button" class="btn ghost block" data-google>${esc(t('google'))}</button>` : ''}
@@ -105,6 +106,7 @@ function login(el) {
   const f = $('#auth');
   f.addEventListener('submit', async e => {
     e.preventDefault(); if (!f.reportValidity()) return; authMsg = '';
+    if (f.remember) { try { localStorage.setItem('monolith.remember', f.remember.checked ? '1' : '0'); sessionStorage.setItem('monolith.alive', '1'); } catch (_) {} }
     try {
       if (authMode === 'reset') { await db.reset(f.email.value.trim()); authMsg = t('reset_sent'); }
       else if (up) { const confirm = await db.signUp(f.email.value.trim(), f.password.value, f.name.value.trim()); if (confirm) authMsg = t('check_mail'); }
@@ -112,7 +114,7 @@ function login(el) {
     } catch (err) { authMsg = t('error') + ': ' + err.message; }
     render();
   });
-  el.onclick = e => { const m = e.target.closest('[data-mode]'); if (m) { authMode = m.dataset.mode; authMsg = ''; login(el); } if (e.target.closest('[data-google]')) db.google().catch(err => toast(err.message, true)); };
+  el.onclick = e => { const m = e.target.closest('[data-mode]'); if (m) { authMode = m.dataset.mode; authMsg = ''; login(el); } if (e.target.closest('[data-google]')) { if (f.remember) { try { localStorage.setItem('monolith.remember', f.remember.checked ? '1' : '0'); sessionStorage.setItem('monolith.alive', '1'); } catch (_) {} } db.google().catch(err => toast(err.message, true)); } };
 }
 
 // ---------------------------------------------------------------- Profile
@@ -170,10 +172,12 @@ async function deleteMe() {
 }
 
 // ---------------------------------------------------------------- Admin: accounts and players
-let mList = [];
+let mList = [], mails = {};
+async function loadEmails() { try { mails = Object.fromEntries(((await db.rpc('admin_account_emails')) || []).map(x => [x.id, x])); } catch (e) { mails = {}; } }
 async function members(el) {
   el.innerHTML = pageHead(t('nav_members'), t('admin_intro')) + `<p class="mute">${esc(t('loading'))}</p>`;
   try { mList = await db.list('profiles', ['created_at', 'desc']); } catch (e) { el.innerHTML += `<div class="notice bad">${esc(e.message)}</div>`; return; }
+  await loadEmails();
   if (location.hash !== '#/members') return;
   drawMembers(el);
 }
@@ -194,7 +198,7 @@ function drawMembers(el) {
   el.innerHTML = pageHead(t('nav_members'), t('admin_intro')) +
     `<section class="card"><h2>${esc(t('adm_accounts'))} <span class="mute small">(${list.length})</span></h2><p class="mute small">${esc(t('adm_accounts_hint'))}</p>
       <div class="scroll"><table class="stack adm"><thead><tr><th>${esc(t('display_name'))}</th><th>${esc(t('role'))}</th><th title="${esc(t('content_hint'))}">Content</th><th>${esc(t('linked_player'))}</th><th>${esc(t('joined'))}</th><th></th></tr></thead><tbody>
-      ${list.map(p => { const me = p.id === state.me?.id; return `<tr${waiting(p) ? ' class="pending"' : ''}><td><b>${esc(p.display_name || '')}</b>${me ? ' <span class="tag">★</span>' : ''}${waiting(p) ? ` <span class="tag warn-tag">${esc(t('waiting'))}</span><span class="pend-btns"><button type="button" class="btn primary xs" data-approve="${esc(p.id)}">${esc(t('pend_approve'))}</button><button type="button" class="btn ghost xs" data-keepguest="${esc(p.id)}">${esc(t('pend_keep'))}</button></span>` : ''}</td>
+      ${list.map(p => { const me = p.id === state.me?.id; return `<tr${waiting(p) ? ' class="pending"' : ''}><td><b>${esc(p.display_name || '')}</b>${me ? ' <span class="tag">★</span>' : ''}${mails[p.id]?.email ? `<br><a class="mail" href="mailto:${esc(mails[p.id].email)}">${esc(mails[p.id].email)}</a>` : ''}${waiting(p) ? ` <span class="tag warn-tag">${esc(t('waiting'))}</span><span class="pend-btns"><button type="button" class="btn primary xs" data-approve="${esc(p.id)}">${esc(t('pend_approve'))}</button><button type="button" class="btn ghost xs" data-keepguest="${esc(p.id)}">${esc(t('pend_keep'))}</button></span>` : ''}</td>
         <td>${roleCell(p, me)}</td>
         <td><label class="switch" title="${esc(t('content_hint'))}"><input type="checkbox" data-content="${esc(p.id)}"${p.content ? ' checked' : ''} aria-label="Content: ${esc(p.display_name || '')}"></label></td>
         <td>${!isOwner() && ownerPlayer(p.player_id) ? `<span title="${esc(t('adm_owner_only'))}">${esc(pname(p.player_id))} 🔒</span>` : `<select data-link="${esc(p.id)}" aria-label="${esc(t('linked_player'))}">${opts([...players(true).filter(q => isOwner() || !ownerPlayer(q.id) || q.id === p.player_id).map(q => [q.id, q.name + (q.active ? '' : ' (' + t('inactive') + ')')]), ['__new', '+ ' + t('adm_new_player')]], p.player_id, t('none_linked'))}</select>`}</td>
@@ -209,7 +213,7 @@ function drawMembers(el) {
         <td>${accountsOf(q.id).map(esc).join(', ') || '<span class="mute">–</span>'}</td><td class="r num">${games(q.id)}</td>
         <td class="r"><button type="button" class="icon" data-delplayer="${q.id}" aria-label="${esc(t('delete'))}: ${esc(q.name)}">🗑</button></td></tr>`).join('')}
       </tbody></table></div></section>`;
-  const reload = async () => { mList = await db.list('profiles', ['created_at', 'desc']).catch(() => mList); await loadPending(); render(); };
+  const reload = async () => { mList = await db.list('profiles', ['created_at', 'desc']).catch(() => mList); await loadEmails(); await loadPending(); render(); };
   $('#addp').onsubmit = async e => { e.preventDefault(); const name = e.target.name.value.trim(); if (!name) return;
     if (await act(() => db.insert('players', { name, sort: players(true).length + 1, active: true, armies: [] }), ['players'], t('adm_player_added', { name }))) { await state.reloadPublic?.(); } };
   el.onclick = async e => {
@@ -284,6 +288,9 @@ async function boot() {
   setLang(saved || CONFIG.DEFAULT_LANG || (navigator.language || 'de').slice(0, 2));
   $('#view').innerHTML = `<p class="mute">${esc(t('loading'))}</p>`;
   try { state.session = await db.session(); } catch (e) { state.session = null; }
+  // "Stay signed in" unticked: the login ends when the browser is closed (a new browser session has no 'alive' mark)
+  try { if (state.session && !DEMO && localStorage.getItem('monolith.remember') === '0' && !sessionStorage.getItem('monolith.alive')) { await db.signOut(); state.session = null; }
+    else sessionStorage.setItem('monolith.alive', '1'); } catch (_) {}
   await Promise.all([refreshMe(), loadPublic()]);
   if (can('team')) await loadData(); else if (state.session) await loadData(['players']).catch(() => {});
   render();
