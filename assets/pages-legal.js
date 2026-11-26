@@ -1,6 +1,6 @@
 // Imprint (Offenlegung § 25 MedienG) and privacy policy (DSGVO). German is the binding version.
-import { t, getLang } from './i18n.js?v=202611261550';
-import { state, esc } from './core.js?v=202611261550';
+import { t, getLang } from './i18n.js?v=202611261627';
+import { state, esc } from './core.js?v=202611261627';
 
 const legal = () => (state.pub && state.pub.site && state.pub.site.legal) || {};
 const fill = (v, what) => v ? esc(v) : `<span class="todo">[${esc(what)}]</span>`;
@@ -50,6 +50,9 @@ export function privacy(el) {
   <p>Mitglieder können die Team-Termine in ihren eigenen Kalender (z. B. Google, Apple, Outlook) übernehmen. Dafür erhält jedes Konto einen persönlichen, geheimen Link. Ruft der Kalenderdienst diesen Link ab, erhält er Termine und die eigene Zusage; der Anbieter des Kalenders verarbeitet diese Daten dann nach seinen eigenen Datenschutzbestimmungen. Der Link kann im Teambereich jederzeit erneuert werden, der alte funktioniert dann nicht mehr. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.</p>
   <h3>7. Collection Tracker</h3>
   <p>Deine Modellsammlung wird in deinem Konto gespeichert und ist nur für dich sichtbar. Um aktuelle Punktewerte zu laden, ruft der Tracker eine öffentliche Datendatei über das Open-Source-Netzwerk <b>jsDelivr</b> ab; dabei wird deine IP-Adresse technisch an jsDelivr übermittelt (Art. 6 Abs. 1 lit. f DSGVO).</p>
+
+  <h3>7a. Farbrezepte</h3>
+  <p>Deine Farbrezepte (Text und Fotos) werden in deinem Konto gespeichert und sind zunächst nur für dich sichtbar. Wenn du ein Rezept ausdrücklich „für alle teilst“, ist es öffentlich auf der Website zu sehen, zusammen mit deinem Anzeigenamen (Art. 6 Abs. 1 lit. a DSGVO). Du kannst das Teilen jederzeit beenden oder das Rezept löschen. Score-Tracker, MathHammer und Pairing-Trainer speichern ihre Eingaben nur im Speicher deines Browsers.</p>
 
   <h3>8. Lokale Speicherung, keine Tracking-Cookies</h3>
   <p>Wir verwenden <b>keine Analyse-, Werbe- oder Tracking-Cookies</b>. Im Speicher deines Browsers (Local Storage) legen wir nur ab, was für die Funktion nötig ist: deine Anmeldung, die gewählte Sprache und Einstellungen wie zuletzt gewählte Armee oder Filter. Das ist nach § 165 Abs. 3 TKG 2021 ohne Einwilligung zulässig, weil es für den von dir gewünschten Dienst unbedingt erforderlich ist.</p>

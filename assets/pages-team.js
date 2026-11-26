@@ -1,9 +1,9 @@
 // Team pages: home, roster, match log, archive, events, calendar, line-up, cash.
-import { CONFIG } from './config.js?v=202611261550';
-import { db } from './db.js?v=202611261550';
-import { t } from './i18n.js?v=202611261550';
-import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611261550';
-import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611261550';
+import { CONFIG } from './config.js?v=202611261627';
+import { db } from './db.js?v=202611261627';
+import { t } from './i18n.js?v=202611261627';
+import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611261627';
+import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611261627';
 
 const D = () => state.data;
 const rsvpOf = (eid, pid) => (D().rsvps || []).find(r => r.event_id === eid && r.player_id === pid)?.status;
@@ -71,8 +71,12 @@ export function appsCards() {
   return `<div class="apps">
     <a class="app-card" href="apps/collection/"><div class="app-ico" aria-hidden="true">${ICON_LIST}</div><div><h3>${esc(t('nav_collection'))}</h3><p>${esc(t('collection_desc'))}</p><span class="btn primary sm">${esc(t('open_app'))}</span></div></a>
     <a class="app-card" href="#/history"><div class="app-ico" aria-hidden="true">${ICON_CHART}</div><div><h3>${esc(t('nav_history'))}</h3><p>${esc(t('history_desc'))}</p><span class="btn primary sm">${esc(t('open_app'))}</span></div></a>
+    <a class="app-card" href="#/recipes"><div class="app-ico" aria-hidden="true">${ICON_BRUSH}</div><div><h3>${esc(t('app_recipes'))}</h3><p>${esc(t('recipes_desc'))}</p><span class="btn primary sm">${esc(t('open_app'))}</span></div></a>
+    ${can('admin') ? [['score', 'app_score', 'score_desc'], ['mathhammer', 'app_mathhammer', 'mathhammer_desc'], ['pairtrain', 'app_pairtrain', 'pairtrain_desc']].map(([r, n, d]) => `<a class="app-card" href="#/${r}"><div class="app-ico" aria-hidden="true">${ICON_LAB}</div><div><h3>${esc(t(n))} <span class="tag">${esc(t('admin_test'))}</span></h3><p>${esc(t(d))}</p><span class="btn primary sm">${esc(t('open_app'))}</span></div></a>`).join('') : ''}
     <div class="app-card soon"><div class="app-ico" aria-hidden="true">+</div><div><h3>${esc(t('more_apps'))}</h3><p>${esc(t('more_apps_desc'))}</p></div></div></div>`;
 }
+const ICON_BRUSH = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 4l6 6-8 8-6-6z"/><path d="M6 12l-3 3c-1 1 0 3 1 4s3 2 4 1l3-3"/></svg>';
+const ICON_LAB = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3h6M10 3v6L4 20h16L14 9V3"/></svg>';
 const ICON_CHART = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>';
 const ICON_LIST = '<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13"/><circle cx="4" cy="6" r="1.4"/><circle cx="4" cy="12" r="1.4"/><circle cx="4" cy="18" r="1.4"/></svg>';
 

@@ -1,17 +1,18 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611261550';
-import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611261550';
-import { t, setLang, getLang } from './i18n.js?v=202611261550';
-import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox, fmtDate, empty } from './core.js?v=202611261550';
-import * as T from './pages-team.js?v=202611261550';
-import * as A from './pages-analysis.js?v=202611261550';
-import * as P from './pages-public.js?v=202611261550';
-import * as TE from './pages-teams.js?v=202611261550';
-import { FACTIONS } from './data.js?v=202611261550';
-import * as SITE from './pages-site.js?v=202611261550';
-import * as H from './pages-history.js?v=202611261550';
-import * as LG from './pages-legal.js?v=202611261550';
-import * as N from './pages-news.js?v=202611261550';
+import { CONFIG } from './config.js?v=202611261627';
+import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611261627';
+import { t, setLang, getLang } from './i18n.js?v=202611261627';
+import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox, fmtDate, empty } from './core.js?v=202611261627';
+import * as T from './pages-team.js?v=202611261627';
+import * as A from './pages-analysis.js?v=202611261627';
+import * as P from './pages-public.js?v=202611261627';
+import * as TE from './pages-teams.js?v=202611261627';
+import { FACTIONS } from './data.js?v=202611261627';
+import * as SITE from './pages-site.js?v=202611261627';
+import * as H from './pages-history.js?v=202611261627';
+import * as LG from './pages-legal.js?v=202611261627';
+import * as AP from './pages-apps.js?v=202611261627';
+import * as N from './pages-news.js?v=202611261627';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['gallery', 'p_gallery', N.gallery], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
@@ -30,6 +31,10 @@ const ROUTES = Object.fromEntries([
   ...PUBLIC.map(([k, label, fn]) => [k, { label, min: 'anon', fn, pub: true }]),
   ...PORTAL.flatMap(g => g.items).map(([k, label, min, fn]) => [k, { label, min, fn }]),
   ['privacy', { label: 'p_privacy', min: 'anon', fn: LG.privacy, pub: true }],
+  ['recipes', { label: 'app_recipes', min: 'anon', fn: AP.recipes, pub: true }],
+  ['score', { label: 'app_score', min: 'admin', fn: AP.score, pub: true }],
+  ['mathhammer', { label: 'app_mathhammer', min: 'admin', fn: AP.mathhammer, pub: true }],
+  ['pairtrain', { label: 'app_pairtrain', min: 'admin', fn: AP.pairtrain, pub: true }],
 ]);
 // Official logo (mark + MONOLITH)
 export const IG_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>';
@@ -50,7 +55,7 @@ function header() {
     <nav class="mobnav" aria-label="Mobile">${PUBLIC.map(([k, l]) => `<a href="#/${k}">${esc(t(l))}</a>`).join('')}${CONFIG.INSTAGRAM ? `<a href="${esc(CONFIG.INSTAGRAM)}" target="_blank" rel="noopener">Instagram ↗</a>` : ''}${signed ? `<button type="button" class="mob-out" data-out>${esc(t('sign_out'))}</button>` : ''}<div class="lang mob" role="group" aria-label="${esc(t('language'))}"><button type="button" data-lang="de" aria-pressed="${getLang() === 'de'}">Deutsch</button><button type="button" data-lang="en" aria-pressed="${getLang() === 'en'}">English</button></div></nav>`;
   let fab = $('#fab');
   if (!fab) { fab = document.createElement('button'); fab.id = 'fab'; fab.className = 'fab'; fab.type = 'button'; document.body.appendChild(fab); fab.onclick = () => T.quickResult(); }
-  fab.innerHTML = `<span aria-hidden="true">+</span> ${esc(t('quick_btn'))}`; fab.hidden = !(signed && can('team')) || r === 'login' || r.startsWith('live/');
+  fab.innerHTML = `<span aria-hidden="true">+</span> ${esc(t('quick_btn'))}`; fab.hidden = !(signed && can('team')) || r === 'login' || r.startsWith('live/') || ['score', 'mathhammer', 'pairtrain', 'recipes'].includes(r);
   $('.foot-in').innerHTML = `<div>${BRAND}<p class="mute">${esc(t('footer_text'))}</p></div>
     <nav aria-label="Footer">${PUBLIC.slice(1).map(([k, l]) => `<a href="#/${k}">${esc(t(l))}</a>`).join('')}<a href="#/privacy">${esc(t('p_privacy'))}</a><a href="#/portal">${esc(t('portal'))}</a>${CONFIG.INSTAGRAM ? `<a href="${esc(CONFIG.INSTAGRAM)}" target="_blank" rel="noopener" class="ig-text">${IG_ICON} Instagram</a>` : ''}</nav>
     <p class="small mute">© ${new Date().getFullYear()} Monolith 40k · ${esc(t('footer_note'))}</p>`;
@@ -78,6 +83,7 @@ export function render() {
     // Back to an app (e.g. the collection tracker) that sent the user here to sign in
     let back = null; try { back = sessionStorage.getItem('monolith.return'); sessionStorage.removeItem('monolith.return'); } catch (e) {}
     if (back && back.startsWith('apps/')) { location.href = back; return; }
+    if (back && /^#\/[a-z]+$/.test(back)) return (location.hash = back);
     return (location.hash = '#/portal');
   }
   if (r.startsWith('news/')) { document.body.dataset.area = 'public'; return N.article(el, r.slice(5)); }
@@ -169,6 +175,7 @@ async function exportMyData() {
   const pid = state.me?.player_id;
   if (pid) { out.player = (state.data.players || []).find(p => p.id === pid) || null; out.team_games = (state.data.matches || []).filter(m => m.player_id === pid || m.opp_player_id === pid); out.rsvps = (state.data.rsvps || []).filter(r => r.player_id === pid); out.payments = (state.data.payments || []).filter(r => r.player_id === pid); }
   out.match_history = await safe(() => db.list('personal_games', ['played_on', 'desc']));
+  out.paint_recipes = (await safe(() => db.list('paint_recipes', ['updated_at', 'desc'])) || []).filter(r => r.user_id === state.session?.user?.id);
   out.collection = await safe(async () => (await db.list('collections')).filter(c => c.user_id === uid));
   out.news_articles = await safe(async () => (await db.list('news')).filter(n => n.author_id === uid));
   const blob = new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' });
