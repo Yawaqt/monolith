@@ -158,7 +158,7 @@ const S = {
   wgw: ['Wer gegen was', 'Who against what'], wgw_hint: ['Die besten Spieler gegen jede Fraktion (ab {n} Spielen), sortiert nach Siegquote, dann Punktedifferenz. Spiele · Bilanz · Siegquote · Ø ±', 'Best players against each faction (from {n} games), by win rate, then point difference. Games · record · win rate · avg ±'],
   vs_faction_s: ['Gegen', 'Against'], wgw_best: ['Beste Spieler', 'Best players'],
   gaps: ['Lücken', 'Gaps'], gaps_hint: ['Fraktionen, gegen die das Team weniger als {n} Spiele hat – Kandidaten fürs Training. Zahl = Spiele bisher.', 'Factions the team has played fewer than {n} times – training candidates. Number = games so far.'], gaps_none: ['Keine Lücken – gegen jede Fraktion gibt es genug Spiele.', 'No gaps – enough games against every faction.'],
-  app_recipes: ['Farbrezepte', 'Paint recipes'], recipes_desc: ['Bemalschemata Schritt für Schritt mit Fotos speichern – privat oder für alle geteilt.', 'Save painting schemes step by step with photos – private or shared.'],
+  app_recipes: ['Farbschemata', 'Paint schemes'], recipes_desc: ['Bemalschemata Schritt für Schritt mit Fotos speichern – privat oder für alle geteilt.', 'Save painting schemes step by step with photos – private or shared.'],
   app_score: ['Score-Tracker & Schachuhr', 'Score tracker & chess clock'], score_desc: ['Punkte pro Runde, CP und Spielzeit am Tisch – direkt in die Match History übernehmen.', 'Points per round, CP and game time at the table – save straight to your match history.'],
   app_mathhammer: ['MathHammer', 'MathHammer'], mathhammer_desc: ['Erwarteten Schaden und Wahrscheinlichkeiten einer Waffe gegen ein Ziel berechnen.', 'Expected damage and probabilities of a weapon against a target.'],
   app_pairtrain: ['Pairing-Trainer', 'Pairing trainer'], pairtrain_desc: ['Das Pairing-Verfahren für Team-Turniere gegen einen Computer-Gegner üben.', 'Practise the team pairing process against a computer opponent.'],
@@ -296,7 +296,7 @@ const S = {
   language: ['Sprache', 'Language'], account: ['Konto', 'Account'],
   // apps
   apps_intro: ['Werkzeuge für alle mit Konto. Weitere Apps folgen.', 'Tools for everyone with an account. More apps coming.'],
-  collection_desc: ['Deine Modellsammlung nach Fraktionen, mit automatisch aktuellen Punkten aus dem Munitorum Field Manual.', 'Your model collection by faction, with points kept current from the Munitorum Field Manual.'],
+  collection_desc: ['Deine Modellsammlung nach Fraktionen, mit aktuellen Punkten aus dem Munitorum Field Manual und Farbschemata pro Armee.', 'Your model collection by faction, with current points from the Munitorum Field Manual and paint schemes per army.'],
   more_apps: ['Weitere Apps', 'More apps'], more_apps_desc: ['Hier kommen später weitere Tools dazu.', 'More tools will appear here later.'], open_app: ['Öffnen', 'Open'],
 };
 let lang = 'de';

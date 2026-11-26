@@ -1,6 +1,6 @@
 // Imprint (Offenlegung § 25 MedienG) and privacy policy (DSGVO). German is the binding version.
-import { t, getLang } from './i18n.js?v=202611261627';
-import { state, esc } from './core.js?v=202611261627';
+import { t, getLang } from './i18n.js?v=202611261656';
+import { state, esc } from './core.js?v=202611261656';
 
 const legal = () => (state.pub && state.pub.site && state.pub.site.legal) || {};
 const fill = (v, what) => v ? esc(v) : `<span class="todo">[${esc(what)}]</span>`;

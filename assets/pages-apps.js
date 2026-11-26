@@ -1,9 +1,9 @@
 // Community apps: paint recipes (everyone), score tracker + chess clock, MathHammer, pairing trainer (admins while in test).
-import { db, DEMO } from './db.js?v=202611261627';
-import { t, getLang } from './i18n.js?v=202611261627';
-import { state, can, esc, $, $$, opts, toast, modal, confirmBox, empty, resizeImage, safeImg, fmtDate } from './core.js?v=202611261627';
-import { FACTIONS } from './data.js?v=202611261627';
-import { lightbox } from './pages-news.js?v=202611261627';
+import { db, DEMO } from './db.js?v=202611261656';
+import { t, getLang } from './i18n.js?v=202611261656';
+import { state, can, esc, $, $$, opts, toast, modal, confirmBox, empty, resizeImage, safeImg, fmtDate } from './core.js?v=202611261656';
+import { FACTIONS } from './data.js?v=202611261656';
+import { lightbox } from './pages-news.js?v=202611261656';
 
 const L = (de, en) => getLang() === 'de' ? de : en;
 const head = (title, intro, actions = '') => `<div class="page-head"><div><p class="eyebrow"><a href="#/apps">${esc(t('p_apps'))}</a></p><h1>${esc(title)}</h1>${intro ? `<p class="intro">${esc(intro)}</p>` : ''}</div>${actions ? `<div class="head-actions">${actions}</div>` : ''}</div>`;
@@ -21,7 +21,7 @@ const techLabel = k => { const x = TECHS.find(t => t[0] === k); return x ? L(x[1
 let rcTab = 'shared', rcQuery = '', rcFaction = '', rcList = null;
 
 export async function recipes(el) {
-  el.innerHTML = head(L('Farbrezepte', 'Paint recipes'), L('Bemalschemata Schritt für Schritt speichern – privat oder für alle geteilt.', 'Save painting schemes step by step – private or shared with everyone.')) + `<p class="mute">${esc(t('loading'))}</p>`;
+  el.innerHTML = head(L('Farbschemata', 'Paint schemes'), L('Geteilte Bemalschemata der Community. Eigene Schemata legst du im Collection Tracker bei der jeweiligen Armee an.', 'Paint schemes shared by the community. Add your own in the collection tracker under each army.')) + `<p class="mute">${esc(t('loading'))}</p>`;
   try { rcList = await db.list('paint_recipes', ['updated_at', 'desc']); } catch (e) { el.innerHTML += `<div class="notice bad">${esc(e.message)}</div>`; return; }
   if (location.hash !== '#/recipes') return;
   drawRecipes(el);
@@ -33,12 +33,11 @@ function drawRecipes(el) {
   const q = rcQuery.trim().toLowerCase();
   const list = pool.filter(r => (!rcFaction || r.faction === rcFaction) && (!q || [r.title, r.faction, r.part, r.author_name, ...(r.steps || []).map(s => s.paint)].join(' ').toLowerCase().includes(q)));
   const facs = [...new Set(pool.map(r => r.faction).filter(Boolean))].sort();
-  el.innerHTML = head(L('Farbrezepte', 'Paint recipes'), L('Bemalschemata Schritt für Schritt speichern – privat oder für alle geteilt.', 'Save painting schemes step by step – private or shared with everyone.'),
-      me ? `<button class="btn primary" data-new>${esc(L('Neues Rezept', 'New recipe'))}</button>` : signInLink()) +
+  el.innerHTML = head(L('Farbschemata', 'Paint schemes'), L('Geteilte Bemalschemata der Community. Eigene Schemata legst du im Collection Tracker bei der jeweiligen Armee an.', 'Paint schemes shared by the community. Add your own in the collection tracker under each army.'),
+      `<a class="btn primary" href="apps/collection/">${esc(L('Eigene Schemata im Collection Tracker', 'Own schemes in the collection tracker'))}</a>`) +
     `<div class="seg ev-tabs" role="tablist"><button role="tab" data-tab="shared" aria-selected="${rcTab === 'shared'}">${esc(L('Geteilt', 'Shared'))}</button>${me ? `<button role="tab" data-tab="mine" aria-selected="${rcTab === 'mine'}">${esc(L('Meine Rezepte', 'My recipes'))}</button>` : ''}</div>
     <form class="filters card" id="rcf"><label>${esc(L('Suche', 'Search'))}<input type="search" name="q" value="${esc(rcQuery)}" placeholder="${esc(L('Titel, Farbe, Fraktion …', 'Title, paint, faction …'))}"></label>
       <label>${esc(t('faction'))}<select name="f">${opts([['', L('Alle', 'All')], ...facs.map(f => [f, f])], rcFaction)}</select></label></form>
-    ${!me ? `<p class="mute">${esc(L('Mit einem Konto kannst du eigene Rezepte speichern und teilen.', 'With an account you can save and share your own recipes.'))}</p>` : ''}
     ${list.length ? `<div class="recipes">${list.map(card).join('')}</div>` : empty(rcTab === 'mine' ? L('Noch keine eigenen Rezepte.', 'No recipes yet.') : L('Noch keine geteilten Rezepte.', 'No shared recipes yet.'))}`;
   const f = $('#rcf');
   f.addEventListener('input', () => { rcQuery = f.q.value; rcFaction = f.f.value; const pos = f.q.selectionStart; drawRecipes(el); const n = $('#rcf').q; n.focus(); try { n.setSelectionRange(pos, pos); } catch (_) {} });
