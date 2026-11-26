@@ -1,17 +1,17 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611261227';
-import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611261227';
-import { t, setLang, getLang } from './i18n.js?v=202611261227';
-import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox } from './core.js?v=202611261227';
-import * as T from './pages-team.js?v=202611261227';
-import * as A from './pages-analysis.js?v=202611261227';
-import * as P from './pages-public.js?v=202611261227';
-import * as TE from './pages-teams.js?v=202611261227';
-import { FACTIONS } from './data.js?v=202611261227';
-import * as SITE from './pages-site.js?v=202611261227';
-import * as H from './pages-history.js?v=202611261227';
-import * as LG from './pages-legal.js?v=202611261227';
-import * as N from './pages-news.js?v=202611261227';
+import { CONFIG } from './config.js?v=202611261346';
+import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611261346';
+import { t, setLang, getLang } from './i18n.js?v=202611261346';
+import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox } from './core.js?v=202611261346';
+import * as T from './pages-team.js?v=202611261346';
+import * as A from './pages-analysis.js?v=202611261346';
+import * as P from './pages-public.js?v=202611261346';
+import * as TE from './pages-teams.js?v=202611261346';
+import { FACTIONS } from './data.js?v=202611261346';
+import * as SITE from './pages-site.js?v=202611261346';
+import * as H from './pages-history.js?v=202611261346';
+import * as LG from './pages-legal.js?v=202611261346';
+import * as N from './pages-news.js?v=202611261346';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['gallery', 'p_gallery', N.gallery], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
@@ -90,6 +90,7 @@ export function render() {
 state.render = render;
 
 // ---------------------------------------------------------------- Auth
+let lastReset = 0;
 let authMode = 'in', authMsg = '';
 function login(el) {
   const up = authMode === 'up';
@@ -105,16 +106,25 @@ function login(el) {
       <p class="auth-links"><button type="button" class="link" data-mode="${up ? 'in' : 'up'}">${esc(up ? t('have_account') : t('no_account'))}</button>${!up && authMode !== 'reset' ? `<button type="button" class="link" data-mode="reset">${esc(t('forgot'))}</button>` : ''}${authMode === 'reset' ? `<button type="button" class="link" data-mode="in">${esc(t('sign_in'))}</button>` : ''}</p></form></div>`;
   const f = $('#auth');
   f.addEventListener('submit', async e => {
-    e.preventDefault(); if (!f.reportValidity()) return; authMsg = '';
+    e.preventDefault(); if (!f.reportValidity()) return;
+    const btn = f.querySelector('button.primary'); if (btn.disabled) return;
+    if (authMode === 'reset' && Date.now() - lastReset < 60000) { authMsg = t('reset_wait'); return render(); }
+    btn.disabled = true; authMsg = '';
     if (f.remember) { try { localStorage.setItem('monolith.remember', f.remember.checked ? '1' : '0'); sessionStorage.setItem('monolith.alive', '1'); } catch (_) {} }
     try {
-      if (authMode === 'reset') { await db.reset(f.email.value.trim()); authMsg = t('reset_sent'); }
+      if (authMode === 'reset') { await db.reset(f.email.value.trim()); lastReset = Date.now(); authMsg = t('reset_sent'); }
       else if (up) { const confirm = await db.signUp(f.email.value.trim(), f.password.value, f.name.value.trim()); if (confirm) authMsg = t('check_mail'); }
       else await db.signIn(f.email.value.trim(), f.password.value);
     } catch (err) { authMsg = t('error') + ': ' + err.message; }
     render();
   });
   el.onclick = e => { const m = e.target.closest('[data-mode]'); if (m) { authMode = m.dataset.mode; authMsg = ''; login(el); } if (e.target.closest('[data-google]')) { if (f.remember) { try { localStorage.setItem('monolith.remember', f.remember.checked ? '1' : '0'); sessionStorage.setItem('monolith.alive', '1'); } catch (_) {} } db.google().catch(err => toast(err.message, true)); } };
+}
+
+async function newPasswordDialog() {
+  const r = await modal(t('new_pw_title'), `<p class="mute">${esc(t('new_pw_intro'))}</p><label>${esc(t('new_password'))}<input name="password" type="password" minlength="8" required autocomplete="new-password"></label>`, { submit: t('save_password') });
+  if (!r) return;
+  try { await db.setPassword(r.password); toast(t('pw_saved')); } catch (e) { toast(t('error') + ': ' + e.message, true); newPasswordDialog(); }
 }
 
 // ---------------------------------------------------------------- Profile
@@ -287,6 +297,8 @@ async function boot() {
   let saved = null; try { saved = localStorage.getItem('monolith.lang'); } catch (e) {}
   setLang(saved || CONFIG.DEFAULT_LANG || (navigator.language || 'de').slice(0, 2));
   $('#view').innerHTML = `<p class="mute">${esc(t('loading'))}</p>`;
+  const hashErr = /error_code=([a-z_]+)/.exec(location.hash) || /error=([a-z_]+)/.exec(location.hash);
+  if (hashErr) { authMode = /otp_expired|access_denied/.test(hashErr[1]) ? 'reset' : 'in'; authMsg = t('link_expired'); history.replaceState(null, '', location.pathname + '#/login'); }
   try { state.session = await db.session(); } catch (e) { state.session = null; }
   // "Stay signed in" unticked: the login ends when the browser is closed (a new browser session has no 'alive' mark)
   try { if (state.session && !DEMO && localStorage.getItem('monolith.remember') === '0' && !sessionStorage.getItem('monolith.alive')) { await db.signOut(); state.session = null; }
@@ -296,7 +308,7 @@ async function boot() {
   render();
   db.onAuth(async (ev, session) => {
     if (ev === 'TOKEN_REFRESHED' || ev === 'INITIAL_SESSION') { state.session = session; return; }
-    if (ev === 'PASSWORD_RECOVERY') { state.session = session; location.hash = '#/profile'; }
+    if (ev === 'PASSWORD_RECOVERY') { state.session = session; await refreshMe(); location.hash = '#/portal'; render(); return newPasswordDialog(); }
     state.session = session; await refreshMe(); if (can('team')) await loadData(); render();
   });
 }

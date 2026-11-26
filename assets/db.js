@@ -1,5 +1,5 @@
 // Data access: Supabase when configured, otherwise a demo backend in localStorage.
-import { CONFIG } from './config.js?v=202611261227';
+import { CONFIG } from './config.js?v=202611261346';
 
 export const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY;
 export const TABLES = ['players', 'matches', 'events', 'rsvps', 'payments', 'ratings', 'opponent_teams', 'pairings', 'settings', 'tevents', 'tevent_rounds', 'news'];
@@ -30,7 +30,7 @@ const real = {
     if (error) fail(error); return !data.session; // true = must confirm email
   },
   async google() { const c = await client(); const { error } = await c.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } }); if (error) fail(error); },
-  async reset(email) { const c = await client(); const { error } = await c.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname + '#/profile' }); if (error) fail(error); },
+  async reset(email) { const c = await client(); const { error } = await c.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname }); if (error) fail(error); },
   async setPassword(password) { const c = await client(); const { error } = await c.auth.updateUser({ password }); if (error) fail(error); },
   async signOut() { const c = await client(); await c.auth.signOut(); },
   async me(uid) { const c = await client(); const { data, error } = await c.from('profiles').select('*').eq('id', uid).maybeSingle(); if (error) fail(error); return data; },

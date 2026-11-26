@@ -148,6 +148,10 @@ const S = {
   cal_sub_hint: ['Der Link ist persönlich – nicht weitergeben. Google aktualisiert abonnierte Kalender nur alle paar Stunden.', 'The link is personal – don\'t share it. Google refreshes subscribed calendars only every few hours.'],
   cal_reset: ['Neuen Link erzeugen', 'Create new link'], cal_reset_q: ['Neuen Kalender-Link erzeugen? Der alte Link funktioniert dann nicht mehr und muss im Kalender ersetzt werden.', 'Create a new calendar link? The old one stops working and has to be replaced in your calendar.'],
   cal_reset_done: ['Neuer Link erstellt', 'New link created'], cal_demo: ['Im Demo-Modus gibt es keinen Kalender-Link.', 'There is no calendar link in demo mode.'],
+  pw_saved: ['Neues Passwort gespeichert.', 'New password saved.'],
+  reset_wait: ['Bitte eine Minute warten – die Mail ist schon unterwegs. Jede neue Anfrage macht den vorherigen Link ungültig.', 'Please wait a minute – the e-mail is on its way. Each new request invalidates the previous link.'],
+  link_expired: ['Der Link ist abgelaufen oder wurde schon benutzt. Bitte fordere einen neuen an und nimm den Link aus der neuesten Mail.', 'The link has expired or was already used. Please request a new one and use the link from the newest e-mail.'],
+  new_pw_title: ['Neues Passwort festlegen', 'Set a new password'], new_pw_intro: ['Gib dein neues Passwort ein (mindestens 8 Zeichen).', 'Enter your new password (at least 8 characters).'],
   // team events
   nav_teams: ['Teamturniere', 'Team events'], teams_intro: ['Team-Events für 5er und 8er Teams: Aufstellung mit Regelprüfung, Vorhersagen pro Paarung, Pairings und Ergebnisse live mit dem ganzen Team.', 'Team events for 5s and 8s: line-up with rule checks, a prediction per matchup, pairings and results live with the whole team.'],
   new_tevent: ['Neues Teamturnier', 'New team event'], te_size: ['Teamgröße', 'Team size'], te_rules: ['Regeln', 'Rules'], te_link_event: ['Mit Event verknüpfen', 'Link to event'],
@@ -175,7 +179,7 @@ const S = {
   // auth
   sign_in: ['Anmelden', 'Sign in'], sign_up: ['Konto erstellen', 'Create account'], sign_out: ['Abmelden', 'Sign out'],
   email: ['E-Mail', 'Email'], password: ['Passwort', 'Password'], display_name: ['Anzeigename', 'Display name'],
-  forgot: ['Passwort vergessen?', 'Forgot password?'], reset_sent: ['Wir haben dir einen Link zum Zurücksetzen geschickt.', 'We sent you a reset link.'],
+  forgot: ['Passwort vergessen?', 'Forgot password?'], reset_sent: ['Wir haben dir einen Link zum Zurücksetzen geschickt. Der Link gilt nur aus der neuesten Mail und nur einmal.', 'We sent you a reset link.'],
   have_account: ['Schon ein Konto? Anmelden', 'Have an account? Sign in'], no_account: ['Noch kein Konto? Registrieren', 'No account yet? Sign up'],
   google: ['Mit Google anmelden', 'Continue with Google'], check_mail: ['Fast fertig: Bitte bestätige deine E-Mail über den Link, den wir dir geschickt haben.', 'Almost done: please confirm your email via the link we sent you.'],
   login_title: ['Willkommen beim Team', 'Welcome to the team'], login_sub: ['Melde dich an, um Spiele, Events und Auswertungen zu sehen.', 'Sign in to see games, events and analysis.'],
