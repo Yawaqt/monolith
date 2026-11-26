@@ -164,6 +164,7 @@ const S = {
   app_pairtrain: ['Pairing-Trainer', 'Pairing trainer'], pairtrain_desc: ['Das Pairing-Verfahren für Team-Turniere gegen einen Computer-Gegner üben.', 'Practise the team pairing process against a computer opponent.'],
   admin_test: ['Test · nur Admins', 'Test · admins only'],
   h_opp_name_ph: ['optional – für die Gegner-Statistik', 'optional – for the opponent stats'],
+  details: ['Details', 'Details'],
   nav_mystats: ['Meine Statistik', 'My statistics'],
   mystats_intro: ['Nur deine eigenen Spiele aus dem Match Log – nur du siehst diese Auswertung. Siegquote: Unentschieden = ½ Sieg.', 'Only your own games from the match log – only you see this. Win rate: draw = ½ win.'],
   mystats_noplayer: ['Dein Konto ist noch keinem Spieler zugeordnet. Ein Admin kann das unter Verwaltung erledigen.', 'Your account is not linked to a player yet. An admin can do this under Administration.'],

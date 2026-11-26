@@ -500,3 +500,4 @@ ul.pop{list-style:none;margin:0;padding:0}ul.pop li{display:grid;grid-template-c
 .sc-clocks .sc-clock .sc-time{font:800 clamp(24px,7.8vw,44px)/1.05 Archivo,sans-serif}
 .sc-min{display:flex;align-items:center;gap:8px;flex-direction:row}.sc-min input{width:80px}
 @media(max-width:600px){.sc-end{flex-direction:column;align-items:stretch}.sc-end .row-actions{display:grid;grid-template-columns:1fr;gap:8px}.sc-end .btn{width:100%;justify-content:center}}
+.more-open{border-top:1px solid var(--line);margin-top:14px;padding-top:12px}.more-open h3{margin:0 0 8px;font-size:15px}

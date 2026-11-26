@@ -1,9 +1,9 @@
 // Team pages: home, roster, match log, archive, events, calendar, line-up, cash.
-import { CONFIG } from './config.js?v=202611261722';
-import { db } from './db.js?v=202611261722';
-import { t } from './i18n.js?v=202611261722';
-import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611261722';
-import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611261722';
+import { CONFIG } from './config.js?v=202611261750';
+import { db } from './db.js?v=202611261750';
+import { t } from './i18n.js?v=202611261750';
+import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611261750';
+import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611261750';
 
 const D = () => state.data;
 const rsvpOf = (eid, pid) => (D().rsvps || []).find(r => r.event_id === eid && r.player_id === pid)?.status;
@@ -217,14 +217,14 @@ export async function quickResult() {
       <label>${esc(t('opp_score'))}<input name="opp_score" type="number" inputmode="numeric" min="0" max="200" required></label>
     </div>
     <div class="preview" aria-live="polite"></div>
-    <details class="more"><summary>${esc(t('quick_more'))}</summary><div class="grid2">
+    <div class="more-open"><h3>${esc(t('details'))}</h3><div class="grid2">
       <label>${esc(t('our_player'))}<select name="player_id" required>${opts(plOpts, pid, '–')}</select></label>
       <label>${esc(t('date'))}<input name="played_on" type="date" required value="${esc(m.played_on)}"></label>
       <label>${esc(t('our_disp'))}<select name="disposition">${opts(DISPOSITIONS, m.disposition || '', '–')}</select></label>
       <label>${esc(t('opp_disp'))}<select name="opp_disposition">${opts(DISPOSITIONS, '', '–')}</select></label>
       <label>${esc(t('opp_player'))}<select name="opp_player_id">${opts(players().map(p => [p.id, p.name]), '', t('external'))}</select></label>
       <label class="opp-name">${esc(t('opp_name'))}<input name="opp_name" maxlength="60"></label></div>
-      <label>${esc(t('notes'))}<input name="notes" maxlength="200"></label></details></div>`;
+      <label>${esc(t('notes'))}<input name="notes" maxlength="200"></label></div></div>`;
   const r = await modal(t('quick_title'), body, { submit: t('save_game'), onOpen: f => {
     f.addEventListener('click', e => { const b = e.target.closest('[data-type]'); if (!b) return;
       f.type.value = b.dataset.type; $$('[data-type]', f).forEach(x => x.setAttribute('aria-pressed', x === b));
