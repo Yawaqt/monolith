@@ -1,10 +1,10 @@
 // Match History (every account, also guests) and the anonymous "Data" page.
 // Completely separate from the team's own match log.
-import { db } from './db.js?v=202611261811';
-import { t } from './i18n.js?v=202611261811';
-import { state, esc, $, $$, opts, fmtDate, act, confirmBox, empty, pageHead, toast, resultBadge, modal } from './core.js?v=202611261811';
-import { personalBlocks, fmtDiff, diffCls } from './pages-analysis.js?v=202611261811';
-import { FACTIONS, fmt1, pct, today } from './data.js?v=202611261811';
+import { db } from './db.js?v=202611261814';
+import { t } from './i18n.js?v=202611261814';
+import { state, esc, $, $$, opts, fmtDate, act, confirmBox, empty, pageHead, toast, resultBadge, modal } from './core.js?v=202611261814';
+import { personalBlocks, fmtDiff, diffCls } from './pages-analysis.js?v=202611261814';
+import { FACTIONS, fmt1, pct, today } from './data.js?v=202611261814';
 
 let games = null;            // own games (cached)
 let loading = false;
@@ -117,6 +117,8 @@ async function editGame(g) {
 }
 // Signing out or switching accounts must not show someone else's games
 export function resetHistory() { games = null; }
+// For "Meine Statistik": own games (null while loading; starts loading once)
+export function ownGames() { if (games == null) load(); return games; }
 
 // ---------------------------------------------------------------- Data (everyone's games, anonymous)
 let stats = null, dArmy = '', statsAt = 0;

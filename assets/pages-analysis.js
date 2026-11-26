@@ -1,8 +1,9 @@
 // Analysis pages: live matrix, statistics, master matrix, master team, pairing.
-import { db } from './db.js?v=202611261811';
-import { t } from './i18n.js?v=202611261811';
-import { state, can, myPlayer, isMe, esc, $, $$, opts, players, playerById, pname, setting, act, modal, confirmBox, gpClass, empty, pageHead, toast } from './core.js?v=202611261811';
-import { FACTIONS, MATRIX_COLS, DISPOSITIONS, RATING_LEGEND, records, summarize, groupBy, avg, fmt1, pct, matrixCell, typeLabel } from './data.js?v=202611261811';
+import { db } from './db.js?v=202611261814';
+import { t } from './i18n.js?v=202611261814';
+import { state, can, myPlayer, isMe, esc, $, $$, opts, players, playerById, pname, setting, act, modal, confirmBox, gpClass, empty, pageHead, toast } from './core.js?v=202611261814';
+import { ownGames } from './pages-history.js?v=202611261814';
+import { FACTIONS, MATRIX_COLS, DISPOSITIONS, RATING_LEGEND, records, summarize, groupBy, avg, fmt1, pct, matrixCell, typeLabel } from './data.js?v=202611261814';
 
 const D = () => state.data;
 const short = f => f.replace('Adeptus ', 'A. ').replace('Adepta ', 'A. ').replace('Chaos Space Marines', 'CSM').replace('Space Marines', 'SM').replace('Leagues of Votann', 'Votann').replace('Genestealer Cults', 'GSC').replace("Emperor's Children", 'EC').replace('Imperial Knights', 'Imp. Knights');
@@ -115,12 +116,20 @@ export { fmtD as fmtDiff, dCls as diffCls };
 export function mystats(el) {
   const me = myPlayer();
   if (me == null) { el.innerHTML = pageHead(t('nav_mystats'), t('mystats_intro')) + `<p class="notice">${esc(t('mystats_noplayer'))}</p>`; return; }
-  const recs = records(D().matches || [], MF).filter(r => r.player_id === me);
+  const team = MF.type === '__casual' ? [] : records(D().matches || [], { type: MF.type === '__team' ? '' : MF.type, since: MF.since }).filter(r => r.player_id === me);
+  const pg = ownGames();
+  const casualAll = (pg || []).filter(g => g.kind === 'Casual' && (!MF.since || g.played_on >= MF.since)).map(g => { const d = g.my_score - g.opp_score;
+    return { m: g, casual: true, army: g.army, opp: g.opp_army, our: g.my_score, theirs: g.opp_score, g: 0, res: d > 0 ? 'win' : d < 0 ? 'loss' : 'draw', oppKey: (g.opp_name || '').trim().toLowerCase(), oppName: (g.opp_name || '').trim() }; });
+  const casual = !MF.type || MF.type === '__casual' ? casualAll : [];
+  const recs = [...team, ...casual];
   const s = summarize(recs);
+  const sT = summarize(team), sC = summarize(casual);
   const types = [...new Set((D().matches || []).map(m => m.type))];
   el.innerHTML = pageHead(t('nav_mystats'), t('mystats_intro')) +
-    `<form class="filters card" id="mf"><label>${esc(t('type'))}<select name="type">${opts([['', t('st_all_games')], ['__tour', t('st_all_tours')], ...types.map(x => [x, typeLabel(x, t)])], MF.type)}</select></label><label>${esc(t('since'))}<input type="date" name="since" value="${esc(MF.since)}"></label></form>
+    `<form class="filters card" id="mf"><label>${esc(t('type'))}<select name="type">${opts([['', t('ms_all')], ['__team', t('ms_team')], ['__tour', t('st_all_tours')], ...types.map(x => [x, typeLabel(x, t)]), ['__casual', t('type_casual')]], MF.type)}</select></label><label>${esc(t('since'))}<input type="date" name="since" value="${esc(MF.since)}"></label></form>
     <section class="stats"><div><b class="num">${s.n}</b><span>${esc(t('games'))}</span></div><div><b class="num">${wdl(s)}</b><span>${esc(t('result'))}</span></div><div><b class="num">${pct(s.rate) || '–'}</b><span>${esc(t('winrate'))}</span></div><div><b class="num ${dCls(s.avgDiff)}">${s.n ? fmtD(s.avgDiff) : '–'}</b><span>${esc(t('avg_diff'))}</span></div></section>
+    ${!MF.type && (sT.n || sC.n) ? `<div class="ms-split"><div class="card"><span class="mute">${esc(t('ms_team'))}</span><b class="num">${sT.n} · ${wdl(sT)} · ${pct(sT.rate) || '–'}</b></div><div class="card"><span class="mute">${esc(t('type_casual'))}</span><b class="num">${sC.n} · ${wdl(sC)} · ${pct(sC.rate) || '–'}</b></div></div>` : ''}
+    ${pg == null ? `<p class="mute">${esc(t('loading'))}</p>` : ''}
     ${s.n ? personalBlocks(recs) : empty()}`;
   const f = $('#mf'); f.addEventListener('change', () => { MF.type = f.type.value; MF.since = f.since.value; mystats(el); });
 }

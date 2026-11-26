@@ -1,10 +1,10 @@
 // Team pages: home, roster, match log, archive, events, calendar, line-up, cash.
-import { CONFIG } from './config.js?v=202611261811';
-import { db } from './db.js?v=202611261811';
-import { t } from './i18n.js?v=202611261811';
-import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611261811';
-import { resetHistory } from './pages-history.js?v=202611261811';
-import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611261811';
+import { CONFIG } from './config.js?v=202611261814';
+import { db } from './db.js?v=202611261814';
+import { t } from './i18n.js?v=202611261814';
+import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611261814';
+import { resetHistory } from './pages-history.js?v=202611261814';
+import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611261814';
 
 const D = () => state.data;
 const rsvpOf = (eid, pid) => (D().rsvps || []).find(r => r.event_id === eid && r.player_id === pid)?.status;
@@ -16,7 +16,7 @@ const canEditMatch = m => can('admin') || (can('team') && !!m && (m.created_by =
 // Link a team mate's existing game to a second player (own games directly, others via a safe server function)
 const linkGame = (m, pid, disp) => canEditMatch(m) ? db.update('matches', { id: m.id }, { opp_player_id: pid, opp_disposition: m.opp_disposition || disp || null })
   : pid === myPlayer() ? db.rpc('link_internal_game', { p_id: m.id }) : Promise.reject(new Error(t('dup_no_right')));
-const typeOpts = cur => opts([...new Set([...GAME_TYPES, ...(cur ? [cur] : [])])].map(x => [x, typeLabel(x, t)]), cur);
+const typeOpts = (cur, casual = false) => opts([...new Set([...GAME_TYPES, ...(cur ? [cur] : []), ...(casual ? ['Casual'] : [])])].map(x => [x, x === 'Casual' ? t('type_casual_long') : typeLabel(x, t)]), cur);
 // Result cell: team-scored games show the 20-0 score, singles only the points.
 export function resultHtml(m) {
   const res = outcome(m.type, m.our_score, m.opp_score); if (!res) return '';
@@ -147,21 +147,21 @@ async function editPlayer(p) {
 }
 
 // ---------------------------------------------------------------- Match log
-function matchForm(m = {}) {
+function matchForm(m = {}, casual = false) {
   const pid = m.player_id ?? myPlayer();
   const pl = playerById(pid); const mineArmies = (pl?.armies || []).map(a => a.army).filter(Boolean);
   const armyList = [...new Set([...mineArmies, ...FACTIONS])];
   const plOpts = players(true).map(p => [p.id, p.name]);
   return `<div class="grid3">
-    <label>${esc(t('type'))}<select name="type" required>${typeOpts(m.type || 'Practice')}</select></label>
-    <label>${esc(t('tour_name'))}<input name="tournament" value="${esc(m.tournament || '')}" list="tours"><datalist id="tours">${[...new Set((D().matches || []).map(x => x.tournament).filter(Boolean))].map(x => `<option value="${esc(x)}">`).join('')}</datalist></label>
+    <label>${esc(t('type'))}<select name="type" required>${typeOpts(m.type || 'Practice', casual)}</select></label>
+    <label class="team-only">${esc(t('tour_name'))}<input name="tournament" value="${esc(m.tournament || '')}" list="tours"><datalist id="tours">${[...new Set((D().matches || []).map(x => x.tournament).filter(Boolean))].map(x => `<option value="${esc(x)}">`).join('')}</datalist></label>
     <label>${esc(t('date'))}<input name="played_on" type="date" required value="${esc(m.played_on || today())}"></label>
-    <label>${esc(t('our_player'))}<select name="player_id" required>${opts(plOpts, pid, '–')}</select></label>
+    <label class="team-only">${esc(t('our_player'))}<select name="player_id" required>${opts(plOpts, pid, '–')}</select></label>
     <label>${esc(t('our_army'))}<select name="army" required>${opts(armyList, m.army || mineArmies[0] || '', '–')}</select></label>
-    <label>${esc(t('our_disp'))}<select name="disposition">${opts(DISPOSITIONS, m.disposition, '–')}</select></label>
+    <label class="team-only">${esc(t('our_disp'))}<select name="disposition">${opts(DISPOSITIONS, m.disposition, '–')}</select></label>
     <label>${esc(t('opp_faction'))}<select name="opp_faction" required>${opts(FACTIONS, m.opp_faction, '–')}</select></label>
-    <label>${esc(t('opp_disp'))}<select name="opp_disposition">${opts(DISPOSITIONS, m.opp_disposition, '–')}</select></label>
-    <label>${esc(t('opp_player'))}<select name="opp_player_id">${opts(players().map(p => [p.id, p.name]), m.opp_player_id, t('external'))}</select></label>
+    <label class="team-only">${esc(t('opp_disp'))}<select name="opp_disposition">${opts(DISPOSITIONS, m.opp_disposition, '–')}</select></label>
+    <label class="team-only">${esc(t('opp_player'))}<select name="opp_player_id">${opts(players().map(p => [p.id, p.name]), m.opp_player_id, t('external'))}</select></label>
     <label class="opp-name">${esc(t('opp_name'))}<input name="opp_name" maxlength="60" value="${esc(m.opp_name || '')}"></label>
     <label>${esc(t('our_score'))}<input name="our_score" type="number" inputmode="numeric" min="0" max="200" required value="${esc(m.our_score ?? '')}"></label>
     <label>${esc(t('opp_score'))}<input name="opp_score" type="number" inputmode="numeric" min="0" max="200" required value="${esc(m.opp_score ?? '')}"></label>
@@ -196,6 +196,12 @@ function matchRow(r) {
 // Everything is filled in from the player's last game, so usually only opponent and points are left.
 function lastOwnGame(pid) {
   return (D().matches || []).filter(m => m.player_id === pid).sort((a, b) => b.played_on.localeCompare(a.played_on) || b.id - a.id)[0];
+}
+// Casual games only go into the player's own match history (and the anonymous data page), never into team stats or the matrix
+async function saveCasual(r, done) {
+  const g = { played_on: r.played_on, army: r.army, opp_army: r.opp_faction, my_score: +r.our_score, opp_score: +r.opp_score, kind: 'Casual', event: null,
+    opp_name: (r.opp_name || '').trim() || null, notes: (r.notes || '').trim() || null };
+  try { await db.insert('personal_games', g); resetHistory(); toast(t('casual_saved')); if (done) done(); } catch (err) { toast(t('error') + ': ' + err.message, true); }
 }
 export async function quickResult() {
   if (!can('team')) return;
@@ -235,12 +241,7 @@ export async function quickResult() {
     setTimeout(() => f.opp_faction.focus(), 30);
   } });
   if (!r) return;
-  if (r.type === 'Casual') { // only into the player's own match history (and the anonymous data page), never into team stats or the matrix
-    const g = { played_on: r.played_on, army: r.army, opp_army: r.opp_faction, my_score: +r.our_score, opp_score: +r.opp_score, kind: 'Casual', event: null,
-      opp_name: (r.opp_name || '').trim() || null, notes: (r.notes || '').trim() || null };
-    try { await db.insert('personal_games', g); resetHistory(); toast(t('casual_saved')); } catch (err) { toast(t('error') + ': ' + err.message, true); }
-    return;
-  }
+  if (r.type === 'Casual') return saveCasual(r);
   if (r.type === 'Practice') r.tournament = '';
   let row; try { row = matchRow(r); } catch (err) { return toast(err.message, true); }
   if (await handleMirror(row)) return;
@@ -277,11 +278,12 @@ export function matches(el) {
   const canLog = can('team');
   const latest = (D().matches || []).slice().sort((a, b) => b.id - a.id).slice(0, 8);
   el.innerHTML = pageHead(t('nav_matches'), t('log_intro'), canLog ? `<button class="btn primary" data-tour>${esc(t('tour_import'))}</button>` : '') +
-    (canLog ? `<form class="card form" id="mform" novalidate>${matchForm()}<div class="form-actions"><button class="btn primary">${esc(t('save_game'))}</button></div></form>` : `<div class="notice">${esc(t('not_linked'))}</div>`) +
+    (canLog ? `<form class="card form" id="mform" novalidate>${matchForm({}, true)}<div class="form-actions"><button class="btn primary">${esc(t('save_game'))}</button></div></form>` : `<div class="notice">${esc(t('not_linked'))}</div>`) +
     `<section class="card"><h2>${esc(t('latest'))}</h2>${gamesTable(latest)}</section>`;
   const f = $('#mform');
   if (f) { bindMatchForm(f); f.addEventListener('submit', async e => { e.preventDefault(); if (!f.reportValidity()) return;
     const o = {}; for (const x of f.elements) if (x.name) o[x.name] = x.value;
+    if (o.type === 'Casual') return saveCasual(o, () => { f.reset(); f.type.value = 'Casual'; f.dispatchEvent(new Event('change')); });
     let row; try { row = matchRow(o); } catch (err) { return toast(err.message, true); }
     if (await handleMirror(row)) return;
     await act(() => db.insert('matches', row), ['matches']); }); }
