@@ -1,17 +1,17 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611252012';
-import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611252012';
-import { t, setLang, getLang } from './i18n.js?v=202611252012';
-import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox } from './core.js?v=202611252012';
-import * as T from './pages-team.js?v=202611252012';
-import * as A from './pages-analysis.js?v=202611252012';
-import * as P from './pages-public.js?v=202611252012';
-import * as TE from './pages-teams.js?v=202611252012';
-import { FACTIONS } from './data.js?v=202611252012';
-import * as SITE from './pages-site.js?v=202611252012';
-import * as H from './pages-history.js?v=202611252012';
-import * as LG from './pages-legal.js?v=202611252012';
-import * as N from './pages-news.js?v=202611252012';
+import { CONFIG } from './config.js?v=202611261024';
+import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611261024';
+import { t, setLang, getLang } from './i18n.js?v=202611261024';
+import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox } from './core.js?v=202611261024';
+import * as T from './pages-team.js?v=202611261024';
+import * as A from './pages-analysis.js?v=202611261024';
+import * as P from './pages-public.js?v=202611261024';
+import * as TE from './pages-teams.js?v=202611261024';
+import { FACTIONS } from './data.js?v=202611261024';
+import * as SITE from './pages-site.js?v=202611261024';
+import * as H from './pages-history.js?v=202611261024';
+import * as LG from './pages-legal.js?v=202611261024';
+import * as N from './pages-news.js?v=202611261024';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
@@ -59,7 +59,7 @@ function subnav() {
   el.hidden = false;
   const items = PORTAL.flatMap(g => g.items.filter(([, , min]) => can(min)).map((it, i) => ({ it, first: i === 0 && g.group })));
   el.innerHTML = `<div class="sub-in"><nav class="subnav scroll" aria-label="${esc(t('portal'))}">${items.map(({ it: [k, l], first }) => `${first ? '<span class="sep" aria-hidden="true"></span>' : ''}<a href="#/${k}"${r === k ? ' aria-current="page"' : ''}>${esc(label(k, l))}${k === 'members' && pendingList().length ? ` <span class="badge">${pendingList().length}</span>` : ''}</a>`).join('')}</nav>
-    <div class="who"><span>${esc(state.me?.display_name || '')}</span><span class="tag role-${esc(role())}">${esc(t('r_' + role()))}</span>${DEMO ? '' : `<button class="link" data-out>${esc(t('sign_out'))}</button>`}</div></div>
+    <div class="who"><span>${esc(state.me?.display_name || '')}</span><span class="tag role-${esc(role())}">${esc(t('r_' + role()))}</span>${state.me?.content ? '<span class="tag">Content</span>' : ''}${DEMO ? '' : `<button class="link" data-out>${esc(t('sign_out'))}</button>`}</div></div>
     ${DEMO ? `<div class="demo"><b>${esc(t('demo'))}</b> · ${esc(t('demo_as'))} <select id="demoRole" aria-label="${esc(t('demo_as'))}">${opts(['guest', 'team', 'captain', 'admin'].map(x => [x, t('r_' + x)]), demoRole())}</select><button class="link" data-reset>${esc(t('demo_reset'))}</button></div>` : ''}`;
   const cur = $('[aria-current]', el); if (cur) cur.scrollIntoView({ block: 'nearest', inline: 'center' });
 }
@@ -121,7 +121,7 @@ function profile(el) {
   el.innerHTML = pageHead(t('nav_profile'), '') + `<div class="cols"><form class="card form" id="pf"><h2>${esc(t('account'))}</h2>
       <label>${esc(t('display_name'))}<input name="display_name" required maxlength="40" value="${esc(me.display_name || '')}"></label>
       <label>${esc(t('language'))}<select name="lang">${opts([['de', 'Deutsch'], ['en', 'English']], me.lang || getLang())}</select></label>
-      <p class="mute">${esc(t('role'))}: <b>${esc(t('r_' + role()))}</b> · ${esc(t('linked_player'))}: <b>${esc(me.player_id ? pname(me.player_id) : t('none_linked'))}</b></p>
+      <p class="mute">${esc(t('role'))}: <b>${esc(t('r_' + role()))}${state.me?.content ? ' + Content' : ''}</b> · ${esc(t('linked_player'))}: <b>${esc(me.player_id ? pname(me.player_id) : t('none_linked'))}</b></p>
       <div class="form-actions"><button class="btn primary">${esc(t('save'))}</button>${DEMO ? '' : `<button type="button" class="btn ghost" data-out>${esc(t('sign_out'))}</button>`}</div></form>
     ${me.player_id && can('team') ? (() => { const pl = (state.data.players || []).find(x => x.id === me.player_id) || { name: pname(me.player_id) }; return `<form class="card form" id="bio"><h2>${esc(t('my_profile'))}</h2>
       <p class="mute small">${esc(t('my_profile_hint'))}</p>
@@ -193,9 +193,10 @@ function drawMembers(el) {
   const accountsOf = id => mList.filter(p => p.player_id === id).map(p => p.display_name || '?');
   el.innerHTML = pageHead(t('nav_members'), t('admin_intro')) +
     `<section class="card"><h2>${esc(t('adm_accounts'))} <span class="mute small">(${list.length})</span></h2><p class="mute small">${esc(t('adm_accounts_hint'))}</p>
-      <div class="scroll"><table class="stack adm"><thead><tr><th>${esc(t('display_name'))}</th><th>${esc(t('role'))}</th><th>${esc(t('linked_player'))}</th><th>${esc(t('joined'))}</th><th></th></tr></thead><tbody>
+      <div class="scroll"><table class="stack adm"><thead><tr><th>${esc(t('display_name'))}</th><th>${esc(t('role'))}</th><th title="${esc(t('content_hint'))}">Content</th><th>${esc(t('linked_player'))}</th><th>${esc(t('joined'))}</th><th></th></tr></thead><tbody>
       ${list.map(p => { const me = p.id === state.me?.id; return `<tr${waiting(p) ? ' class="pending"' : ''}><td><b>${esc(p.display_name || '')}</b>${me ? ' <span class="tag">★</span>' : ''}${waiting(p) ? ` <span class="tag warn-tag">${esc(t('waiting'))}</span><span class="pend-btns"><button type="button" class="btn primary xs" data-approve="${esc(p.id)}">${esc(t('pend_approve'))}</button><button type="button" class="btn ghost xs" data-keepguest="${esc(p.id)}">${esc(t('pend_keep'))}</button></span>` : ''}</td>
         <td>${roleCell(p, me)}</td>
+        <td><label class="switch" title="${esc(t('content_hint'))}"><input type="checkbox" data-content="${esc(p.id)}"${p.content ? ' checked' : ''} aria-label="Content: ${esc(p.display_name || '')}"></label></td>
         <td>${!isOwner() && ownerPlayer(p.player_id) ? `<span title="${esc(t('adm_owner_only'))}">${esc(pname(p.player_id))} 🔒</span>` : `<select data-link="${esc(p.id)}" aria-label="${esc(t('linked_player'))}">${opts([...players(true).filter(q => isOwner() || !ownerPlayer(q.id) || q.id === p.player_id).map(q => [q.id, q.name + (q.active ? '' : ' (' + t('inactive') + ')')]), ['__new', '+ ' + t('adm_new_player')]], p.player_id, t('none_linked'))}</select>`}</td>
         <td class="nowrap">${esc((p.created_at || '').slice(0, 10))}</td>
         <td class="r">${me ? '' : p.role === 'admin' ? `<span class="mute small" title="${esc(t('adm_admin_nodel'))}">🔒</span>` : `<button type="button" class="icon" data-deluser="${esc(p.id)}" aria-label="${esc(t('adm_del_account'))}: ${esc(p.display_name || '')}">🗑</button>`}</td></tr>`; }).join('')}
@@ -223,6 +224,8 @@ function drawMembers(el) {
   };
   el.onchange = async e => {
     const r = e.target.closest('[data-role]'), l = e.target.closest('[data-link]'), a = e.target.closest('[data-active]'), rn = e.target.closest('[data-rename]');
+    const ct = e.target.closest('[data-content]');
+    if (ct) { if (await act(() => db.update('profiles', { id: ct.dataset.content }, ct.checked ? { content: true, reviewed_at: new Date().toISOString() } : { content: false }), null, ct.checked ? t('content_on') : t('content_off'))) { if (ct.dataset.content === state.me?.id) await refreshMe(); await reload(); } else ct.checked = !ct.checked; return; }
     if (r) { const prof = mList.find(x => x.id === r.dataset.role); const self = prof && prof.id === state.me?.id;
       if (self && r.value !== 'admin' && !await confirmBox(t('adm_giveup_q'))) { r.value = 'admin'; return; }
       if (await act(() => db.update('profiles', { id: r.dataset.role }, { role: r.value, reviewed_at: new Date().toISOString() }), null)) { if (self) { await refreshMe(); location.hash = '#/portal'; } await reload(); } else r.value = prof.role; }

@@ -1,5 +1,5 @@
 // Data access: Supabase when configured, otherwise a demo backend in localStorage.
-import { CONFIG } from './config.js?v=202611252012';
+import { CONFIG } from './config.js?v=202611261024';
 
 export const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY;
 export const TABLES = ['players', 'matches', 'events', 'rsvps', 'payments', 'ratings', 'opponent_teams', 'pairings', 'settings', 'tevents', 'tevent_rounds', 'news'];

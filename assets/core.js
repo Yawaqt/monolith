@@ -1,10 +1,12 @@
 // Shared state and UI helpers.
-import { db, TABLES } from './db.js?v=202611252012';
-import { t } from './i18n.js?v=202611252012';
+import { db, TABLES } from './db.js?v=202611261024';
+import { t } from './i18n.js?v=202611261024';
 
 export const state = { session: null, me: null, data: {}, loadedAt: 0, render: () => {} };
 const RANK = { anon: 0, guest: 1, team: 2, captain: 3, admin: 4 };
-export const role = () => (state.me && state.me.role) || (state.session ? 'guest' : 'anon');
+// "Content" is an extra switch: a guest with it counts as a member.
+export const role = () => { const r = (state.me && state.me.role) || (state.session ? 'guest' : 'anon'); return r === 'guest' && state.me?.content ? 'team' : r; };
+export const isContent = () => !!(state.me && state.me.content);
 export const can = min => RANK[role()] >= RANK[min];
 export const myPlayer = () => state.me && state.me.player_id;
 export const isMe = pid => pid != null && pid === myPlayer();

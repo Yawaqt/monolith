@@ -116,6 +116,8 @@ const S = {
   delete_type: ['Zum Bestätigen LÖSCHEN eintippen', 'Type DELETE to confirm'], delete_word: ['LÖSCHEN', 'DELETE'], delete_word_wrong: ['Bitte genau LÖSCHEN eintippen.', 'Please type DELETE exactly.'], account_deleted: ['Dein Konto wurde gelöscht.', 'Your account has been deleted.'],
   legal_title: ['Impressum & Kontakt', 'Imprint & contact'], legal_hint: ['Erscheint auf der Seite „Datenschutz & Impressum“ (Offenlegung nach Mediengesetz und Verantwortlicher nach DSGVO).', 'Shown on the "Privacy & imprint" page (disclosure under Austrian media law and controller under GDPR).'],
   legal_owner: ['Name bzw. Verein (Medieninhaber)', 'Name or club (owner)'], legal_place: ['Ort bzw. Anschrift', 'Place or address'], legal_email: ['Kontakt-E-Mail', 'Contact e-mail'],
+  content_hint: ['Content: zusätzlich zur Rolle. Mindestens Member-Rechte und darf alle News bearbeiten und löschen.', 'Content: on top of the role. At least member rights and may edit and delete all news.'],
+  content_on: ['Content eingeschaltet', 'Content switched on'], content_off: ['Content ausgeschaltet', 'Content switched off'],
   // team events
   nav_teams: ['Teamturniere', 'Team events'], teams_intro: ['Team-Events für 5er und 8er Teams: Aufstellung mit Regelprüfung, Vorhersagen pro Paarung, Pairings und Ergebnisse live mit dem ganzen Team.', 'Team events for 5s and 8s: line-up with rule checks, a prediction per matchup, pairings and results live with the whole team.'],
   new_tevent: ['Neues Teamturnier', 'New team event'], te_size: ['Teamgröße', 'Team size'], te_rules: ['Regeln', 'Rules'], te_link_event: ['Mit Event verknüpfen', 'Link to event'],
