@@ -1,9 +1,9 @@
 // Team pages: home, roster, match log, archive, events, calendar, line-up, cash.
-import { CONFIG } from './config.js?v=202611261433';
-import { db } from './db.js?v=202611261433';
-import { t } from './i18n.js?v=202611261433';
-import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611261433';
-import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611261433';
+import { CONFIG } from './config.js?v=202611261504';
+import { db } from './db.js?v=202611261504';
+import { t } from './i18n.js?v=202611261504';
+import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611261504';
+import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611261504';
 
 const D = () => state.data;
 const rsvpOf = (eid, pid) => (D().rsvps || []).find(r => r.event_id === eid && r.player_id === pid)?.status;
@@ -36,7 +36,8 @@ export function home(el) {
   const mineAll = recs.filter(r => r.player_id === pid);
   const mineT = summarize(mineAll.filter(isTour)), mineP = summarize(mineAll.filter(r => !isTour(r)));
   const teamT = summarize(recs.filter(r => !r.mirrored && isTour(r)));
-  const next = upcomingEvents().slice(0, 3);
+  const isTrain = e => e.kind === 'Training' || e.kind === 'Training Match';
+  const trains = upcomingEvents().filter(isTrain).slice(0, 3), tours = upcomingEvents().filter(e => !isTrain(e)).slice(0, 3);
   const recent = (D().matches || []).slice().sort((a, b) => b.played_on.localeCompare(a.played_on) || b.id - a.id).slice(0, 6);
   el.innerHTML = pageHead(`${t('hello')} ${name}`, '', `<a class="btn primary" href="#/matches">${esc(t('open_games'))}</a>`) +
     (!pid ? `<div class="notice">${esc(t('not_linked'))}</div>` : '') +
@@ -44,10 +45,13 @@ export function home(el) {
       ${pid ? tile(t('my_tour'), `${mineT.w}-${mineT.d}-${mineT.l}`, mineT.n ? `${pct(mineT.rate)} ${t('winrate')} · ${t('n_games', { n: mineT.n })}` : t('no_games_yet'), 'main') : ''}
       ${pid ? tile(t('my_practice'), `${mineP.w}-${mineP.d}-${mineP.l}`, mineP.n ? `${pct(mineP.rate)} · ${t('avg_gp')} ${fmt1(mineP.avgGp)}` : t('no_games_yet'), 'minor') : ''}
       ${tile(t('team_tour'), `${teamT.w}-${teamT.d}-${teamT.l}`, `${pct(teamT.rate)} · ${t('n_games', { n: teamT.n })}`)}
-      ${tile(t('next_events'), next[0] ? fmtDate(next[0].starts_on, { day: '2-digit', month: 'short' }) : '–', next[0] ? next[0].title : '')}
+      ${tile(t('next_training'), trains[0] ? fmtDate(trains[0].starts_on, { day: '2-digit', month: 'short' }) + (trains[0].start_time ? ' · ' + trains[0].start_time.slice(0, 5) : '') : '–', trains[0] ? trains[0].title : '')}
     </div>
     <div class="cols">
-      <section class="card"><h2>${esc(t('next_events'))}</h2>${next.length ? next.map(e => eventMini(e)).join('') : empty()}<a class="more" href="#/events">${esc(t('nav_events'))} →</a></section>
+      <section class="card"><h2>${esc(t('next_trainings'))}</h2>${trains.length ? trains.map(e => eventMini(e)).join('') : empty()}<a class="more" href="#/events">${esc(t('nav_events'))} →</a></section>
+      <section class="card"><h2>${esc(t('next_tours'))}</h2>${tours.length ? tours.map(e => eventMini(e)).join('') : empty()}<a class="more" href="#/events">${esc(t('nav_events'))} →</a></section>
+    </div>
+    <div class="cols">
       <section class="card"><h2>${esc(t('recent'))}</h2>${recent.length ? `<ul class="list">${recent.map(m => {
         return `<li><span><b>${esc(pname(m.player_id))}</b> <span class="mute">${esc(m.army)} ${esc(t('vs'))} ${esc(m.opp_faction)}</span><br><small class="mute">${esc(fmtDate(m.played_on))}${m.tournament ? ' · ' + esc(m.tournament) : ''}</small></span><span class="nowrap">${resultHtml(m)}</span></li>`; }).join('')}</ul>` : empty()}<a class="more" href="#/archive">${esc(t('nav_archive'))} →</a></section>
     </div>`;

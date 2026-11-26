@@ -208,7 +208,7 @@ const S = {
   demo: ['Demo-Modus', 'Demo mode'], demo_as: ['Ansicht als', 'Viewing as'], demo_reset: ['Demo zurücksetzen', 'Reset demo'],
   demo_note: ['Demo: Daten bleiben nur in diesem Browser. Trage deine Supabase-Daten in assets/config.js ein, um echte Konten zu nutzen.', 'Demo: data stays in this browser only. Add your Supabase details in assets/config.js for real accounts.'],
   // home
-  hello: ['Hallo', 'Hi'], next_events: ['Nächste Events', 'Next events'], recent: ['Letzte Ergebnisse', 'Recent results'], my_form: ['Meine Bilanz', 'My record'],
+  hello: ['Hallo', 'Hi'], next_events: ['Nächste Events', 'Next events'], next_training: ['Nächstes Training', 'Next training'], next_trainings: ['Nächste Trainings', 'Next trainings'], next_tours: ['Nächste Turniere', 'Next tournaments'], recent: ['Letzte Ergebnisse', 'Recent results'], my_form: ['Meine Bilanz', 'My record'],
   team_form: ['Team-Bilanz', 'Team record'], open_games: ['Spiel eintragen', 'Log a game'], your_answer: ['Deine Antwort', 'Your answer'],
   // roster
   roster_intro: ['Wer spielt welche Armeen und Wunsch-Dispositionen. Tipp auf das Bild (📷), um ein Foto hochzuladen. Unten die Abdeckung im Team.', 'Who plays which armies and preferred dispositions. Tap the picture (📷) to upload a photo. Team coverage below.'],
