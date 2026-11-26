@@ -1,8 +1,8 @@
 // Analysis pages: live matrix, statistics, master matrix, master team, pairing.
-import { db } from './db.js?v=202611261656';
-import { t } from './i18n.js?v=202611261656';
-import { state, can, myPlayer, isMe, esc, $, $$, opts, players, playerById, pname, setting, act, modal, confirmBox, gpClass, empty, pageHead, toast } from './core.js?v=202611261656';
-import { FACTIONS, MATRIX_COLS, DISPOSITIONS, RATING_LEGEND, records, summarize, groupBy, avg, fmt1, pct, matrixCell, typeLabel } from './data.js?v=202611261656';
+import { db } from './db.js?v=202611261657';
+import { t } from './i18n.js?v=202611261657';
+import { state, can, myPlayer, isMe, esc, $, $$, opts, players, playerById, pname, setting, act, modal, confirmBox, gpClass, empty, pageHead, toast } from './core.js?v=202611261657';
+import { FACTIONS, MATRIX_COLS, DISPOSITIONS, RATING_LEGEND, records, summarize, groupBy, avg, fmt1, pct, matrixCell, typeLabel } from './data.js?v=202611261657';
 
 const D = () => state.data;
 const short = f => f.replace('Adeptus ', 'A. ').replace('Adepta ', 'A. ').replace('Chaos Space Marines', 'CSM').replace('Space Marines', 'SM').replace('Leagues of Votann', 'Votann').replace('Genestealer Cults', 'GSC').replace("Emperor's Children", 'EC').replace('Imperial Knights', 'Imp. Knights');
@@ -85,8 +85,8 @@ export function stats(el) {
 // ---------------------------------------------------------------- My statistics (own games only)
 const MF = { type: '', since: '' };
 const MIN_VS = 6; // opponents are listed only with more than 5 games
-const oppKey = r => r.vsPlayer != null ? 'p' + r.vsPlayer : (r.m.opp_name || '').trim().toLowerCase();
-const oppLabel = (r) => r.vsPlayer != null ? pname(r.vsPlayer) : (r.m.opp_name || '').trim();
+const oppKey = r => r.oppKey != null ? r.oppKey : r.vsPlayer != null ? 'p' + r.vsPlayer : (r.m.opp_name || '').trim().toLowerCase();
+const oppLabel = r => r.oppName != null ? r.oppName : r.vsPlayer != null ? pname(r.vsPlayer) : (r.m.opp_name || '').trim();
 const wdl = s => `${s.w}-${s.d}-${s.l}`;
 const rateCell = s => `<td class="r num ${s.rate == null ? '' : s.rate >= 0.55 ? 'up' : s.rate <= 0.45 ? 'down' : 'even'}">${pct(s.rate)}</td>`;
 const statRows = (map, head) => `<div class="scroll"><table class="compact-stat"><thead><tr><th>${esc(head)}</th><th class="r" title="${esc(t('games'))}">${esc(t('games_s'))}</th><th title="${esc(t('result'))}">${esc(t('wdl_s'))}</th><th class="r">%</th><th class="r" title="${esc(t('avg_diff'))}">Ø ±</th></tr></thead><tbody>
@@ -97,26 +97,31 @@ function myClose(recs) {
     <tr><td><b>${esc(t('close_s'))}</b></td><td class="r num">${c.n}</td><td class="num">${c.w}-${c.d}-${c.l}</td>${rateCell(c)}</tr>
     <tr><td><b>${esc(t('clear_s'))}</b></td><td class="r num">${o.n}</td><td class="num">${o.w}-${o.d}-${o.l}</td>${rateCell(o)}</tr></tbody></table></div></section>`;
 }
-export function mystats(el) {
-  const me = myPlayer();
-  if (me == null) { el.innerHTML = pageHead(t('nav_mystats'), t('mystats_intro')) + `<p class="notice">${esc(t('mystats_noplayer'))}</p>`; return; }
-  const recs = records(D().matches || [], MF).filter(r => r.player_id === me);
-  const s = summarize(recs);
-  const types = [...new Set((D().matches || []).map(m => m.type))];
+// Shared by "Meine Statistik" and the Match History: opponents (> 5 games), close games, own factions, against factions.
+// recs need army, opp, our, theirs, res; opponents come from oppKey/oppName (or vsPlayer / m.opp_name for team games).
+export function personalBlocks(recs) {
   const named = recs.filter(r => oppKey(r));
   const byOpp = [...groupBy(named, oppKey)].filter(([, l]) => l.length >= MIN_VS).sort((a, b) => b[1].length - a[1].length);
   const oppCard = ([, list]) => { const os = summarize(list);
     return `<details class="card opp-stat"><summary><b>${esc(oppLabel(list[0]))}</b>${list[0].vsPlayer != null ? ` <span class="tag">${esc(t('internal'))}</span>` : ''} <span class="mute">· ${esc(t('n_games', { n: os.n }))} · ${wdl(os)} · ${pct(os.rate)} · Ø ${fmtD(os.avgDiff)}</span></summary>
       <h3>${esc(t('my_factions'))}</h3>${statRows(groupBy(list, r => r.army), t('army'))}
       <h3>${esc(t('their_factions'))}</h3>${statRows(groupBy(list, r => r.opp), t('faction'))}</details>`; };
+  return `<section><h2>${esc(t('my_opponents'))}</h2><p class="mute">${esc(t('my_opponents_hint'))}</p>${byOpp.length ? byOpp.map(oppCard).join('') : `<p class="notice">${esc(t('my_opponents_none'))}</p>`}</section>
+    ${myClose(recs)}
+    <section class="card"><h2>${esc(t('my_factions'))}</h2>${statRows(groupBy(recs, r => r.army), t('army'))}</section>
+    <section class="card"><h2>${esc(t('vs_factions'))}</h2>${statRows(groupBy(recs, r => r.opp), t('faction'))}</section>`;
+}
+export { fmtD as fmtDiff, dCls as diffCls };
+export function mystats(el) {
+  const me = myPlayer();
+  if (me == null) { el.innerHTML = pageHead(t('nav_mystats'), t('mystats_intro')) + `<p class="notice">${esc(t('mystats_noplayer'))}</p>`; return; }
+  const recs = records(D().matches || [], MF).filter(r => r.player_id === me);
+  const s = summarize(recs);
+  const types = [...new Set((D().matches || []).map(m => m.type))];
   el.innerHTML = pageHead(t('nav_mystats'), t('mystats_intro')) +
     `<form class="filters card" id="mf"><label>${esc(t('type'))}<select name="type">${opts([['', t('st_all_games')], ['__tour', t('st_all_tours')], ...types.map(x => [x, typeLabel(x, t)])], MF.type)}</select></label><label>${esc(t('since'))}<input type="date" name="since" value="${esc(MF.since)}"></label></form>
     <section class="stats"><div><b class="num">${s.n}</b><span>${esc(t('games'))}</span></div><div><b class="num">${wdl(s)}</b><span>${esc(t('result'))}</span></div><div><b class="num">${pct(s.rate) || '–'}</b><span>${esc(t('winrate'))}</span></div><div><b class="num ${dCls(s.avgDiff)}">${s.n ? fmtD(s.avgDiff) : '–'}</b><span>${esc(t('avg_diff'))}</span></div></section>
-    ${s.n ? `<section><h2>${esc(t('my_opponents'))}</h2><p class="mute">${esc(t('my_opponents_hint'))}</p>${byOpp.length ? byOpp.map(oppCard).join('') : `<p class="notice">${esc(t('my_opponents_none'))}</p>`}</section>
-    ${myClose(recs)}
-    <section class="card"><h2>${esc(t('my_factions'))}</h2>${statRows(groupBy(recs, r => r.army), t('army'))}</section>
-    <section class="card"><h2>${esc(t('vs_factions'))}</h2>${statRows(groupBy(recs, r => r.opp), t('faction'))}</section>
-` : empty()}`;
+    ${s.n ? personalBlocks(recs) : empty()}`;
   const f = $('#mf'); f.addEventListener('change', () => { MF.type = f.type.value; MF.since = f.since.value; mystats(el); });
 }
 

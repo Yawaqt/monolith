@@ -39,3 +39,6 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function public.game_stats() from public;
 grant execute on function public.game_stats() to authenticated;
+
+-- Match History: optional opponent name (private, only visible to the owner; not used in the anonymous data page)
+alter table public.personal_games add column if not exists opp_name text check (opp_name is null or char_length(opp_name) <= 60);

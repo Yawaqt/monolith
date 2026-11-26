@@ -1,9 +1,10 @@
 // Match History (every account, also guests) and the anonymous "Data" page.
 // Completely separate from the team's own match log.
-import { db } from './db.js?v=202611261656';
-import { t } from './i18n.js?v=202611261656';
-import { state, esc, $, $$, opts, fmtDate, act, confirmBox, empty, pageHead, toast, resultBadge, modal } from './core.js?v=202611261656';
-import { FACTIONS, fmt1, pct, today } from './data.js?v=202611261656';
+import { db } from './db.js?v=202611261657';
+import { t } from './i18n.js?v=202611261657';
+import { state, esc, $, $$, opts, fmtDate, act, confirmBox, empty, pageHead, toast, resultBadge, modal } from './core.js?v=202611261657';
+import { personalBlocks, fmtDiff, diffCls } from './pages-analysis.js?v=202611261657';
+import { FACTIONS, fmt1, pct, today } from './data.js?v=202611261657';
 
 let games = null;            // own games (cached)
 let loading = false;
@@ -36,9 +37,11 @@ function gameForm(g = {}) {
     <div class="grid2">
       <label>${esc(t('h_my_army'))}<select name="army" required>${opts(FACTIONS, g.army || last.army || '', '–')}</select></label>
       <label>${esc(t('opp_faction'))}<select name="opp_army" required>${opts(FACTIONS, g.opp_army || '', '–')}</select></label>
+      <label class="span2">${esc(t('opp_name'))}<input name="opp_name" maxlength="60" list="hopps" autocomplete="off" placeholder="${esc(t('h_opp_name_ph'))}" value="${esc(g.opp_name || '')}"></label>
       <label>${esc(t('h_my_points'))}<input name="my_score" type="number" inputmode="numeric" min="0" max="200" required value="${esc(g.my_score ?? '')}"></label>
       <label>${esc(t('opp_score'))}<input name="opp_score" type="number" inputmode="numeric" min="0" max="200" required value="${esc(g.opp_score ?? '')}"></label>
     </div>
+    <datalist id="hopps">${[...new Set((games || []).map(x => (x.opp_name || '').trim()).filter(Boolean))].sort().map(n => `<option value="${esc(n)}">`).join('')}</datalist>
     <div class="preview" aria-live="polite"></div>
     <div class="grid2"><label>${esc(t('date'))}<input name="played_on" type="date" required value="${esc(g.played_on || today())}"></label>
       <label>${esc(t('notes'))}<input name="notes" maxlength="300" value="${esc(g.notes || '')}"></label></div></div>`;
@@ -52,46 +55,44 @@ function bindForm(f) {
   upd();
 }
 function rowOf(r) {
-  const o = { played_on: r.played_on, army: r.army, opp_army: r.opp_army, my_score: +r.my_score, opp_score: +r.opp_score, kind: r.kind === 'Tournament' ? 'Tournament' : 'Casual',
+  const o = { played_on: r.played_on, army: r.army, opp_army: r.opp_army, my_score: +r.my_score, opp_score: +r.opp_score, opp_name: (r.opp_name || '').trim() || null, kind: r.kind === 'Tournament' ? 'Tournament' : 'Casual',
     event: r.kind === 'Tournament' ? (r.event || '').trim() || null : null, notes: (r.notes || '').trim() || null };
   try { localStorage.setItem(LAST, JSON.stringify({ army: o.army, kind: o.kind, event: o.event })); } catch (_) {}
   return o;
 }
 
 // ---------------------------------------------------------------- My match history
-let hArmy = '', hKind = '';
+let hArmy = '', hKind = '', hSince = '';
 export function history(el) {
   if (games == null) { el.innerHTML = pageHead(t('nav_history'), t('history_intro')) + `<p class="mute">${esc(t('loading'))}</p>`; load(); return; }
   let list = games.slice();
   if (hArmy) list = list.filter(g => g.army === hArmy);
   if (hKind) list = list.filter(g => g.kind === hKind);
+  if (hSince) list = list.filter(g => g.played_on >= hSince);
   const s = sumUp(list);
   // streak and form (newest first)
   const sorted = list.slice().sort((a, b) => b.played_on.localeCompare(a.played_on) || b.id - a.id);
   let streak = 0, sr = sorted[0] ? res(sorted[0]) : null; for (const g of sorted) { if (res(g) === sr) streak++; else break; }
   const form = sorted.slice(0, 10).reverse();
-  const byArmy = [...group(list, g => g.army).entries()].map(([a, l]) => [a, sumUp(l)]).sort((a, b) => b[1].n - a[1].n);
   const vs = [...group(list, g => g.opp_army).entries()].map(([a, l]) => [a, sumUp(l)]).sort((a, b) => b[1].n - a[1].n || (b[1].rate ?? 0) - (a[1].rate ?? 0));
   const best = vs.filter(([, x]) => x.n >= 2).sort((a, b) => b[1].rate - a[1].rate)[0], worst = vs.filter(([, x]) => x.n >= 2).sort((a, b) => a[1].rate - b[1].rate)[0];
   const armies = [...new Set(games.map(g => g.army))].sort();
   el.innerHTML = pageHead(t('nav_history'), t('history_intro'), `<button class="btn primary" data-hadd>+ ${esc(t('h_add'))}</button>`) +
     (games.length ? `<form class="filters card" id="hf"><label>${esc(t('army'))}<select name="army">${opts(armies, hArmy, t('all'))}</select></label>
-      <label>${esc(t('type'))}<select name="kind">${opts([['Casual', t('h_casual')], ['Tournament', t('h_tournament')]], hKind, t('all'))}</select></label></form>
+      <label>${esc(t('type'))}<select name="kind">${opts([['Casual', t('h_casual')], ['Tournament', t('h_tournament')]], hKind, t('all'))}</select></label><label>${esc(t('since'))}<input type="date" name="since" value="${esc(hSince)}"></label></form>
     <div class="tiles">
       <div class="tile main"><div class="tile-l">${esc(t('h_record'))}</div><div class="tile-big num">${rec(s)}</div><div class="tile-s">${pct(s.rate)} ${esc(t('winrate'))} · ${esc(t('n_games', { n: s.n }))}</div></div>
-      <div class="tile"><div class="tile-l">${esc(t('h_avg_points'))}</div><div class="tile-big num">${s.n ? Math.round(s.avgF) + ' : ' + Math.round(s.avgA) : '–'}</div><div class="tile-s">${esc(t('h_avg_sub'))}</div></div>
+      <div class="tile"><div class="tile-l">${esc(t('h_avg_points'))}</div><div class="tile-big num">${s.n ? Math.round(s.avgF) + ' : ' + Math.round(s.avgA) : '–'}</div><div class="tile-s">${esc(t('h_avg_sub'))}${s.n ? ` · Ø <span class="${diffCls((s.pf - s.pa) / s.n)}">${fmtDiff((s.pf - s.pa) / s.n)}</span>` : ''}</div></div>
       <div class="tile"><div class="tile-l">${esc(t('h_streak'))}</div><div class="tile-big num">${sr ? streak + '× ' : '–'}</div><div class="tile-s">${sr ? esc(t(sr)) : ''}</div></div>
       <div class="tile"><div class="tile-l">${esc(t('h_form'))}</div><div class="form-dots">${form.map(g => `<span class="fd ${res(g)}" title="${esc(fmtDate(g.played_on))} · ${esc(g.army)} vs ${esc(g.opp_army)} ${g.my_score}:${g.opp_score}"></span>`).join('') || '–'}</div><div class="tile-s">${esc(t('h_form_sub'))}</div></div>
     </div>
     ${best || worst ? `<div class="cols2">${best ? `<div class="notice ok">💪 ${esc(t('h_best', { f: best[0] }))} <b>${pct(best[1].rate)}</b> <span class="mute">(${esc(t('n_games', { n: best[1].n }))})</span></div>` : ''}${worst ? `<div class="notice bad">⚠ ${esc(t('h_worst', { f: worst[0] }))} <b>${pct(worst[1].rate)}</b> <span class="mute">(${esc(t('n_games', { n: worst[1].n }))})</span></div>` : ''}</div>` : ''}
-    <div class="cols">
-      <section class="card"><h2>${esc(t('h_by_army'))}</h2>${statTable(byArmy)}</section>
-      <section class="card"><h2>${esc(t('h_vs'))}</h2>${statTable(vs)}</section></div>
-    <section class="card"><h2>${esc(t('h_games'))}</h2><ul class="list hlist">${sorted.map(g => `<li><span><b>${esc(g.army)}</b> <span class="mute">${esc(t('vs'))}</span> ${esc(g.opp_army)}<br><small class="mute">${esc(fmtDate(g.played_on))}${g.kind === 'Tournament' ? ' · ' + esc(g.event || t('h_tournament')) : ''}${g.notes ? ' · ' + esc(g.notes) : ''}</small></span>
+    ${list.length ? personalBlocks(list.map(g => ({ m: g, army: g.army, opp: g.opp_army, our: g.my_score, theirs: g.opp_score, g: 0, res: res(g), oppKey: (g.opp_name || '').trim().toLowerCase(), oppName: (g.opp_name || '').trim() }))) : ''}
+    <section class="card"><h2>${esc(t('h_games'))}</h2><ul class="list hlist">${sorted.map(g => `<li><span><b>${esc(g.army)}</b> <span class="mute">${esc(t('vs'))}</span> ${esc(g.opp_army)}${g.opp_name ? ` <span class="mute">(${esc(g.opp_name)})</span>` : ''}<br><small class="mute">${esc(fmtDate(g.played_on))}${g.kind === 'Tournament' ? ' · ' + esc(g.event || t('h_tournament')) : ''}${g.notes ? ' · ' + esc(g.notes) : ''}</small></span>
       <span class="nowrap"><b class="num">${g.my_score}:${g.opp_score}</b> ${resultBadge(res(g))} <button class="icon" data-hedit="${g.id}" aria-label="${esc(t('edit'))}">✎</button><button class="icon" data-hdel="${g.id}" aria-label="${esc(t('delete'))}">🗑</button></span></li>`).join('')}</ul></section>`
     : `<div class="empty-start card"><h2>${esc(t('h_empty_title'))}</h2><p class="mute">${esc(t('h_empty'))}</p><button class="btn primary" data-hadd>+ ${esc(t('h_add'))}</button></div>`) +
     `<p class="mute small">${esc(t('h_privacy'))} <a href="#/data">${esc(t('nav_data'))} →</a></p>`;
-  const hf = $('#hf'); if (hf) hf.onchange = () => { hArmy = hf.army.value; hKind = hf.kind.value; history(el); };
+  const hf = $('#hf'); if (hf) hf.onchange = () => { hArmy = hf.army.value; hKind = hf.kind.value; hSince = hf.since.value; history(el); };
   el.onclick = async e => {
     if (e.target.closest('[data-hadd]')) return addGame();
     const ed = e.target.closest('[data-hedit]'); if (ed) return editGame(games.find(g => g.id === +ed.dataset.hedit));
