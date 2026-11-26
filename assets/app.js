@@ -1,18 +1,18 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611261750';
-import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611261750';
-import { t, setLang, getLang } from './i18n.js?v=202611261750';
-import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox, fmtDate, empty } from './core.js?v=202611261750';
-import * as T from './pages-team.js?v=202611261750';
-import * as A from './pages-analysis.js?v=202611261750';
-import * as P from './pages-public.js?v=202611261750';
-import * as TE from './pages-teams.js?v=202611261750';
-import { FACTIONS } from './data.js?v=202611261750';
-import * as SITE from './pages-site.js?v=202611261750';
-import * as H from './pages-history.js?v=202611261750';
-import * as LG from './pages-legal.js?v=202611261750';
-import * as AP from './pages-apps.js?v=202611261750';
-import * as N from './pages-news.js?v=202611261750';
+import { CONFIG } from './config.js?v=202611261758';
+import { db, DEMO, resetDemo, demoRole, setDemoRole, cameFromRecovery } from './db.js?v=202611261758';
+import { t, setLang, getLang } from './i18n.js?v=202611261758';
+import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox, fmtDate, empty } from './core.js?v=202611261758';
+import * as T from './pages-team.js?v=202611261758';
+import * as A from './pages-analysis.js?v=202611261758';
+import * as P from './pages-public.js?v=202611261758';
+import * as TE from './pages-teams.js?v=202611261758';
+import { FACTIONS } from './data.js?v=202611261758';
+import * as SITE from './pages-site.js?v=202611261758';
+import * as H from './pages-history.js?v=202611261758';
+import * as LG from './pages-legal.js?v=202611261758';
+import * as AP from './pages-apps.js?v=202611261758';
+import * as N from './pages-news.js?v=202611261758';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['gallery', 'p_gallery', N.gallery], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
@@ -320,6 +320,11 @@ function pendingPopup() {
   box.onclick = e => { if (e.target.closest('[data-pendlater]')) { try { sessionStorage.setItem('monolith.pendingSeen', list.map(p => p.id).join(',')); } catch (_) {} box.remove(); } };
 }
 setInterval(async () => { if (can('admin') && !document.hidden) { const before = pendingList().length; await loadPending(); if (pendingList().length !== before) render(); } }, 60000);
+// Read before the Supabase client parses (and clears) the address: did the user arrive from an e-mail link?
+const LINK_HASH = location.hash + location.search;
+const FROM_MAIL_LINK = /access_token=|[?&]code=|type=(recovery|signup|magiclink|invite)/.test(LINK_HASH);
+const FROM_RECOVERY = /type=recovery/.test(LINK_HASH);
+let recoveryShown = false;
 async function boot() {
   let saved = null; try { saved = localStorage.getItem('monolith.lang'); } catch (e) {}
   setLang(saved || CONFIG.DEFAULT_LANG || (navigator.language || 'de').slice(0, 2));
@@ -328,14 +333,15 @@ async function boot() {
   if (hashErr) { authMode = /otp_expired|access_denied/.test(hashErr[1]) ? 'reset' : 'in'; authMsg = t('link_expired'); history.replaceState(null, '', location.pathname + '#/login'); }
   try { state.session = await db.session(); } catch (e) { state.session = null; }
   // "Stay signed in" unticked: the login ends when the browser is closed (a new browser session has no 'alive' mark)
-  try { if (state.session && !DEMO && localStorage.getItem('monolith.remember') === '0' && !sessionStorage.getItem('monolith.alive')) { await db.signOut(); state.session = null; }
+  try { if (state.session && !DEMO && !FROM_MAIL_LINK && !cameFromRecovery() && localStorage.getItem('monolith.remember') === '0' && !sessionStorage.getItem('monolith.alive')) { await db.signOut(); state.session = null; }
     else sessionStorage.setItem('monolith.alive', '1'); } catch (_) {}
   await Promise.all([refreshMe(), loadPublic()]);
   if (can('team')) await loadData(); else if (state.session) await loadData(['players']).catch(() => {});
   render();
+  if ((FROM_RECOVERY || cameFromRecovery()) && state.session) { recoveryShown = true; if (!location.hash.startsWith('#/')) location.hash = '#/portal'; newPasswordDialog(); }
   db.onAuth(async (ev, session) => {
     if (ev === 'TOKEN_REFRESHED' || ev === 'INITIAL_SESSION') { state.session = session; return; }
-    if (ev === 'PASSWORD_RECOVERY') { state.session = session; await refreshMe(); location.hash = '#/portal'; render(); return newPasswordDialog(); }
+    if (ev === 'PASSWORD_RECOVERY') { if (recoveryShown) return; recoveryShown = true; state.session = session; await refreshMe(); location.hash = '#/portal'; render(); return newPasswordDialog(); }
     state.session = session; await refreshMe(); if (can('team')) await loadData(); render();
   });
 }

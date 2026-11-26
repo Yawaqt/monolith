@@ -1,5 +1,5 @@
 // Data access: Supabase when configured, otherwise a demo backend in localStorage.
-import { CONFIG } from './config.js?v=202611261750';
+import { CONFIG } from './config.js?v=202611261758';
 
 export const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY;
 export const TABLES = ['players', 'matches', 'events', 'rsvps', 'payments', 'ratings', 'opponent_teams', 'pairings', 'settings', 'tevents', 'tevent_rounds', 'news'];
@@ -8,12 +8,15 @@ const COLS = { tevents: 'id,title,event_id,size,rules,lineup,share_code,created_
 const cols = t => COLS[t] || '*';
 const KEYS = { rsvps: ['event_id', 'player_id'], ratings: ['player_id', 'faction'], settings: ['key'], collections: ['user_id'], profiles: ['id'], site_content: ['key'] };
 
-let sb = null;
+let sb = null, recoveryEvent = false;
+export const cameFromRecovery = () => recoveryEvent;
 export async function client() {
   if (DEMO) return null;
   if (!sb) {
     const { createClient } = await import('./vendor/supabase.js');
     sb = createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+    // The recovery event can fire while the page is still starting, before the app listens – remember it.
+    sb.auth.onAuthStateChange(ev => { if (ev === 'PASSWORD_RECOVERY') recoveryEvent = true; });
   }
   return sb;
 }
