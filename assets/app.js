@@ -1,17 +1,17 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611261521';
-import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611261521';
-import { t, setLang, getLang } from './i18n.js?v=202611261521';
-import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox } from './core.js?v=202611261521';
-import * as T from './pages-team.js?v=202611261521';
-import * as A from './pages-analysis.js?v=202611261521';
-import * as P from './pages-public.js?v=202611261521';
-import * as TE from './pages-teams.js?v=202611261521';
-import { FACTIONS } from './data.js?v=202611261521';
-import * as SITE from './pages-site.js?v=202611261521';
-import * as H from './pages-history.js?v=202611261521';
-import * as LG from './pages-legal.js?v=202611261521';
-import * as N from './pages-news.js?v=202611261521';
+import { CONFIG } from './config.js?v=202611261547';
+import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611261547';
+import { t, setLang, getLang } from './i18n.js?v=202611261547';
+import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox } from './core.js?v=202611261547';
+import * as T from './pages-team.js?v=202611261547';
+import * as A from './pages-analysis.js?v=202611261547';
+import * as P from './pages-public.js?v=202611261547';
+import * as TE from './pages-teams.js?v=202611261547';
+import { FACTIONS } from './data.js?v=202611261547';
+import * as SITE from './pages-site.js?v=202611261547';
+import * as H from './pages-history.js?v=202611261547';
+import * as LG from './pages-legal.js?v=202611261547';
+import * as N from './pages-news.js?v=202611261547';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['gallery', 'p_gallery', N.gallery], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
