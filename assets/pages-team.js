@@ -1,10 +1,10 @@
 // Team pages: home, roster, match log, archive, events, calendar, line-up, cash.
-import { CONFIG } from './config.js?v=202611261814';
-import { db } from './db.js?v=202611261814';
-import { t } from './i18n.js?v=202611261814';
-import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611261814';
-import { resetHistory } from './pages-history.js?v=202611261814';
-import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611261814';
+import { CONFIG } from './config.js?v=202611261816';
+import { db } from './db.js?v=202611261816';
+import { t } from './i18n.js?v=202611261816';
+import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611261816';
+import { resetHistory } from './pages-history.js?v=202611261816';
+import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611261816';
 
 const D = () => state.data;
 const rsvpOf = (eid, pid) => (D().rsvps || []).find(r => r.event_id === eid && r.player_id === pid)?.status;
@@ -304,7 +304,15 @@ async function gamesClick(e) {
   {
     const ed = e.target.closest('[data-medit]'), del = e.target.closest('[data-mdel]');
     if (ed) { const m = D().matches.find(x => x.id === +ed.dataset.medit);
-      const r = await modal(t('edit_game'), matchForm(m), { wide: true, onOpen: bindMatchForm }); if (!r) return;
+      const own = m.player_id != null && m.player_id === myPlayer(); // only your own games can become casual (they move into your own match history)
+      const r = await modal(t('edit_game'), matchForm(m, own), { wide: true, onOpen: bindMatchForm }); if (!r) return;
+      if (r.type === 'Casual') {
+        if (!(await modal(t('to_casual_title'), `<p>${esc(t('to_casual_q'))}</p>`, { submit: t('to_casual_btn') }))) return;
+        try { await db.insert('personal_games', { played_on: r.played_on, army: r.army, opp_army: r.opp_faction, my_score: +r.our_score, opp_score: +r.opp_score, kind: 'Casual', event: null,
+            opp_name: (r.opp_name || '').trim() || (m.opp_player_id ? pname(m.opp_player_id) : null), notes: (r.notes || '').trim() || null });
+          resetHistory(); await act(() => db.remove('matches', { id: m.id }), ['matches'], t('to_casual_done')); } catch (err) { toast(t('error') + ': ' + err.message, true); }
+        return;
+      }
       let row; try { row = matchRow(r); } catch (err) { return toast(err.message, true); }
       if (await handleMirror(Object.assign({ id: m.id }, row))) return;
       await act(() => db.update('matches', { id: m.id }, row), ['matches']); }

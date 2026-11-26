@@ -1,10 +1,10 @@
 // Match History (every account, also guests) and the anonymous "Data" page.
 // Completely separate from the team's own match log.
-import { db } from './db.js?v=202611261814';
-import { t } from './i18n.js?v=202611261814';
-import { state, esc, $, $$, opts, fmtDate, act, confirmBox, empty, pageHead, toast, resultBadge, modal } from './core.js?v=202611261814';
-import { personalBlocks, fmtDiff, diffCls } from './pages-analysis.js?v=202611261814';
-import { FACTIONS, fmt1, pct, today } from './data.js?v=202611261814';
+import { db } from './db.js?v=202611261816';
+import { t } from './i18n.js?v=202611261816';
+import { state, esc, $, $$, opts, fmtDate, act, confirmBox, empty, pageHead, toast, resultBadge, modal } from './core.js?v=202611261816';
+import { personalBlocks, fmtDiff, diffCls } from './pages-analysis.js?v=202611261816';
+import { FACTIONS, fmt1, pct, today } from './data.js?v=202611261816';
 
 let games = null;            // own games (cached)
 let loading = false;

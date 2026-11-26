@@ -166,6 +166,8 @@ const S = {
   h_opp_name_ph: ['optional – für die Gegner-Statistik', 'optional – for the opponent stats'],
   details: ['Details', 'Details'],
   ms_all: ['Alle Spiele (Team + Casual)', 'All games (team + casual)'], ms_team: ['Team-Spiele', 'Team games'],
+  to_casual_title: ['Zu Casual machen?', 'Make it casual?'], to_casual_q: ['Das Spiel wird aus den Team-Spielen entfernt und als Casual in deine persönliche Match History verschoben. Team-Statistik und Matrix zählen es dann nicht mehr.', 'The game is removed from the team games and moved into your personal match history as casual. Team stats and the matrix no longer count it.'],
+  to_casual_btn: ['Verschieben', 'Move'], to_casual_done: ['Als Casual in deine Match History verschoben', 'Moved to your match history as casual'],
   type_casual: ['Casual', 'Casual'], type_casual_long: ['Casual (nur persönlich)', 'Casual (personal only)'], casual_hint: ['Casual zählt nur in deiner persönlichen Match History, nicht in Team-Statistik oder Matrix. Mehr Punkte = Sieg.', 'Casual only counts in your personal match history, not in team stats or the matrix. More points = win.'],
   casual_saved: ['In deiner Match History gespeichert', 'Saved to your match history'],
   nav_mystats: ['Meine Statistik', 'My statistics'],

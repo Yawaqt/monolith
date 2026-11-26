@@ -1,8 +1,8 @@
 // Team events (5s / 8s): line-up with rule checks, prediction heatmap, pairings, results, live sharing.
-import { db } from './db.js?v=202611261814';
-import { t } from './i18n.js?v=202611261814';
-import { state, can, myPlayer, esc, $, $$, opts, players, playerById, pname, fmtDate, act, modal, confirmBox, empty, pageHead, toast, resultBadge, loadData, setting, evRange } from './core.js?v=202611261814';
-import { FACTIONS, MATRIX_COLS, DISPOSITIONS, gp, resultOf, scoreStr, records, avg, fmt1, today } from './data.js?v=202611261814';
+import { db } from './db.js?v=202611261816';
+import { t } from './i18n.js?v=202611261816';
+import { state, can, myPlayer, esc, $, $$, opts, players, playerById, pname, fmtDate, act, modal, confirmBox, empty, pageHead, toast, resultBadge, loadData, setting, evRange } from './core.js?v=202611261816';
+import { FACTIONS, MATRIX_COLS, DISPOSITIONS, gp, resultOf, scoreStr, records, avg, fmt1, today } from './data.js?v=202611261816';
 
 const D = () => state.data;
 const CHAPTERS = ['Black Templars', 'Blood Angels', 'Dark Angels', 'Deathwatch', 'Imperial Fists', 'Iron Hands', 'Raven Guard', 'Salamanders', 'Space Wolves', 'Ultramarines', 'White Scars'];
