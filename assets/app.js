@@ -1,17 +1,17 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611261547';
-import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611261547';
-import { t, setLang, getLang } from './i18n.js?v=202611261547';
-import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox } from './core.js?v=202611261547';
-import * as T from './pages-team.js?v=202611261547';
-import * as A from './pages-analysis.js?v=202611261547';
-import * as P from './pages-public.js?v=202611261547';
-import * as TE from './pages-teams.js?v=202611261547';
-import { FACTIONS } from './data.js?v=202611261547';
-import * as SITE from './pages-site.js?v=202611261547';
-import * as H from './pages-history.js?v=202611261547';
-import * as LG from './pages-legal.js?v=202611261547';
-import * as N from './pages-news.js?v=202611261547';
+import { CONFIG } from './config.js?v=202611261550';
+import { db, DEMO, resetDemo, demoRole, setDemoRole } from './db.js?v=202611261550';
+import { t, setLang, getLang } from './i18n.js?v=202611261550';
+import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox, fmtDate, empty } from './core.js?v=202611261550';
+import * as T from './pages-team.js?v=202611261550';
+import * as A from './pages-analysis.js?v=202611261550';
+import * as P from './pages-public.js?v=202611261550';
+import * as TE from './pages-teams.js?v=202611261550';
+import { FACTIONS } from './data.js?v=202611261550';
+import * as SITE from './pages-site.js?v=202611261550';
+import * as H from './pages-history.js?v=202611261550';
+import * as LG from './pages-legal.js?v=202611261550';
+import * as N from './pages-news.js?v=202611261550';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['gallery', 'p_gallery', N.gallery], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
@@ -24,7 +24,7 @@ const PORTAL = [
   { group: 'nav_team', items: [['matches', 'nav_matches', 'team', T.matches], ['archive', 'nav_archive', 'team', T.archive], ['events', 'nav_events', 'team', T.events], ['calendar', 'nav_calendar', 'team', T.calendar],
     ['teams', 'nav_teams', 'team', TE.teams], ['newsedit', 'nav_newsedit', 'news', N.editor], ['roster', 'nav_roster', 'team', T.roster]] },
   { group: 'nav_analysis', items: [['matrix', 'nav_matrix', 'team', A.matrix], ['stats', 'nav_stats', 'team', A.stats]] },
-  { group: 'nav_admin', items: [['site', 'nav_site', 'captain', SITE.editor], ['members', 'nav_members', 'admin', members]] },
+  { group: 'nav_admin', items: [['site', 'nav_site', 'captain', SITE.editor], ['members', 'nav_members', 'admin', members], ['log', 'nav_log', 'admin', activityLog]] },
 ];
 const ROUTES = Object.fromEntries([
   ...PUBLIC.map(([k, label, fn]) => [k, { label, min: 'anon', fn, pub: true }]),
@@ -186,6 +186,24 @@ async function deleteMe() {
 // ---------------------------------------------------------------- Admin: accounts and players
 let mList = [], mails = {};
 async function loadEmails() { try { mails = Object.fromEntries(((await db.rpc('admin_account_emails')) || []).map(x => [x.id, x])); } catch (e) { mails = {}; } }
+// ---------------------------------------------------------------- Activity log (admins only)
+let logWho = '';
+async function activityLog(el) {
+  el.innerHTML = pageHead(t('nav_log'), t('changelog_intro')) + `<p class="mute">${esc(t('loading'))}</p>`;
+  let rows; try { rows = await db.list('activity_log', ['at', 'desc']); } catch (e) { el.innerHTML += `<div class="notice bad">${esc(e.message)}</div>`; return; }
+  if (location.hash !== '#/log') return;
+  const names = [...new Set(rows.map(r => r.actor_name))].sort();
+  const list = rows.filter(r => !logWho || r.actor_name === logWho).slice(0, 300);
+  const day = r => r.at.slice(0, 10); let last = '';
+  const line = r => { const n = r.n > 1 ? t('log_' + r.action + '_n', { n: r.n }) : t('log_' + r.action);
+    const time = new Date(r.at).toLocaleTimeString(getLang() === 'de' ? 'de-AT' : 'en-GB', { hour: '2-digit', minute: '2-digit' });
+    return `<li><span class="mute num">${esc(time)}</span><span><b>${esc(r.actor_name || '?')}</b> ${esc(n)}${r.label ? ` <span class="mute">· ${esc(r.label)}</span>` : ''}</span></li>`; };
+  el.innerHTML = pageHead(t('nav_log'), t('changelog_intro')) +
+    `<form class="filters card"><label>${esc(t('player'))}<select id="logwho">${opts([['', t('log_all')], ...names.map(x => [x, x])], logWho)}</select></label></form>
+    ${list.length ? `<section class="card"><ul class="log">${list.map(r => { const d = day(r); const h = d !== last ? `<li class="day">${esc(fmtDate(d))}</li>` : ''; last = d; return h + line(r); }).join('')}</ul></section>` : empty()}`;
+  $('#logwho').addEventListener('change', e => { logWho = e.target.value; activityLog(el); });
+}
+
 async function members(el) {
   el.innerHTML = pageHead(t('nav_members'), t('admin_intro')) + `<p class="mute">${esc(t('loading'))}</p>`;
   try { mList = await db.list('profiles', ['created_at', 'desc']); } catch (e) { el.innerHTML += `<div class="notice bad">${esc(e.message)}</div>`; return; }

@@ -438,3 +438,5 @@ ul.pop{list-style:none;margin:0;padding:0}ul.pop li{display:grid;grid-template-c
 @media(max-width:600px){.compact-stat{font-size:13px}.compact-stat td,.compact-stat th{padding:6px 4px}.compact-stat th{letter-spacing:0}}
 .chip.zero{border-color:var(--red);color:var(--red)}
 .wgw td{vertical-align:top}.wgw td div+div{margin-top:3px;font-size:.95em}
+.log{list-style:none;margin:0;padding:0}.log li{display:flex;gap:12px;padding:7px 0;border-bottom:1px solid var(--line);line-height:1.4}
+.log li.day{font-weight:700;padding-top:16px;border-bottom:0}.log li.day:first-child{padding-top:0}.log li>.num{flex:0 0 42px}

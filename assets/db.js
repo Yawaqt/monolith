@@ -1,5 +1,5 @@
 // Data access: Supabase when configured, otherwise a demo backend in localStorage.
-import { CONFIG } from './config.js?v=202611261547';
+import { CONFIG } from './config.js?v=202611261550';
 
 export const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY;
 export const TABLES = ['players', 'matches', 'events', 'rsvps', 'payments', 'ratings', 'opponent_teams', 'pairings', 'settings', 'tevents', 'tevent_rounds', 'news'];
@@ -91,6 +91,9 @@ const demo = {
   async signIn() {}, async signUp() { return false; }, async google() {}, async reset() {}, async setPassword() {}, async signOut() {},
   async me() { return load().profiles[0]; },
   async list(table, order) {
+    if (table === 'activity_log' && !tbl(table).length) { const h = x => new Date(Date.now() - x * 3600e3).toISOString(); tbl(table).push(
+      { id: 4, at: h(1), actor_name: 'Marius', action: 'match_add', label: 'Rumble Season 7 Event 4 Golden Ticket', n: 5 }, { id: 3, at: h(5), actor_name: 'Miki', action: 'news_pub', label: 'Recap: Golden Ticket', n: 1 },
+      { id: 2, at: h(26), actor_name: 'David', action: 'event_add', label: 'Training', n: 8 }, { id: 1, at: h(30), actor_name: 'Miki', action: 'role', label: 'Lukas: team', n: 1 }); }
     const rows = tbl(table).slice().filter(r => table !== 'personal_games' || r.user_id === 'demo-user');
     if (order) rows.sort((a, b) => (a[order[0]] > b[order[0]] ? 1 : a[order[0]] < b[order[0]] ? -1 : 0) * (order[1] === 'desc' ? -1 : 1));
     return JSON.parse(JSON.stringify(rows)).map(r => { delete r._pw; return r; });
