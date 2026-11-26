@@ -1,11 +1,12 @@
 // Team pages: home, roster, match log, archive, events, calendar, line-up, cash.
-import { db } from './db.js?v=202611261213';
-import { t } from './i18n.js?v=202611261213';
-import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611261213';
-import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611261213';
+import { db } from './db.js?v=202611261215';
+import { t } from './i18n.js?v=202611261215';
+import { state, can, myPlayer, isMe, esc, $, $$, opts, resizeImage, safeImg, loadData, evRange, evKind, players, playerById, pname, fmtDate, money, act, modal, confirmBox, resultBadge, gpClass, empty, pageHead, toast } from './core.js?v=202611261215';
+import { FACTIONS, DISPOSITIONS, GAME_TYPES, gp, resultOf, outcome, teamScored, typeLabel, scoreStr, records, summarize, fmt1, pct, today } from './data.js?v=202611261215';
 
 const D = () => state.data;
 const rsvpOf = (eid, pid) => (D().rsvps || []).find(r => r.event_id === eid && r.player_id === pid)?.status;
+export const BCP_RE = /^https:\/\/([a-z0-9-]+\.)*bestcoastpairings\.com\//i;
 const upcomingEvents = () => (D().events || []).filter(e => (e.ends_on || e.starts_on) >= today()).sort((a, b) => a.starts_on.localeCompare(b.starts_on));
 // Members (Team role) and above may add, edit and delete every game.
 const canEditMatch = () => can('team');
@@ -333,7 +334,7 @@ export function events(el) {
       const st = s => ps.filter(p => rsvpOf(e.id, p.id) === s);
       const yes = st('yes'), maybe = st('maybe'), no = st('no');
       return `<article class="card ev" id="ev-${e.id}"><header><div class="ev-date"><b>${esc(fmtDate(e.starts_on, { day: '2-digit' }))}</b><span>${esc(fmtDate(e.starts_on, { month: 'short' }))}</span></div>
-        <div class="ev-main"><h3>${esc(e.title)}</h3><p class="mute">${esc(evRange(e, true))}${e.location ? ' · ' + esc(e.location) : ''} · ${esc(evKind(e))}</p>${e.note ? `<p>${esc(e.note)}</p>` : ''}</div>
+        <div class="ev-main"><h3>${esc(e.title)}</h3><p class="mute">${esc(evRange(e, true))}${e.location ? ' · ' + esc(e.location) : ''} · ${esc(evKind(e))}${BCP_RE.test(e.bcp_url || '') ? ` · <a href="${esc(e.bcp_url)}" target="_blank" rel="noopener">BCP ↗</a>` : ''}</p>${e.note ? `<p>${esc(e.note)}</p>` : ''}</div>
         ${can('captain') ? `<div class="ev-tools"><button class="icon" data-eedit="${e.id}" aria-label="${esc(t('edit'))}">✎</button><button class="icon" data-edel="${e.id}" aria-label="${esc(t('delete'))}">🗑</button></div>` : ''}</header>
         <p class="counts"><span class="yes">${esc(t('going'))} <b>${yes.length}</b></span><span class="maybe">${esc(t('maybe'))} <b>${maybe.length}</b></span><span class="no">${esc(t('no'))} <b>${no.length}</b></span></p>
         ${myPlayer() ? `<div class="mine"><span>${esc(t('your_answer'))}:</span><div class="seg sm">${['yes', 'maybe', 'no'].map(s => `<button type="button" data-e="${e.id}" data-rsvp="${s}" class="${s}" aria-pressed="${rsvpOf(e.id, myPlayer()) === s}">${esc(t(s))}</button>`).join('')}</div></div>` : ''}
@@ -359,7 +360,8 @@ async function editEvent(ev) {
     <input type="hidden" name="kind" value="${esc(e.kind === 'Team Tournament' ? 'Team Tournament' : 'Singles')}">
     <div class="grid2"><label>${esc(t('location'))}<input name="location" maxlength="60" value="${esc(e.location || '')}"></label>
     <label class="tsize"${e.kind === 'Team Tournament' ? '' : ' hidden'}>${esc(t('team_size'))}<select name="team_size">${opts([3, 4, 5, 6, 8].map(n => [n, String(n)]), e.team_size || 5)}</select></label></div>
-    <label>${esc(t('note'))}<input name="note" maxlength="200" value="${esc(e.note || '')}"></label>`, { onOpen: f => {
+    <label>${esc(t('note'))}<input name="note" maxlength="200" value="${esc(e.note || '')}"></label>
+    <label>${esc(t('ev_bcp'))}<input name="bcp_url" type="url" inputmode="url" maxlength="300" placeholder="https://www.bestcoastpairings.com/event/…" value="${esc(e.bcp_url || '')}"><small class="mute">${esc(t('ev_bcp_hint'))}</small></label>`, { onOpen: f => {
       f.addEventListener('click', x => { const b = x.target.closest('[data-kind]'); if (!b) return; f.kind.value = b.dataset.kind;
         $$('[data-kind]', f).forEach(y => y.setAttribute('aria-pressed', y === b)); $('.tsize', f).hidden = b.dataset.kind !== 'Team Tournament'; });
       f.starts_on.addEventListener('change', () => { if (!f.ends_on.value || f.ends_on.value < f.starts_on.value) f.ends_on.value = f.starts_on.value; f.ends_on.min = f.starts_on.value; });
@@ -367,8 +369,10 @@ async function editEvent(ev) {
     } });
   if (!r) return;
   if (r.ends_on < r.starts_on) return toast(t('date_order'), true);
+  const bcp = (r.bcp_url || '').trim();
+  if (bcp && !BCP_RE.test(bcp)) return toast(t('bcp_invalid'), true);
   const team = r.kind === 'Team Tournament';
-  const row = { starts_on: r.starts_on, ends_on: r.ends_on || r.starts_on, title: r.title.trim(), location: r.location.trim() || null, kind: team ? 'Team Tournament' : 'Singles', note: r.note.trim() || null, team_size: team ? +r.team_size || 5 : null };
+  const row = { starts_on: r.starts_on, ends_on: r.ends_on || r.starts_on, title: r.title.trim(), location: r.location.trim() || null, kind: team ? 'Team Tournament' : 'Singles', note: r.note.trim() || null, team_size: team ? +r.team_size || 5 : null, bcp_url: bcp || null };
   await act(() => ev ? db.update('events', { id: ev.id }, row) : db.insert('events', row), ['events']);
 }
 

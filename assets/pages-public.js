@@ -1,10 +1,10 @@
 // Public pages: visible to everyone, built only from the safe public data.
-import { t } from './i18n.js?v=202611261213';
-import { state, can, esc, fmtDate, empty, safeImg, evRange, evKind } from './core.js?v=202611261213';
-import { newsCard, md } from './pages-news.js?v=202611261213';
-import { typeLabel, pct } from './data.js?v=202611261213';
-import { appsCards } from './pages-team.js?v=202611261213';
-import { CONFIG } from './config.js?v=202611261213';
+import { t } from './i18n.js?v=202611261215';
+import { state, can, esc, fmtDate, empty, safeImg, evRange, evKind } from './core.js?v=202611261215';
+import { newsCard, md } from './pages-news.js?v=202611261215';
+import { typeLabel, pct } from './data.js?v=202611261215';
+import { appsCards } from './pages-team.js?v=202611261215';
+import { CONFIG } from './config.js?v=202611261215';
 const IG_ICON = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>';
 
 const PUB = () => state.pub || { players: [], results: [], events: [] };
@@ -17,7 +17,7 @@ const dateRange = (a, b) => a === b ? fmtDate(a, { day: 'numeric', month: 'long'
 
 function eventRow(e) {
   return `<li class="pev"><div class="pev-date"><b>${esc(fmtDate(e.starts_on, { day: '2-digit' }))}</b><span>${esc(fmtDate(e.starts_on, { month: 'short' }))}</span></div>
-    <div><h3>${esc(e.title)}</h3><p class="mute">${esc(evRange(e, true))}${e.location ? ' · ' + esc(e.location) : ''}</p><span class="tag kind${e.kind === 'Team Tournament' ? ' team' : ''}">${esc(evKind(e))}</span></div></li>`;
+    <div><h3>${esc(e.title)}</h3><p class="mute">${esc(evRange(e, true))}${e.location ? ' · ' + esc(e.location) : ''}</p><span class="tag kind${e.kind === 'Team Tournament' ? ' team' : ''}">${esc(evKind(e))}</span>${/^https:\/\/([a-z0-9-]+\.)*bestcoastpairings\.com\//i.test(e.bcp_url || '') ? ` <a class="bcp-link" href="${esc(e.bcp_url)}" target="_blank" rel="noopener">${esc(t('ev_bcp_open'))} ↗</a>` : ''}</div></li>`;
 }
 function playerCard(p, full = false) {
   const photo = `<span class="avatar${safeImg(p.photo_url) ? ' photo' : ''}" aria-hidden="true">${safeImg(p.photo_url) ? `<img src="${esc(safeImg(p.photo_url))}" alt="" loading="lazy">` : esc(p.name.slice(0, 1))}</span>`;

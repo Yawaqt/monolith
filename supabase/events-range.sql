@@ -23,3 +23,17 @@ language sql stable security definer set search_path = public as $$
 $$;
 revoke all on function public.public_events() from public;
 grant execute on function public.public_events() to anon, authenticated;
+
+-- 26 Nov 2026: BCP event link
+alter table public.events add column if not exists bcp_url text check (bcp_url is null or bcp_url ~* '^https://([a-z0-9-]+\.)*bestcoastpairings\.com/');
+drop function if exists public.public_events();
+create function public.public_events()
+returns table (starts_on date, ends_on date, title text, location text, kind text, team_size int, bcp_url text)
+language sql stable security definer set search_path = public as $$
+  select e.starts_on, coalesce(e.ends_on, e.starts_on), e.title, e.location, e.kind, e.team_size, e.bcp_url
+  from public.events e
+  where coalesce(e.ends_on, e.starts_on) >= current_date
+  order by e.starts_on
+$$;
+revoke all on function public.public_events() from public;
+grant execute on function public.public_events() to anon, authenticated;

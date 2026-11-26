@@ -425,3 +425,4 @@ ul.pop{list-style:none;margin:0;padding:0}ul.pop li{display:grid;grid-template-c
 .rnd [name=of]{grid-column:3/6}.rnd [name=od]{grid-column:6/8}.rnd [name=op]{grid-column:8/10}.rnd [name=on]{grid-column:10/12}
 @media(max-width:640px){.rnd [name=op]{grid-column:1/4}.rnd [name=on]{grid-column:4/7}}
 .mail{font-size:12.5px;color:var(--mute);text-decoration:none}.mail:hover{text-decoration:underline}
+.bcp-link{display:inline-block;margin:8px 0 0 6px;font-size:13.5px;font-weight:600}

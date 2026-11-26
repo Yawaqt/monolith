@@ -133,6 +133,7 @@ const S = {
   rounds_saved_dup: ['{n} Runden gespeichert, {d} davon standen schon beim Teamkollegen und wurden verknüpft', '{n} rounds saved, {d} were already logged by the team mate and were linked'],
   st_all_games: ['Alle Spiele (gesamt)', 'All games (total)'], st_all_tours: ['Alle Turniere (Singles + Team)', 'All tournaments (singles + team)'],
   remember_me: ['Angemeldet bleiben', 'Stay signed in'],
+  ev_bcp: ['BCP-Link zum Event (optional)', 'BCP event link (optional)'], ev_bcp_hint: ['In der BCP-App beim Event auf Teilen → Link kopieren.', 'In the BCP app open the event → Share → copy link.'], ev_bcp_open: ['Event auf BCP', 'Event on BCP'],
   // team events
   nav_teams: ['Teamturniere', 'Team events'], teams_intro: ['Team-Events für 5er und 8er Teams: Aufstellung mit Regelprüfung, Vorhersagen pro Paarung, Pairings und Ergebnisse live mit dem ganzen Team.', 'Team events for 5s and 8s: line-up with rule checks, a prediction per matchup, pairings and results live with the whole team.'],
   new_tevent: ['Neues Teamturnier', 'New team event'], te_size: ['Teamgröße', 'Team size'], te_rules: ['Regeln', 'Rules'], te_link_event: ['Mit Event verknüpfen', 'Link to event'],
