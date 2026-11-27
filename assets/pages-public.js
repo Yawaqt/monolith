@@ -1,10 +1,10 @@
 // Public pages: visible to everyone, built only from the safe public data.
-import { t } from './i18n.js?v=202611261945';
-import { state, can, esc, fmtDate, empty, safeImg, evRange, evKind } from './core.js?v=202611261945';
-import { newsCard, md } from './pages-news.js?v=202611261945';
-import { typeLabel, pct } from './data.js?v=202611261945';
-import { appsCards } from './pages-team.js?v=202611261945';
-import { CONFIG } from './config.js?v=202611261945';
+import { t } from './i18n.js?v=202611271005';
+import { state, can, esc, fmtDate, empty, safeImg, evRange, evKind } from './core.js?v=202611271005';
+import { newsCard, md } from './pages-news.js?v=202611271005';
+import { typeLabel, pct } from './data.js?v=202611271005';
+import { appsCards } from './pages-team.js?v=202611271005';
+import { CONFIG } from './config.js?v=202611271005';
 const IG_ICON = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>';
 
 const PUB = () => state.pub || { players: [], results: [], events: [] };
@@ -86,7 +86,7 @@ export function team(el) {
     ${about ? `<div class="about">${md(about)}</div>` : ''}
     ${slideshow(site.group_photos)}
     <h2 class="sec">${esc(t('profiles'))}</h2>
-    <div class="pgrid">${players.map(p => playerCard(p, true)).join('') || empty()}</div>`;
+    <div class="pgrid">${[...players].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'de', { sensitivity: 'base' })).map(p => playerCard(p, true)).join('') || empty()}</div>`;
   bindSlides(el);
 }
 export function results(el) {
