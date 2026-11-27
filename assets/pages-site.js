@@ -1,8 +1,8 @@
 // Admin: content of the public team page – "about us" text and group photos (captains and admins).
-import { db } from './db.js?v=202611271102';
-import { t } from './i18n.js?v=202611271102';
-import { state, esc, $, act, toast, pageHead, resizeImage, safeImg, confirmBox } from './core.js?v=202611271102';
-import { md } from './pages-news.js?v=202611271102';
+import { db } from './db.js?v=202611271110';
+import { t } from './i18n.js?v=202611271110';
+import { state, esc, $, act, toast, pageHead, resizeImage, safeImg, confirmBox } from './core.js?v=202611271110';
+import { md } from './pages-news.js?v=202611271110';
 
 const site = () => (state.pub && state.pub.site) || {};
 const save = (key, value) => act(() => db.upsert('site_content', { key, value, updated_at: new Date().toISOString() }), ['site_content']);

@@ -1,5 +1,5 @@
 // Data access: Supabase when configured, otherwise a demo backend in localStorage.
-import { CONFIG } from './config.js?v=202611271102';
+import { CONFIG } from './config.js?v=202611271110';
 
 export const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY;
 export const TABLES = ['players', 'matches', 'events', 'rsvps', 'payments', 'ratings', 'opponent_teams', 'pairings', 'settings', 'tevents', 'tevent_rounds', 'news'];
@@ -126,6 +126,13 @@ const demo = {
     const tourArmies = (ms, pid) => { const c = new Map(); for (const m of ms) if (m.player_id === pid && (m.type === 'Tournament' || m.type === 'Team Tournament')) c.set(m.army, (c.get(m.army) || 0) + 1); return [...c.entries()].sort((a, b) => b[1] - a[1]).map(x => x[0]); };
     const T = load().tables; const P = T.players || []; const nm = id => (P.find(p => p.id === id) || {}).name;
     const today = new Date().toISOString().slice(0, 10);
+    if (name === 'view_stats') { const n = args.p_days || 30, daily = []; let seed = 7; const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
+      for (let i = n - 1; i >= 0; i--) { const d = new Date(Date.now() - i * 864e5); const v = Math.round(20 + rnd() * 60 + (d.getDay() % 6 === 0 ? 40 : 0)); daily.push({ day: d.toISOString().slice(0, 10), views: v, visitors: Math.round(v * (0.35 + rnd() * 0.2)) }); }
+      const tv = daily.reduce((a, d) => a + d.views, 0), tu = daily.reduce((a, d) => a + d.visitors, 0);
+      return { days: n, today: { views: daily.at(-1).views, visitors: daily.at(-1).visitors }, total: { views: tv, visitors: tu }, daily,
+        pages: [['home', .34], ['team', .18], ['results', .14], ['news', .12], ['history', .08], ['apps', .06], ['upcoming', .05], ['gallery', .03]].map(([path, f]) => ({ path, views: Math.round(tv * f) })),
+        refs: [{ ref: 'instagram.com', views: Math.round(tv * .12) }, { ref: 'google.com', views: Math.round(tv * .05) }, { ref: 'bestcoastpairings.com', views: Math.round(tv * .02) }],
+        devices: { mobile: Math.round(tv * .72), desktop: Math.round(tv * .28) } }; }
     if (name === 'public_players') return P.filter(p => p.active).sort((a, b) => a.sort - b.sort).map(p => ({ name: p.name, sort: p.sort, armies: tourArmies(T.matches || [], p.id), photo_url: p.photo_url || null, fav_army: p.fav_army || null, bio: p.bio || null, honorary: !!p.honorary }));
     if (name === 'public_results') {
       const by = new Map();

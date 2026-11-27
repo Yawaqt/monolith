@@ -1,18 +1,18 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611271102';
-import { db, DEMO, resetDemo, demoRole, setDemoRole, cameFromRecovery } from './db.js?v=202611271102';
-import { t, setLang, getLang } from './i18n.js?v=202611271102';
-import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox, fmtDate, empty } from './core.js?v=202611271102';
-import * as T from './pages-team.js?v=202611271102';
-import * as A from './pages-analysis.js?v=202611271102';
-import * as P from './pages-public.js?v=202611271102';
-import * as TE from './pages-teams.js?v=202611271102';
-import { FACTIONS } from './data.js?v=202611271102';
-import * as SITE from './pages-site.js?v=202611271102';
-import * as H from './pages-history.js?v=202611271102';
-import * as LG from './pages-legal.js?v=202611271102';
-import * as AP from './pages-apps.js?v=202611271102';
-import * as N from './pages-news.js?v=202611271102';
+import { CONFIG } from './config.js?v=202611271110';
+import { db, DEMO, resetDemo, demoRole, setDemoRole, cameFromRecovery } from './db.js?v=202611271110';
+import { t, setLang, getLang } from './i18n.js?v=202611271110';
+import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox, fmtDate, empty } from './core.js?v=202611271110';
+import * as T from './pages-team.js?v=202611271110';
+import * as A from './pages-analysis.js?v=202611271110';
+import * as P from './pages-public.js?v=202611271110';
+import * as TE from './pages-teams.js?v=202611271110';
+import { FACTIONS } from './data.js?v=202611271110';
+import * as SITE from './pages-site.js?v=202611271110';
+import * as H from './pages-history.js?v=202611271110';
+import * as LG from './pages-legal.js?v=202611271110';
+import * as AP from './pages-apps.js?v=202611271110';
+import * as N from './pages-news.js?v=202611271110';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['gallery', 'p_gallery', N.gallery], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
@@ -25,7 +25,7 @@ const PORTAL = [
   { group: 'nav_team', items: [['matches', 'nav_matches', 'team', T.matches], ['archive', 'nav_archive', 'team', T.archive], ['events', 'nav_events', 'team', T.events], ['calendar', 'nav_calendar', 'team', T.calendar],
     ['teams', 'nav_teams', 'team', TE.teams], ['newsedit', 'nav_newsedit', 'news', N.editor], ['profile', 'nav_profile', 'guest', profile], ['roster', 'nav_roster', 'team', T.roster]] },
   { group: 'nav_analysis', items: [['matrix', 'nav_matrix', 'team', A.matrix], ['stats', 'nav_stats', 'team', A.stats], ['mystats', 'nav_mystats', 'team', A.mystats]] },
-  { group: 'nav_admin', items: [['site', 'nav_site', 'captain', SITE.editor], ['members', 'nav_members', 'admin', members], ['log', 'nav_log', 'admin', activityLog]] },
+  { group: 'nav_admin', items: [['site', 'nav_site', 'captain', SITE.editor], ['members', 'nav_members', 'admin', members], ['log', 'nav_log', 'admin', activityLog], ['traffic', 'nav_traffic', 'admin', traffic]] },
   // members and up: the general tools (match history, data) sit at the very end
   { group: 'nav_tools', items: [['history', 'nav_history', 'team', H.history], ['data', 'nav_data', 'team', H.data]] },
 ];
@@ -73,11 +73,27 @@ function subnav() {
   const cur = $('[aria-current]', el); if (cur) cur.scrollIntoView({ block: 'nearest', inline: 'center' });
 }
 
+// Cookieless visit counter (see supabase/page-views.sql): one call per page shown; admins and the demo are not counted.
+let lastTracked = '', firstView = true;
+function trackView(r) {
+  try {
+    if (DEMO || can('admin')) return;
+    const path = (r || 'home').split('/')[0].replace(/[^a-z0-9_-]/g, '').slice(0, 40) || 'home';
+    if (path === lastTracked || path === 'login') return; lastTracked = path;
+    let ref = null;
+    if (firstView && document.referrer) { try { const h = new URL(document.referrer).hostname.replace(/^(www|m|l|lm)\./, ''); if (h && h !== location.hostname.replace(/^www\./, '')) ref = h; } catch (_) {} }
+    firstView = false;
+    const device = matchMedia('(max-width: 700px), (pointer: coarse)').matches ? 'mobile' : 'desktop';
+    db.rpc('track_view', { p_path: path, p_ref: ref, p_device: device }).catch(() => {});
+  } catch (_) {}
+}
+
 export function render() {
   header(); subnav(); pendingPopup();
   document.body.classList.remove('nav-open');
   const el = $('#view'); el.onclick = null; el.onchange = null;
   const r = route();
+  trackView(r);
   document.body.dataset.area = ROUTES[r]?.pub || r === 'login' ? 'public' : 'portal';
   if (r === 'quick') { location.replace('#/portal'); if (can('team')) setTimeout(() => T.quickResult(), 50); return; }
   if (r === 'login') {
@@ -195,6 +211,32 @@ async function deleteMe() {
 // ---------------------------------------------------------------- Admin: accounts and players
 let mList = [], mails = {};
 async function loadEmails() { try { mails = Object.fromEntries(((await db.rpc('admin_account_emails')) || []).map(x => [x.id, x])); } catch (e) { mails = {}; } }
+// ---------------------------------------------------------------- Visitor statistics (admins only)
+let trDays = 30;
+const PATH_LABEL = { home: 'p_home', news: 'p_news', gallery: 'p_gallery', team: 'p_team', results: 'p_results', upcoming: 'p_events', apps: 'p_apps', recipes: 'app_recipes', privacy: 'p_privacy', portal: 'nav_home', history: 'nav_history', data: 'nav_data', mystats: 'nav_mystats', matches: 'nav_matches', archive: 'nav_archive', events: 'nav_events', calendar: 'nav_calendar', teams: 'nav_teams', newsedit: 'nav_newsedit', profile: 'nav_profile', roster: 'nav_roster', matrix: 'nav_matrix', stats: 'nav_stats', live: 'live_title' };
+async function traffic(el) {
+  el.innerHTML = pageHead(t('nav_traffic'), t('traffic_intro')) + `<p class="mute">${esc(t('loading'))}</p>`;
+  let s; try { s = await db.rpc('view_stats', { p_days: trDays }); } catch (e) { el.innerHTML += `<div class="notice bad">${esc(e.message)}</div>`; return; }
+  if (location.hash !== '#/traffic') return;
+  const daily = s.daily || [], max = Math.max(1, ...daily.map(d => d.views));
+  const lab = p => PATH_LABEL[p] ? t(PATH_LABEL[p]) : p;
+  const dev = s.devices || {}, devT = Object.values(dev).reduce((a, b) => a + b, 0) || 1;
+  const fmtD = d => new Date(d + 'T12:00:00').toLocaleDateString(getLang() === 'de' ? 'de-AT' : 'en-GB', { day: 'numeric', month: 'numeric' });
+  const step = Math.ceil(daily.length / 10);
+  el.innerHTML = pageHead(t('nav_traffic'), t('traffic_intro')) +
+    `<div class="seg" role="group">${[7, 30, 90, 365].map(d => `<button type="button" data-trd="${d}" aria-pressed="${trDays === d}">${esc(t('traffic_days', { n: d }))}</button>`).join('')}</div>
+    <section class="stats"><div><b class="num">${s.today?.views ?? 0}</b><span>${esc(t('traffic_today_views'))}</span></div><div><b class="num">${s.today?.visitors ?? 0}</b><span>${esc(t('traffic_today_visitors'))}</span></div>
+      <div><b class="num">${s.total?.views ?? 0}</b><span>${esc(t('traffic_views_n', { n: trDays }))}</span></div><div><b class="num">${s.total?.visitors ?? 0}</b><span>${esc(t('traffic_visits_n', { n: trDays }))}</span></div></section>
+    <section class="card"><h2>${esc(t('traffic_daily'))}</h2>
+      <div class="tr-chart" role="img" aria-label="${esc(t('traffic_daily'))}">${daily.map((d, i) => `<div class="tr-col" title="${esc(fmtD(d.day))}: ${d.views} ${esc(t('traffic_views'))}, ${d.visitors} ${esc(t('traffic_visitors'))}"><i style="height:${Math.round(d.views / max * 100)}%"></i><b style="height:${Math.round(d.visitors / max * 100)}%"></b><small>${i % step === 0 ? esc(fmtD(d.day)) : ''}</small></div>`).join('')}</div>
+      <p class="mute small"><span class="tr-key v"></span> ${esc(t('traffic_views'))} · <span class="tr-key u"></span> ${esc(t('traffic_visitors'))} · ${esc(t('traffic_max', { n: max }))}</p></section>
+    <div class="cols">
+      <section class="card"><h2>${esc(t('traffic_pages'))}</h2>${(s.pages || []).length ? `<table class="compact-stat"><tbody>${s.pages.map(p => `<tr><td>${esc(lab(p.path))}</td><td class="r num">${p.views}</td></tr>`).join('')}</tbody></table>` : empty()}</section>
+      <section class="card"><h2>${esc(t('traffic_sources'))}</h2>${(s.refs || []).length ? `<table class="compact-stat"><tbody>${s.refs.map(p => `<tr><td>${esc(p.ref)}</td><td class="r num">${p.views}</td></tr>`).join('')}</tbody></table>` : `<p class="mute">${esc(t('traffic_no_refs'))}</p>`}
+        <h2 style="margin-top:20px">${esc(t('traffic_devices'))}</h2><p>${esc(t('traffic_mobile'))} <b class="num">${Math.round((dev.mobile || 0) / devT * 100)}%</b> · ${esc(t('traffic_desktop'))} <b class="num">${Math.round((dev.desktop || 0) / devT * 100)}%</b></p></section></div>`;
+  el.onclick = e => { const b = e.target.closest('[data-trd]'); if (b) { trDays = +b.dataset.trd; traffic(el); } };
+}
+
 // ---------------------------------------------------------------- Activity log (admins only)
 let logWho = '';
 async function activityLog(el) {

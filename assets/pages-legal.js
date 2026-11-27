@@ -1,6 +1,6 @@
 // Imprint (Offenlegung § 25 MedienG) and privacy policy (DSGVO). German is the binding version.
-import { t, getLang } from './i18n.js?v=202611271102';
-import { state, esc } from './core.js?v=202611271102';
+import { t, getLang } from './i18n.js?v=202611271110';
+import { state, esc } from './core.js?v=202611271110';
 
 const legal = () => (state.pub && state.pub.site && state.pub.site.legal) || {};
 const fill = (v, what) => v ? esc(v) : `<span class="todo">[${esc(what)}]</span>`;
@@ -53,6 +53,9 @@ export function privacy(el) {
 
   <h3>7a. Farbrezepte</h3>
   <p>Deine Farbrezepte (Text und Fotos) werden in deinem Konto gespeichert und sind zunächst nur für dich sichtbar. Wenn du ein Rezept ausdrücklich „für alle teilst“, ist es öffentlich auf der Website zu sehen, zusammen mit deinem Anzeigenamen (Art. 6 Abs. 1 lit. a DSGVO). Du kannst das Teilen jederzeit beenden oder das Rezept löschen. Score-Tracker, MathHammer und Pairing-Trainer speichern ihre Eingaben nur im Speicher deines Browsers.</p>
+
+  <h3>7b. Besucherstatistik</h3>
+  <p>Um zu sehen, wie oft die Website genutzt wird, zählen wir Seitenaufrufe: welche Seite, welcher Tag, ob Handy oder Computer und gegebenenfalls die Website, von der du kamst (z. B. instagram.com). Wir setzen dafür keine Cookies und speichern keine IP-Adressen. Damit ein Besucher pro Tag nur einmal gezählt wird, bilden wir aus IP-Adresse, Browserkennung und einem täglich wechselnden Zufallswert eine Prüfsumme; der Zufallswert wird nach zwei Tagen gelöscht, danach lässt sich die Prüfsumme niemandem mehr zuordnen. Die Zahlen sehen nur Admins, sie werden nach 13 Monaten gelöscht (Art. 6 Abs. 1 lit. f DSGVO, berechtigtes Interesse an einer anonymen Reichweitenmessung).</p>
 
   <h3>8. Lokale Speicherung, keine Tracking-Cookies</h3>
   <p>Wir verwenden <b>keine Analyse-, Werbe- oder Tracking-Cookies</b>. Im Speicher deines Browsers (Local Storage) legen wir nur ab, was für die Funktion nötig ist: deine Anmeldung, die gewählte Sprache und Einstellungen wie zuletzt gewählte Armee oder Filter. Das ist nach § 165 Abs. 3 TKG 2021 ohne Einwilligung zulässig, weil es für den von dir gewünschten Dienst unbedingt erforderlich ist.</p>
