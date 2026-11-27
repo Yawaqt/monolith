@@ -504,3 +504,7 @@ ul.pop{list-style:none;margin:0;padding:0}ul.pop li{display:grid;grid-template-c
 .ms-split{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:-20px 0 24px}.ms-split .card{margin:0;padding:12px 14px;display:flex;flex-direction:column;gap:2px}.ms-split b{font-size:17px}
 .guest-links{margin:4px 0 26px}
 .hon-h{margin:36px 0 14px}
+.rot{position:relative}.rot-page{display:none}.rot-page.on{display:grid;animation:rotIn .5s ease}
+@keyframes rotIn{from{opacity:0}to{opacity:1}}@media(prefers-reduced-motion:reduce){.rot-page.on{animation:none}}
+.rot-dots{display:flex;justify-content:center;gap:8px;margin-top:14px}.rot-dots button{width:10px;height:10px;border-radius:50%;border:0;background:var(--line2,#ccc);padding:0;cursor:pointer}
+.rot-dots button[aria-selected="true"]{background:var(--ink);width:24px;border-radius:5px}

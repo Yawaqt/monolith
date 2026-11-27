@@ -1,10 +1,10 @@
 // Public pages: visible to everyone, built only from the safe public data.
-import { t } from './i18n.js?v=202611271040';
-import { state, can, esc, fmtDate, empty, safeImg, evRange, evKind } from './core.js?v=202611271040';
-import { newsCard, md } from './pages-news.js?v=202611271040';
-import { typeLabel, pct } from './data.js?v=202611271040';
-import { appsCards } from './pages-team.js?v=202611271040';
-import { CONFIG } from './config.js?v=202611271040';
+import { t } from './i18n.js?v=202611271102';
+import { state, can, esc, fmtDate, empty, safeImg, evRange, evKind } from './core.js?v=202611271102';
+import { newsCard, md } from './pages-news.js?v=202611271102';
+import { typeLabel, pct } from './data.js?v=202611271102';
+import { appsCards } from './pages-team.js?v=202611271102';
+import { CONFIG } from './config.js?v=202611271102';
 const IG_ICON = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>';
 
 const PUB = () => state.pub || { players: [], results: [], events: [] };
@@ -75,9 +75,29 @@ export function home(el) {
       ${events.length ? `<ul class="plist">${events.slice(0, 3).map(eventRow).join('')}</ul>` : empty(t('no_events'))}</section>
     ${tours[0] ? `<section class="block"><div class="block-head"><h2>${esc(t('latest_tournament'))}</h2><a href="#/results">${esc(t('all_results'))} →</a></div>${tourCard(tours[0])}</section>` : ''}
     <section class="block"><div class="block-head"><h2>${esc(t('meet_team'))}</h2><a href="#/team">${esc(t('whole_team'))} →</a></div>
-      <div class="pgrid">${players.slice(0, 6).map(p => playerCard(p, true)).join('')}</div></section>
+      ${teamRotator(players)}</section>
     ${CONFIG.INSTAGRAM ? `<section class="block"><a class="follow" href="${esc(CONFIG.INSTAGRAM)}" target="_blank" rel="noopener"><span class="follow-ico">${IG_ICON}</span><span><b>${esc(t('follow_title'))}</b><span class="mute">${esc(t('follow_text'))}</span></span><span class="btn primary sm">${esc(t('follow_btn'))} ↗</span></a></section>` : ''}
     <section class="block"><div class="block-head"><h2>${esc(t('p_apps'))}</h2></div>${appsCards()}</section>`;
+  startRotator(el);
+}
+// Home page: all members alphabetically (honorary members after them), six at a time, switching every 10 seconds
+const PER_PAGE = 6, ROTATE_MS = 10000;
+let rotTimer = null;
+function teamRotator(players) {
+  const list = [...byName(players.filter(p => !p.honorary)), ...byName(players.filter(p => p.honorary))];
+  const pages = []; for (let i = 0; i < list.length; i += PER_PAGE) pages.push(list.slice(i, i + PER_PAGE));
+  return `<div class="rot" data-pages="${pages.length}">${pages.map((pg, i) => `<div class="pgrid rot-page${i ? '' : ' on'}" data-page="${i}"${i ? ' aria-hidden="true"' : ''}>${pg.map(p => playerCard(p, true)).join('')}</div>`).join('')}
+    ${pages.length > 1 ? `<div class="rot-dots" role="tablist" aria-label="${esc(t('meet_team'))}">${pages.map((_, i) => `<button type="button" role="tab" data-rot="${i}" aria-selected="${!i}" aria-label="${i + 1} / ${pages.length}"></button>`).join('')}</div>` : ''}</div>`;
+}
+function startRotator(el) {
+  clearInterval(rotTimer);
+  const box = el.querySelector('.rot'); if (!box || +box.dataset.pages < 2) return;
+  let cur = 0; const n = +box.dataset.pages;
+  const show = i => { cur = (i + n) % n; box.querySelectorAll('.rot-page').forEach(p => { const on = +p.dataset.page === cur; p.classList.toggle('on', on); on ? p.removeAttribute('aria-hidden') : p.setAttribute('aria-hidden', 'true'); });
+    box.querySelectorAll('[data-rot]').forEach(b => b.setAttribute('aria-selected', String(+b.dataset.rot === cur))); };
+  const run = () => { clearInterval(rotTimer); rotTimer = setInterval(() => { if (!document.body.contains(box)) return clearInterval(rotTimer); if (!document.hidden && !box.matches(':hover')) show(cur + 1); }, ROTATE_MS); };
+  box.addEventListener('click', e => { const d = e.target.closest('[data-rot]'); if (d) { show(+d.dataset.rot); run(); } });
+  run();
 }
 const byName = list => [...list].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'de', { sensitivity: 'base' }));
 export function team(el) {
