@@ -1,10 +1,10 @@
 // Public pages: visible to everyone, built only from the safe public data.
-import { t } from './i18n.js?v=202611271129';
-import { state, can, esc, fmtDate, empty, safeImg, evRange, evKind } from './core.js?v=202611271129';
-import { newsCard, md } from './pages-news.js?v=202611271129';
-import { typeLabel, pct } from './data.js?v=202611271129';
-import { appsCards } from './pages-team.js?v=202611271129';
-import { CONFIG } from './config.js?v=202611271129';
+import { t } from './i18n.js?v=202611271818';
+import { state, can, esc, fmtDate, empty, safeImg, evRange, evKind } from './core.js?v=202611271818';
+import { newsCard, md } from './pages-news.js?v=202611271818';
+import { typeLabel, pct } from './data.js?v=202611271818';
+import { appsCards } from './pages-team.js?v=202611271818';
+import { CONFIG } from './config.js?v=202611271818';
 const IG_ICON = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>';
 
 const PUB = () => state.pub || { players: [], results: [], events: [] };
@@ -66,7 +66,7 @@ export function home(el) {
       <div class="hero-cta"><a class="btn primary" href="#/results">${esc(t('see_results'))}</a><a class="btn ghost" href="#/upcoming">${esc(t('see_events'))}</a></div></div>
       <div class="hero-mark" aria-hidden="true"><img src="assets/logo-mark.svg" alt="" width="130" height="250"></div></section>
     <section class="stats">
-      <div><b class="num">${players.length}</b><span>${esc(t('s_players'))}</span></div>
+      <div><b class="num">${players.filter(p => !p.honorary).length}</b><span>${esc(t('s_players'))}</span></div>
       <div><b class="num">${tourCount(tours)}</b><span>${esc(t('s_tournaments'))}</span></div>
       <div><b class="num">${all.n}</b><span>${esc(t('s_games'))}</span></div>
       <div><b class="num">${record(all)}</b><span>${esc(t('s_record'))}</span></div></section>
