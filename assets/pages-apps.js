@@ -1,9 +1,9 @@
 // Community apps: paint recipes (everyone), score tracker + chess clock, MathHammer, pairing trainer (admins while in test).
-import { db, DEMO } from './db.js?v=202611271005';
-import { t, getLang } from './i18n.js?v=202611271005';
-import { state, can, esc, $, $$, opts, toast, modal, confirmBox, empty, resizeImage, safeImg, fmtDate } from './core.js?v=202611271005';
-import { FACTIONS } from './data.js?v=202611271005';
-import { lightbox } from './pages-news.js?v=202611271005';
+import { db, DEMO } from './db.js?v=202611271019';
+import { t, getLang } from './i18n.js?v=202611271019';
+import { state, can, esc, $, $$, opts, toast, modal, confirmBox, empty, resizeImage, safeImg, fmtDate } from './core.js?v=202611271019';
+import { FACTIONS } from './data.js?v=202611271019';
+import { lightbox } from './pages-news.js?v=202611271019';
 
 const L = (de, en) => getLang() === 'de' ? de : en;
 const head = (title, intro, actions = '') => `<div class="page-head"><div><p class="eyebrow"><a href="#/apps">${esc(t('p_apps'))}</a></p><h1>${esc(title)}</h1>${intro ? `<p class="intro">${esc(intro)}</p>` : ''}</div>${actions ? `<div class="head-actions">${actions}</div>` : ''}</div>`;
