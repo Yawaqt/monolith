@@ -1,10 +1,10 @@
 // Public pages: visible to everyone, built only from the safe public data.
-import { t } from './i18n.js?v=202611271019';
-import { state, can, esc, fmtDate, empty, safeImg, evRange, evKind } from './core.js?v=202611271019';
-import { newsCard, md } from './pages-news.js?v=202611271019';
-import { typeLabel, pct } from './data.js?v=202611271019';
-import { appsCards } from './pages-team.js?v=202611271019';
-import { CONFIG } from './config.js?v=202611271019';
+import { t } from './i18n.js?v=202611271038';
+import { state, can, esc, fmtDate, empty, safeImg, evRange, evKind } from './core.js?v=202611271038';
+import { newsCard, md } from './pages-news.js?v=202611271038';
+import { typeLabel, pct } from './data.js?v=202611271038';
+import { appsCards } from './pages-team.js?v=202611271038';
+import { CONFIG } from './config.js?v=202611271038';
 const IG_ICON = '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>';
 
 const PUB = () => state.pub || { players: [], results: [], events: [] };
@@ -79,6 +79,7 @@ export function home(el) {
     ${CONFIG.INSTAGRAM ? `<section class="block"><a class="follow" href="${esc(CONFIG.INSTAGRAM)}" target="_blank" rel="noopener"><span class="follow-ico">${IG_ICON}</span><span><b>${esc(t('follow_title'))}</b><span class="mute">${esc(t('follow_text'))}</span></span><span class="btn primary sm">${esc(t('follow_btn'))} ↗</span></a></section>` : ''}
     <section class="block"><div class="block-head"><h2>${esc(t('p_apps'))}</h2></div>${appsCards()}</section>`;
 }
+const byName = list => [...list].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'de', { sensitivity: 'base' }));
 export function team(el) {
   const { players } = PUB(); const site = PUB().site || {};
   const about = site.about && site.about.text;
@@ -86,7 +87,8 @@ export function team(el) {
     ${about ? `<div class="about">${md(about)}</div>` : ''}
     ${slideshow(site.group_photos)}
     <h2 class="sec">${esc(t('profiles'))}</h2>
-    <div class="pgrid">${[...players].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'de', { sensitivity: 'base' })).map(p => playerCard(p, true)).join('') || empty()}</div>`;
+    <div class="pgrid">${byName(players.filter(p => !p.honorary)).map(p => playerCard(p, true)).join('') || empty()}</div>
+    ${players.some(p => p.honorary) ? `<h2 class="hon-h">${esc(t('honorary_members'))}</h2><div class="pgrid">${byName(players.filter(p => p.honorary)).map(p => playerCard(p, true)).join('')}</div>` : ''}`;
   bindSlides(el);
 }
 export function results(el) {

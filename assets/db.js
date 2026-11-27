@@ -1,5 +1,5 @@
 // Data access: Supabase when configured, otherwise a demo backend in localStorage.
-import { CONFIG } from './config.js?v=202611271019';
+import { CONFIG } from './config.js?v=202611271038';
 
 export const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY;
 export const TABLES = ['players', 'matches', 'events', 'rsvps', 'payments', 'ratings', 'opponent_teams', 'pairings', 'settings', 'tevents', 'tevent_rounds', 'news'];
@@ -126,7 +126,7 @@ const demo = {
     const tourArmies = (ms, pid) => { const c = new Map(); for (const m of ms) if (m.player_id === pid && (m.type === 'Tournament' || m.type === 'Team Tournament')) c.set(m.army, (c.get(m.army) || 0) + 1); return [...c.entries()].sort((a, b) => b[1] - a[1]).map(x => x[0]); };
     const T = load().tables; const P = T.players || []; const nm = id => (P.find(p => p.id === id) || {}).name;
     const today = new Date().toISOString().slice(0, 10);
-    if (name === 'public_players') return P.filter(p => p.active).sort((a, b) => a.sort - b.sort).map(p => ({ name: p.name, sort: p.sort, armies: tourArmies(T.matches || [], p.id), photo_url: p.photo_url || null, fav_army: p.fav_army || null, bio: p.bio || null }));
+    if (name === 'public_players') return P.filter(p => p.active).sort((a, b) => a.sort - b.sort).map(p => ({ name: p.name, sort: p.sort, armies: tourArmies(T.matches || [], p.id), photo_url: p.photo_url || null, fav_army: p.fav_army || null, bio: p.bio || null, honorary: !!p.honorary }));
     if (name === 'public_results') {
       const by = new Map();
       const rows = []; for (const m of T.matches || []) { rows.push({ ...m, pid: m.player_id }); if (m.opp_player_id) rows.push({ ...m, pid: m.opp_player_id, our_score: m.opp_score, opp_score: m.our_score }); }

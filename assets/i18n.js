@@ -170,6 +170,7 @@ const S = {
   to_casual_btn: ['Verschieben', 'Move'], to_casual_done: ['Als Casual in deine Match History verschoben', 'Moved to your match history as casual'],
   type_casual: ['Casual', 'Casual'], type_casual_long: ['Casual (nur persönlich)', 'Casual (personal only)'], casual_hint: ['Casual zählt nur in deiner persönlichen Match History, nicht in Team-Statistik oder Matrix. Mehr Punkte = Sieg.', 'Casual only counts in your personal match history, not in team stats or the matrix. More points = win.'],
   casual_saved: ['In deiner Match History gespeichert', 'Saved to your match history'],
+  honorary: ['Ehrenmitglied', 'Honorary member'], honorary_members: ['Ehrenmitglieder', 'Honorary members'],
   nav_mystats: ['Meine Statistik', 'My statistics'],
   mystats_intro: ['Deine Team-Spiele aus dem Match Log (Training, Singles, Team-Turniere) – nur du siehst diese Auswertung. Casual-Spiele zählen hier nie mit. Siegquote: Unentschieden = ½ Sieg.', 'Only your own games from the match log – only you see this. Win rate: draw = ½ win.'],
   mystats_noplayer: ['Dein Konto ist noch keinem Spieler zugeordnet. Ein Admin kann das unter Verwaltung erledigen.', 'Your account is not linked to a player yet. An admin can do this under Administration.'],

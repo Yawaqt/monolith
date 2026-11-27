@@ -1,18 +1,18 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611271019';
-import { db, DEMO, resetDemo, demoRole, setDemoRole, cameFromRecovery } from './db.js?v=202611271019';
-import { t, setLang, getLang } from './i18n.js?v=202611271019';
-import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox, fmtDate, empty } from './core.js?v=202611271019';
-import * as T from './pages-team.js?v=202611271019';
-import * as A from './pages-analysis.js?v=202611271019';
-import * as P from './pages-public.js?v=202611271019';
-import * as TE from './pages-teams.js?v=202611271019';
-import { FACTIONS } from './data.js?v=202611271019';
-import * as SITE from './pages-site.js?v=202611271019';
-import * as H from './pages-history.js?v=202611271019';
-import * as LG from './pages-legal.js?v=202611271019';
-import * as AP from './pages-apps.js?v=202611271019';
-import * as N from './pages-news.js?v=202611271019';
+import { CONFIG } from './config.js?v=202611271038';
+import { db, DEMO, resetDemo, demoRole, setDemoRole, cameFromRecovery } from './db.js?v=202611271038';
+import { t, setLang, getLang } from './i18n.js?v=202611271038';
+import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox, fmtDate, empty } from './core.js?v=202611271038';
+import * as T from './pages-team.js?v=202611271038';
+import * as A from './pages-analysis.js?v=202611271038';
+import * as P from './pages-public.js?v=202611271038';
+import * as TE from './pages-teams.js?v=202611271038';
+import { FACTIONS } from './data.js?v=202611271038';
+import * as SITE from './pages-site.js?v=202611271038';
+import * as H from './pages-history.js?v=202611271038';
+import * as LG from './pages-legal.js?v=202611271038';
+import * as AP from './pages-apps.js?v=202611271038';
+import * as N from './pages-news.js?v=202611271038';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['gallery', 'p_gallery', N.gallery], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
@@ -248,7 +248,7 @@ function drawMembers(el) {
       <form class="adm-add" id="addp"><input name="name" required maxlength="40" placeholder="${esc(t('adm_player_name'))}" aria-label="${esc(t('adm_player_name'))}"><button class="btn primary">+ ${esc(t('adm_add_player'))}</button></form>
       <div class="scroll"><table class="stack adm"><thead><tr><th>${esc(t('player'))}</th><th>${esc(t('active'))}</th><th>${esc(t('adm_accounts'))}</th><th class="r">${esc(t('games'))}</th><th></th></tr></thead><tbody>
       ${ps.map(q => `<tr${q.active ? '' : ' class="inactive"'}><td><input class="rename" data-rename="${q.id}" value="${esc(q.name)}" maxlength="40" aria-label="${esc(t('player'))}"></td>
-        <td><label class="switch"><input type="checkbox" data-active="${q.id}"${q.active ? ' checked' : ''}> <span>${esc(q.active ? t('active') : t('inactive'))}</span></label></td>
+        <td><label class="switch"><input type="checkbox" data-active="${q.id}"${q.active ? ' checked' : ''}> <span>${esc(q.active ? t('active') : t('inactive'))}</span></label><br><label class="switch"><input type="checkbox" data-honorary="${q.id}"${q.honorary ? ' checked' : ''}> <span>${esc(t('honorary'))}</span></label></td>
         <td>${accountsOf(q.id).map(esc).join(', ') || '<span class="mute">–</span>'}</td><td class="r num">${games(q.id)}</td>
         <td class="r"><button type="button" class="icon" data-delplayer="${q.id}" aria-label="${esc(t('delete'))}: ${esc(q.name)}">🗑</button></td></tr>`).join('')}
       </tbody></table></div></section>`;
@@ -267,7 +267,8 @@ function drawMembers(el) {
   };
   el.onchange = async e => {
     const r = e.target.closest('[data-role]'), l = e.target.closest('[data-link]'), a = e.target.closest('[data-active]'), rn = e.target.closest('[data-rename]');
-    const ct = e.target.closest('[data-content]');
+    const ct = e.target.closest('[data-content]'), hn = e.target.closest('[data-honorary]');
+    if (hn) { if (await act(() => db.update('players', { id: +hn.dataset.honorary }, { honorary: hn.checked }), ['players'])) await state.reloadPublic?.(); return; }
     if (ct) { if (await act(() => db.update('profiles', { id: ct.dataset.content }, ct.checked ? { content: true, reviewed_at: new Date().toISOString() } : { content: false }), null, ct.checked ? t('content_on') : t('content_off'))) { if (ct.dataset.content === state.me?.id) await refreshMe(); await reload(); } else ct.checked = !ct.checked; return; }
     if (r) { const prof = mList.find(x => x.id === r.dataset.role); const self = prof && prof.id === state.me?.id;
       if (self && r.value !== 'admin' && !await confirmBox(t('adm_giveup_q'))) { r.value = 'admin'; return; }
