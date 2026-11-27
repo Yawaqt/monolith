@@ -1,18 +1,18 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611271110';
-import { db, DEMO, resetDemo, demoRole, setDemoRole, cameFromRecovery } from './db.js?v=202611271110';
-import { t, setLang, getLang } from './i18n.js?v=202611271110';
-import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox, fmtDate, empty } from './core.js?v=202611271110';
-import * as T from './pages-team.js?v=202611271110';
-import * as A from './pages-analysis.js?v=202611271110';
-import * as P from './pages-public.js?v=202611271110';
-import * as TE from './pages-teams.js?v=202611271110';
-import { FACTIONS } from './data.js?v=202611271110';
-import * as SITE from './pages-site.js?v=202611271110';
-import * as H from './pages-history.js?v=202611271110';
-import * as LG from './pages-legal.js?v=202611271110';
-import * as AP from './pages-apps.js?v=202611271110';
-import * as N from './pages-news.js?v=202611271110';
+import { CONFIG } from './config.js?v=202611271116';
+import { db, DEMO, resetDemo, demoRole, setDemoRole, cameFromRecovery } from './db.js?v=202611271116';
+import { t, setLang, getLang } from './i18n.js?v=202611271116';
+import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox, fmtDate, empty } from './core.js?v=202611271116';
+import * as T from './pages-team.js?v=202611271116';
+import * as A from './pages-analysis.js?v=202611271116';
+import * as P from './pages-public.js?v=202611271116';
+import * as TE from './pages-teams.js?v=202611271116';
+import { FACTIONS } from './data.js?v=202611271116';
+import * as SITE from './pages-site.js?v=202611271116';
+import * as H from './pages-history.js?v=202611271116';
+import * as LG from './pages-legal.js?v=202611271116';
+import * as AP from './pages-apps.js?v=202611271116';
+import * as N from './pages-news.js?v=202611271116';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['gallery', 'p_gallery', N.gallery], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
@@ -117,34 +117,51 @@ state.render = render;
 
 // ---------------------------------------------------------------- Auth
 let lastReset = 0;
-let authMode = 'in', authMsg = '';
+let authMode = 'in', authMsg = '', authEmail = '', resendFor = '', lastResend = 0;
+// Supabase error texts → our own words
+const authErr = err => { const m = String(err && err.message || err || ''), c = err && err.code || '';
+  if (c === 'email_not_confirmed' || /not confirmed/i.test(m)) return 'not_confirmed';
+  if (c === 'invalid_credentials' || /invalid login credentials/i.test(m)) return t('err_login');
+  if (/at least|password should/i.test(m)) return t('err_pw_short');
+  if (c === 'over_email_send_rate_limit' || /rate limit|too many/i.test(m)) return t('err_rate');
+  return t('error') + ': ' + m; };
 function login(el) {
   const up = authMode === 'up';
   el.innerHTML = `<div class="auth"><form class="card form" id="auth" novalidate><h1>${esc(authMode === 'reset' ? t('forgot') : up ? t('sign_up') : t('sign_in'))}</h1><p class="mute">${esc(t('login_sub'))}</p>
       ${up ? `<label>${esc(t('display_name'))}<input name="name" required maxlength="40" autocomplete="nickname"></label>` : ''}
-      <label>${esc(t('email'))}<input name="email" type="email" required autocomplete="email"></label>
+      <label>${esc(t('email'))}<input name="email" type="email" required autocomplete="email" value="${esc(authEmail)}"></label>
       ${authMode !== 'reset' ? `<label>${esc(t('password'))}<input name="password" type="password" required minlength="8" autocomplete="${up ? 'new-password' : 'current-password'}"></label>` : ''}
       ${authMode !== 'reset' ? `<label class="check small"><input type="checkbox" name="remember"${localStorage.getItem('monolith.remember') === '0' ? '' : ' checked'}> ${esc(t('remember_me'))}</label>` : ''}
       ${up ? `<p class="mute small">${esc(t('signup_privacy'))} <a href="#/privacy" target="_blank">${esc(t('p_privacy'))}</a></p>` : ''}
       <button class="btn primary block">${esc(authMode === 'reset' ? t('forgot') : up ? t('sign_up') : t('sign_in'))}</button>
       ${CONFIG.GOOGLE_LOGIN && authMode !== 'reset' ? `<button type="button" class="btn ghost block" data-google>${esc(t('google'))}</button>` : ''}
       ${authMsg ? `<p class="notice" role="status">${esc(authMsg)}</p>` : ''}
+      ${resendFor && authMode !== 'reset' ? `<p class="small mute resend-box">${esc(t('resend_hint'))} <button type="button" class="link" data-resend>${esc(t('resend_btn'))}</button></p>` : ''}
       <p class="auth-links"><button type="button" class="link" data-mode="${up ? 'in' : 'up'}">${esc(up ? t('have_account') : t('no_account'))}</button>${!up && authMode !== 'reset' ? `<button type="button" class="link" data-mode="reset">${esc(t('forgot'))}</button>` : ''}${authMode === 'reset' ? `<button type="button" class="link" data-mode="in">${esc(t('sign_in'))}</button>` : ''}</p></form></div>`;
   const f = $('#auth');
   f.addEventListener('submit', async e => {
     e.preventDefault(); if (!f.reportValidity()) return;
     const btn = f.querySelector('button.primary'); if (btn.disabled) return;
     if (authMode === 'reset' && Date.now() - lastReset < 60000) { authMsg = t('reset_wait'); return render(); }
-    btn.disabled = true; authMsg = '';
+    btn.disabled = true; authMsg = ''; authEmail = f.email.value.trim();
     if (f.remember) { try { localStorage.setItem('monolith.remember', f.remember.checked ? '1' : '0'); sessionStorage.setItem('monolith.alive', '1'); } catch (_) {} }
     try {
       if (authMode === 'reset') { await db.reset(f.email.value.trim()); lastReset = Date.now(); authMsg = t('reset_sent'); }
-      else if (up) { const confirm = await db.signUp(f.email.value.trim(), f.password.value, f.name.value.trim()); if (confirm) authMsg = t('check_mail'); }
-      else await db.signIn(f.email.value.trim(), f.password.value);
-    } catch (err) { authMsg = t('error') + ': ' + err.message; }
+      else if (up) { const confirm = await db.signUp(authEmail, f.password.value, f.name.value.trim());
+        if (confirm === 'exists') { authMsg = t('signup_exists'); authMode = 'in'; resendFor = ''; }
+        else if (confirm) { authMsg = t('check_mail_to', { email: authEmail }); resendFor = authEmail; lastResend = Date.now(); } }
+      else { await db.signIn(authEmail, f.password.value); resendFor = ''; }
+    } catch (err) { const m = authErr(err); if (m === 'not_confirmed') { authMsg = t('not_confirmed'); resendFor = authEmail; } else authMsg = m; }
     render();
   });
-  el.onclick = e => { const m = e.target.closest('[data-mode]'); if (m) { authMode = m.dataset.mode; authMsg = ''; login(el); } if (e.target.closest('[data-google]')) { if (f.remember) { try { localStorage.setItem('monolith.remember', f.remember.checked ? '1' : '0'); sessionStorage.setItem('monolith.alive', '1'); } catch (_) {} } db.google().catch(err => toast(err.message, true)); } };
+  el.onclick = async e => {
+    if (e.target.closest('[data-resend]')) {
+      const email = (f.email.value || resendFor).trim(); if (!email) return;
+      if (Date.now() - lastResend < 60000) { authMsg = t('resend_wait'); return login(el); }
+      try { await db.resend(email); lastResend = Date.now(); authMsg = t('resend_done', { email }); } catch (err) { authMsg = authErr(err); }
+      authEmail = email; return login(el);
+    }
+    const m = e.target.closest('[data-mode]'); if (m) { authMode = m.dataset.mode; authMsg = ''; login(el); } if (e.target.closest('[data-google]')) { if (f.remember) { try { localStorage.setItem('monolith.remember', f.remember.checked ? '1' : '0'); sessionStorage.setItem('monolith.alive', '1'); } catch (_) {} } db.google().catch(err => toast(err.message, true)); } };
 }
 
 async function newPasswordDialog() {

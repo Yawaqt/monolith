@@ -1,5 +1,5 @@
 // Data access: Supabase when configured, otherwise a demo backend in localStorage.
-import { CONFIG } from './config.js?v=202611271110';
+import { CONFIG } from './config.js?v=202611271116';
 
 export const DEMO = !CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY;
 export const TABLES = ['players', 'matches', 'events', 'rsvps', 'payments', 'ratings', 'opponent_teams', 'pairings', 'settings', 'tevents', 'tevent_rounds', 'news'];
@@ -30,8 +30,11 @@ const real = {
   async signUp(email, password, display_name) {
     const c = await client();
     const { data, error } = await c.auth.signUp({ email, password, options: { data: { display_name }, emailRedirectTo: location.origin + location.pathname } });
-    if (error) fail(error); return !data.session; // true = must confirm email
+    if (error) fail(error);
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) return 'exists'; // address already registered (Supabase hides this on purpose)
+    return !data.session; // true = must confirm email
   },
+  async resend(email) { const c = await client(); const { error } = await c.auth.resend({ type: 'signup', email, options: { emailRedirectTo: location.origin + location.pathname } }); if (error) fail(error); },
   async google() { const c = await client(); const { error } = await c.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: location.origin + location.pathname } }); if (error) fail(error); },
   async reset(email) { const c = await client(); const { error } = await c.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname }); if (error) fail(error); },
   async setPassword(password) { const c = await client(); const { error } = await c.auth.updateUser({ password }); if (error) fail(error); },
@@ -91,7 +94,7 @@ const tbl = t => (t === 'profiles' ? load().profiles : (load().tables[t] = load(
 const demo = {
   async session() { return { user: { id: 'demo-user', email: 'demo@monolith.local' } }; },
   onAuth() {},
-  async signIn() {}, async signUp() { return false; }, async google() {}, async reset() {}, async setPassword() {}, async signOut() {},
+  async signIn() {}, async signUp() { return false; }, async resend() {}, async google() {}, async reset() {}, async setPassword() {}, async signOut() {},
   async me() { return load().profiles[0]; },
   async list(table, order) {
     if (table === 'activity_log' && !tbl(table).length) { const h = x => new Date(Date.now() - x * 3600e3).toISOString(); tbl(table).push(
