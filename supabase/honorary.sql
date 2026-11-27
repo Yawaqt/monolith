@@ -36,3 +36,9 @@ begin
 end $$;
 drop trigger if exists profiles_sync_honorary on public.profiles;
 create trigger profiles_sync_honorary after update on public.profiles for each row execute function public.sync_honorary();
+
+-- Honorary members only see team tournaments they are part of (lineup); everyone else in the team sees all
+drop policy if exists tevents_read on public.tevents;
+create policy tevents_read on public.tevents for select using (public.has_role('team') and (public.my_role() <> 'honorary' or public.tevent_member(id)));
+drop policy if exists trounds_read on public.tevent_rounds;
+create policy trounds_read on public.tevent_rounds for select using (public.has_role('team') and (public.my_role() <> 'honorary' or public.tevent_member(tevent_id)));
