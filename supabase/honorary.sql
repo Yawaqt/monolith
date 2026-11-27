@@ -19,3 +19,20 @@ as $$
 $$;
 revoke all on function public.public_players() from public;
 grant execute on function public.public_players() to anon, authenticated;
+
+-- Ehrenmitglied as an assignable account role (same rights as a member); keeps the player's honorary flag in step
+alter table public.profiles drop constraint if exists profiles_role_check;
+alter table public.profiles add constraint profiles_role_check check (role = any (array['guest','team','honorary','captain','admin']));
+create or replace function public.role_rank(r text) returns integer language sql immutable as $$
+  select case r when 'admin' then 4 when 'captain' then 3 when 'team' then 2 when 'honorary' then 2 when 'guest' then 1 else 0 end
+$$;
+create or replace function public.sync_honorary() returns trigger language plpgsql security definer set search_path to 'public' as $$
+begin
+  if new.player_id is not null and (new.role is distinct from old.role or new.player_id is distinct from old.player_id) then
+    if new.role = 'honorary' then update public.players set honorary = true where id = new.player_id;
+    elsif old.role = 'honorary' and new.player_id = old.player_id then update public.players set honorary = false where id = new.player_id; end if;
+  end if;
+  return new;
+end $$;
+drop trigger if exists profiles_sync_honorary on public.profiles;
+create trigger profiles_sync_honorary after update on public.profiles for each row execute function public.sync_honorary();

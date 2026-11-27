@@ -1,18 +1,18 @@
 // App shell: public site + team area, authentication, routing, profile, members.
-import { CONFIG } from './config.js?v=202611271038';
-import { db, DEMO, resetDemo, demoRole, setDemoRole, cameFromRecovery } from './db.js?v=202611271038';
-import { t, setLang, getLang } from './i18n.js?v=202611271038';
-import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox, fmtDate, empty } from './core.js?v=202611271038';
-import * as T from './pages-team.js?v=202611271038';
-import * as A from './pages-analysis.js?v=202611271038';
-import * as P from './pages-public.js?v=202611271038';
-import * as TE from './pages-teams.js?v=202611271038';
-import { FACTIONS } from './data.js?v=202611271038';
-import * as SITE from './pages-site.js?v=202611271038';
-import * as H from './pages-history.js?v=202611271038';
-import * as LG from './pages-legal.js?v=202611271038';
-import * as AP from './pages-apps.js?v=202611271038';
-import * as N from './pages-news.js?v=202611271038';
+import { CONFIG } from './config.js?v=202611271040';
+import { db, DEMO, resetDemo, demoRole, setDemoRole, cameFromRecovery } from './db.js?v=202611271040';
+import { t, setLang, getLang } from './i18n.js?v=202611271040';
+import { state, role, can, esc, $, opts, players, pname, playerById, loadData, act, toast, pageHead, modal, confirmBox, fmtDate, empty } from './core.js?v=202611271040';
+import * as T from './pages-team.js?v=202611271040';
+import * as A from './pages-analysis.js?v=202611271040';
+import * as P from './pages-public.js?v=202611271040';
+import * as TE from './pages-teams.js?v=202611271040';
+import { FACTIONS } from './data.js?v=202611271040';
+import * as SITE from './pages-site.js?v=202611271040';
+import * as H from './pages-history.js?v=202611271040';
+import * as LG from './pages-legal.js?v=202611271040';
+import * as AP from './pages-apps.js?v=202611271040';
+import * as N from './pages-news.js?v=202611271040';
 
 // Public pages (top navigation)
 const PUBLIC = [['home', 'p_home', P.home], ['news', 'p_news', N.list], ['gallery', 'p_gallery', N.gallery], ['team', 'p_team', P.team], ['results', 'p_results', P.results], ['upcoming', 'p_events', P.upcoming], ['apps', 'p_apps', P.apps]];
@@ -223,10 +223,10 @@ async function members(el) {
 function roleCell(p, me) {
   const tag = `<span class="tag role-${esc(p.role)}">${esc(t('r_' + p.role))}</span>`;
   const sel = roles => `<select data-role="${esc(p.id)}" aria-label="${esc(t('role'))}">${opts(roles.map(r => [r, t('r_' + r)]), p.role)}</select>`;
-  if (me) return p.role === 'admin' ? `${sel(['admin', 'captain', 'team'])}<br><small class="mute">${esc(t('adm_self_hint'))}</small>` : tag;
-  if (isOwner()) return sel(['guest', 'team', 'captain', 'admin']);
+  if (me) return p.role === 'admin' ? `${sel(['admin', 'captain', 'team', 'honorary'])}<br><small class="mute">${esc(t('adm_self_hint'))}</small>` : tag;
+  if (isOwner()) return sel(['guest', 'team', 'honorary', 'captain', 'admin']);
   if (p.role === 'admin') return `${tag} <span class="mute small" title="${esc(t('adm_owner_only'))}">🔒</span>`;
-  return sel(['guest', 'team', 'captain']);
+  return sel(['guest', 'team', 'honorary', 'captain']);
 }
 function drawMembers(el) {
   const list = mList.slice().sort((a, b) => (a.role === 'guest' && !a.reviewed_at ? 0 : 1) - (b.role === 'guest' && !b.reviewed_at ? 0 : 1) || (b.created_at || '').localeCompare(a.created_at || ''));
@@ -272,7 +272,7 @@ function drawMembers(el) {
     if (ct) { if (await act(() => db.update('profiles', { id: ct.dataset.content }, ct.checked ? { content: true, reviewed_at: new Date().toISOString() } : { content: false }), null, ct.checked ? t('content_on') : t('content_off'))) { if (ct.dataset.content === state.me?.id) await refreshMe(); await reload(); } else ct.checked = !ct.checked; return; }
     if (r) { const prof = mList.find(x => x.id === r.dataset.role); const self = prof && prof.id === state.me?.id;
       if (self && r.value !== 'admin' && !await confirmBox(t('adm_giveup_q'))) { r.value = 'admin'; return; }
-      if (await act(() => db.update('profiles', { id: r.dataset.role }, { role: r.value, reviewed_at: new Date().toISOString() }), null)) { if (self) { await refreshMe(); location.hash = '#/portal'; } await reload(); } else r.value = prof.role; }
+      if (await act(() => db.update('profiles', { id: r.dataset.role }, { role: r.value, reviewed_at: new Date().toISOString() }), null)) { if (self) { await refreshMe(); location.hash = '#/portal'; } if (r.value === 'honorary' || prof.role === 'honorary') await state.reloadPublic?.(); await reload(); } else r.value = prof.role; }
     if (l && l.value === '__new') {
       const prof = mList.find(x => x.id === l.dataset.link);
       const res = await modal(t('adm_new_player'), `<label>${esc(t('adm_player_name'))}<input name="name" required maxlength="40" value="${esc(prof?.display_name || '')}"></label><p class="mute small">${esc(t('adm_new_player_hint', { name: prof?.display_name || '' }))}</p>`, { submit: t('adm_create_link') });

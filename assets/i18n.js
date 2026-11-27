@@ -229,7 +229,7 @@ const S = {
   login_title: ['Willkommen beim Team', 'Welcome to the team'], login_sub: ['Melde dich an, um Spiele, Events und Auswertungen zu sehen.', 'Sign in to see games, events and analysis.'],
   new_password: ['Neues Passwort', 'New password'], save_password: ['Passwort speichern', 'Save password'],
   // roles
-  role: ['Rolle', 'Role'], r_guest: ['Gast', 'Guest'], r_team: ['Team', 'Team'], r_captain: ['Captain', 'Captain'], r_admin: ['Admin', 'Admin'],
+  role: ['Rolle', 'Role'], r_guest: ['Gast', 'Guest'], r_team: ['Team', 'Team'], r_honorary: ['Ehrenmitglied', 'Honorary member'], r_captain: ['Captain', 'Captain'], r_admin: ['Admin', 'Admin'],
   pending: ['Mit deinem Konto nutzt du die Match History mit eigener Statistik, die anonyme Auswertung „Daten“ und die Apps – alles an dein Konto gebunden.', 'With your account you can use the match history with your own stats, the anonymous “Data” page and the apps – all tied to your account.'],
   no_access: ['Für diesen Bereich hast du keine Berechtigung.', 'You don’t have access to this area.'],
   not_linked: ['Dein Konto ist noch keinem Spieler zugeordnet. Ein Admin kann das unter „Mitglieder“ erledigen.', 'Your account isn’t linked to a player yet. An admin can do that under “Members”.'],
